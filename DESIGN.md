@@ -10,12 +10,13 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Troops | Each tick: `troops × interest × (1 − troops/cap) + tiles × landIncome`. Cap = `tiles × 100`. Above the cap, troops slowly desert. | `grow()` in `game.ts` |
 | Expanding | Clicking empty land sends a share of your troops into all neutral land along your border. Each tile costs `2 × terrain` troops. | `launch()`, `advance()` |
 | Attacking | Same, into one neighbour. Each tile costs `(2 + 2 × their troops per tile) × terrain`; they lose one tile's worth of troops. Two players attacking each other clash first and cancel out. | `launch()`, `tileCost()` |
+| Terrain | Low meadows are fast. Above that, every tile's height adds delay (up to +10 ticks per tile at the peaks) and cost (up to 2.5× at the peaks), so mountains are natural fortresses. | `enqueue()`, `tileCost()` |
 | Fronts | Each attack keeps a priority queue of target tiles keyed by the tick they fall. Terrain slows it, tiles surrounded on more sides fall sooner, and a little seeded randomness keeps fronts organic. | `enqueue()`, `heap.ts` |
 | Capitals | Losing yours halves your troops; a new one is chosen near the middle of your land. | `loseCapital()` |
 | Encirclement | Every second, land cut off by exactly one player changes hands: enemy fragments without their capital, and small neutral pockets. | `sweepEnclosures()` |
 | Winning | Quick match: most land after 5 minutes. Classic: 80% of the land, or last one standing. | `checkEnd()` |
 | Gold | Each tile earns gold every tick. | `grow()` |
-| Buildings | City: +20% troop cap. Defence post: land within 8 tiles costs attackers 2× and falls slower. Silo: launches missiles. Each one you own raises the next one's price. Buildings change hands with their tile. | `canBuild()`, `conquer()` |
+| Buildings | City: +20% troop cap. Bunker (defence post): land within 12 tiles costs attackers 3.5×, falls 6 ticks slower per tile, and its owner loses only half the usual troops there. Silo: launches missiles. Each one you own raises the next one's price. Buildings change hands with their tile. | `canBuild()`, `conquer()` |
 | Missiles | Rocket (radius 5) and nuke (radius 12) fly from your nearest silo. On impact land turns neutral, buildings are destroyed, owners lose troops, and a hit capital counts as lost. Fallout: bombed land isn't absorbed as a pocket and costs double for 30 s. | `fireMissile()`, `impact()` |
 | Prices | `cost + step × owned`, capped at `max` per kind. | `buildCost()` |
 | Trains | A factory's rail runs to up to 6 of its owner's cities and ports within 60 tiles, nearest-neighbour order. One train per factory per minute; +10K gold per city/port passed. | `railRoute()`, `updateTrains()` |

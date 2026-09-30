@@ -28,9 +28,14 @@ export const CONFIG = {
   /** Share of troops a player loses along with their capital. */
   capitalPenalty: 0.5,
   /** Cost multiplier per terrain: water, plains, highlands, mountains. */
-  terrainCost: [0, 1, 1.5, 2.5],
-  /** Ticks for a front to cross one tile of each terrain. */
-  terrainDelay: [0, 2, 3, 5],
+  terrainCost: [0, 1, 1.2, 1.5],
+  /** On top of that, the higher the ground (0–1), the dearer: up to this many × more at the peaks. */
+  heightCost: 1.5,
+  /** Base ticks for a front to cross one tile of each terrain (height adds more, below). */
+  terrainDelay: [0, 2, 2, 2],
+  /** Extra ticks per tile from height: none on low meadows (below `flatUpTo`), up to this many at the peaks. */
+  heightDelay: 10,
+  flatUpTo: 90,
   /** Extra ticks per tile when the tile belongs to another player. */
   enemyDelay: 2,
   /** Random extra ticks per tile, so fronts grow unevenly. */
@@ -67,9 +72,11 @@ export const CONFIG = {
   /** Each city raises your troop cap by this share. */
   cityCapBonus: 0.2,
   /** Land within this radius of a defence post costs attackers `defenseCostFactor` × more and falls slower. */
-  defenseRadius: 8,
-  defenseCostFactor: 2,
-  defenseDelay: 3,
+  defenseRadius: 12,
+  defenseCostFactor: 3.5,
+  defenseDelay: 6,
+  /** Inside a bunker's range the defender loses only this share of the usual troops per tile. */
+  defenseLossFactor: 0.5,
 
   // Missiles
   missiles: {

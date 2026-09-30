@@ -15,7 +15,7 @@ export const TOOLS: Tool[] = [
   { kind: 'city', action: 'build', key: 'q', name: 'Stadt', hint: 'Erhöht deine Truppenobergrenze um 20 %.' },
   { kind: 'factory', action: 'build', key: 'w', name: 'Fabrik', hint: 'Verlegt Gleise zu deinen Städten und Häfen in der Nähe. Jede Minute fährt ein Zug; jede Stadt und jeder Hafen auf der Strecke bringt 10K Gold.' },
   { kind: 'port', action: 'build', key: 'e', name: 'Hafen', hint: 'An der Küste. Damit schickst du Truppen per Boot übers Wasser: einfach auf Land jenseits des Wassers klicken.' },
-  { kind: 'defense', action: 'build', key: 'r', name: 'Abwehr', hint: 'Land im Umkreis kostet Angreifer doppelt so viel und fällt langsamer.' },
+  { kind: 'defense', action: 'build', key: 'r', name: 'Bunker', hint: 'Im großen Umkreis kostet dein Land Angreifer 3,5-mal so viel, fällt viel langsamer, und du verlierst dort nur halb so viele Truppen.' },
   { kind: 'silo', action: 'build', key: 't', name: 'Silo', hint: 'Nötig, um Raketen und Atombomben abzufeuern.' },
   { kind: 'rocket', action: 'launch', key: 'f', name: 'Rakete', hint: 'Zerstört Land und Gebäude in einem kleinen Umkreis.' },
   { kind: 'nuke', action: 'launch', key: 'g', name: 'Atombombe', hint: 'Zerstört einen großen Umkreis und verseucht ihn 30 Sekunden lang.' },

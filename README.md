@@ -21,7 +21,8 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Grow.** Troops grow fastest when you are well below your cap, and the cap rises with your land. Sitting at the cap wastes growth.
 - **Capitals.** The star in a ring is a capital. Losing yours costs half your troops, and a new one is picked inside your land.
 - **Encircle.** Enemy land cut off from its capital by you alone becomes yours, and so do small pockets of empty land inside your territory.
-- **Gold and buildings.** Land earns gold. Press `Q` for a city (+20% troop cap), `R` for a defence post (land around it costs attackers double), `T` for a missile silo, then click your land.
+- **Gold and buildings.** Land earns gold. Press `Q` for a city (+20% troop cap), `R` for a bunker (land within 12 tiles costs attackers 3.5×, falls much slower, and you lose half as many troops there), `T` for a missile silo, then click your land.
+- **Height.** The higher the ground, the slower and dearer it is to take. Low meadows are quick; mountain peaks are fortresses.
 - **Prices.** Each building of a kind you already own adds a fixed amount to the next one's price, up to a cap (the 21st city costs 20K).
 - **Factories and trains (`W`).** A factory lays rail to your cities and ports within 60 tiles. Every minute a train runs the line; each city or port it passes pays 10K gold.
 - **Ports and boats (`E`).** Build a port on the coast, then click land across the water: troops sail over and land. Islands can only be reached this way.

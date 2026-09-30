@@ -203,7 +203,7 @@ export class Session implements InputTarget {
       city: 'eine Stadt',
       factory: 'eine Fabrik',
       port: 'einen Hafen (an der Küste)',
-      defense: 'einen Abwehrposten',
+      defense: 'einen Bunker',
       silo: 'ein Raketensilo',
     };
     const cancel = 'Rechtsklick oder Esc bricht ab.';
@@ -483,7 +483,7 @@ export class Session implements InputTarget {
         if (e.player === me.id) hud.post(`${name(e.by)} hat ${e.tiles} deiner Felder abgeschnitten und übernommen.`, 'bad');
         else if (e.by === me.id) hud.post(`Du hast ${e.tiles} Felder von ${name(e.player)} abgeschnitten und übernommen.`, 'good');
       } else if (e.type === 'captured') {
-        const what = { defense: 'den Abwehrposten', silo: 'das Raketensilo', city: 'die Stadt', port: 'den Hafen', factory: 'die Fabrik' }[e.kind];
+        const what = { defense: 'den Bunker', silo: 'das Raketensilo', city: 'die Stadt', port: 'den Hafen', factory: 'die Fabrik' }[e.kind];
         if (e.by === me.id) hud.post(`Du hast ${what} von ${name(e.from)} erobert.`, 'good');
         else if (e.from === me.id) hud.post(`${name(e.by)} hat ${what} von dir erobert.`, 'bad');
       } else if (e.type === 'launched') {
