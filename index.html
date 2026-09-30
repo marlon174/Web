@@ -90,6 +90,8 @@
               <li>Troops grow fastest when you are well below your cap, so keep spending them.</li>
               <li>Each player has a capital, marked with a star. Losing yours costs half your troops.</li>
               <li>Cut off enemy land from its capital, or surround empty land, and it becomes yours.</li>
+              <li>Land earns <strong>gold</strong>. Spend it on cities (more troops), defence posts and missile silos.</li>
+              <li>With a silo, fire <strong>rockets</strong> and <strong>nukes</strong> anywhere. Bombed land turns neutral and stays poisoned for 30 seconds.</li>
             </ul>
           </details>
         </div>
@@ -108,6 +110,11 @@
               <span class="stat-label">Land</span>
               <span class="stat-value" id="land">0%</span>
               <span class="stat-note" id="tiles"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Gold</span>
+              <span class="stat-value gold" id="gold">0</span>
+              <span class="stat-note" id="gold-rate"></span>
             </div>
           </section>
           <ul class="feed" id="feed" aria-live="polite"></ul>
@@ -142,6 +149,7 @@
 
         <div class="bottom-center">
           <ul class="fronts" id="fronts"></ul>
+          <div class="panel tools" id="tools" role="toolbar" aria-label="Build and fire"></div>
           <div class="panel send">
             <label for="ratio" class="send-label">Send</label>
             <input type="range" id="ratio" min="5" max="100" step="5" value="40" />
@@ -149,7 +157,7 @@
           </div>
         </div>
 
-        <p class="keys">1–0 troops · Scroll zoom · Drag pan · C capital · Space pause</p>
+        <p class="keys">Q–T build and fire · 1–0 troops · Scroll zoom · C capital · Space pause</p>
         <div class="toast" id="toast" role="alert" hidden></div>
       </div>
 

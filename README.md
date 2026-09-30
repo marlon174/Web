@@ -21,6 +21,8 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Grow.** Troops grow fastest when you are well below your cap, and the cap rises with your land. Sitting at the cap wastes growth.
 - **Capitals.** The star in a ring is a capital. Losing yours costs half your troops, and a new one is picked inside your land.
 - **Encircle.** Enemy land cut off from its capital by you alone becomes yours, and so do small pockets of empty land inside your territory.
+- **Gold and buildings.** Land earns gold. Press `Q` for a city (+20% troop cap), `W` for a defence post (land around it costs attackers double), `E` for a missile silo, then click your land.
+- **Missiles.** With a silo, press `R` (rocket) or `T` (nuke) and click any target. The blast turns land neutral, destroys buildings and kills troops; bombed ground stays poisoned for 30 seconds. Right-click or `Esc` cancels.
 - **Win.** Quick match: most land after 5 minutes. Classic: hold 80% of the land.
 
 Controls: drag to pan, scroll or pinch to zoom, `C` or the target button to find your capital, `Space` to pause.

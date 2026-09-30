@@ -27,10 +27,12 @@ const game = new Game(createSettings(options, map));
 const perSecond = CONFIG.ticksPerSecond;
 started = performance.now();
 let slowest = 0;
+let launched = 0;
 while (game.phase !== 'over' && game.tick < 20 * 60 * perSecond) {
   const t = performance.now();
   game.step();
   slowest = Math.max(slowest, performance.now() - t);
+  launched += game.drainEvents().filter((e) => e.type === 'launched').length;
   if (game.tick % (30 * perSecond) === 0) {
     const alive = game.players.filter((p) => p.alive).sort((a, b) => b.tiles - a.tiles);
     const top = alive
@@ -38,8 +40,11 @@ while (game.phase !== 'over' && game.tick < 20 * 60 * perSecond) {
       .map((p) => `${p.name} ${((100 * p.tiles) / map.landTiles).toFixed(1)}%`)
       .join(', ');
     const neutral = map.landTiles - alive.reduce((sum, p) => sum + p.tiles, 0);
+    const built = { city: 0, defense: 0, silo: 0 };
+    for (const b of game.buildings) built[b.kind]++;
     console.log(
-      `${String(game.tick / perSecond).padStart(5)}s  alive ${String(alive.length).padStart(2)}  neutral ${((100 * neutral) / map.landTiles).toFixed(1).padStart(5)}%  ${top}`,
+      `${String(game.tick / perSecond).padStart(5)}s  alive ${String(alive.length).padStart(2)}  neutral ${((100 * neutral) / map.landTiles).toFixed(1).padStart(5)}%  ` +
+        `cities ${built.city} posts ${built.defense} silos ${built.silo} missiles ${launched}  ${top}`,
     );
   }
 }

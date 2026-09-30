@@ -42,17 +42,52 @@ export interface Player {
   peakTiles: number;
   /** Final placing (1 = winner). 0 until the player is out or the match ends. */
   place: number;
+  gold: number;
+  /** How many of each building the player owns right now. */
+  readonly owned: Record<BuildingKind, number>;
   readonly brain: BotBrain | null;
 }
 
+export type BuildingKind = 'city' | 'defense' | 'silo';
+export type MissileKind = 'rocket' | 'nuke';
+export const BUILDING_KINDS: readonly BuildingKind[] = ['city', 'defense', 'silo'];
+
+export interface Building {
+  readonly id: number;
+  readonly kind: BuildingKind;
+  readonly tile: number;
+  owner: number;
+}
+
+export interface Missile {
+  readonly id: number;
+  readonly kind: MissileKind;
+  readonly owner: number;
+  /** Silo it left from, and the tile it will hit. */
+  readonly from: number;
+  readonly to: number;
+  /** Who held the target tile at launch (NEUTRAL for empty land). */
+  readonly victim: number;
+  readonly launched: number;
+  readonly arrives: number;
+}
+
+/** Why a build or launch isn't possible right now. */
+export type Refusal = 'notYours' | 'tooClose' | 'gold' | 'noSilo' | 'offMap';
+
 export type Intent =
   | { type: 'spawn'; player: number; tile: number }
-  | { type: 'attack'; player: number; target: number; permille: number };
+  | { type: 'attack'; player: number; target: number; permille: number }
+  | { type: 'build'; player: number; tile: number; kind: BuildingKind }
+  | { type: 'launch'; player: number; tile: number; kind: MissileKind };
 
 export type GameEvent =
   | { type: 'capitalLost'; player: number; by: number }
   | { type: 'eliminated'; player: number; by: number }
   | { type: 'encircled'; player: number; by: number; tiles: number }
+  | { type: 'captured'; kind: BuildingKind; tile: number; from: number; by: number }
+  | { type: 'launched'; missile: Missile }
+  | { type: 'impact'; missile: Missile; losses: { player: number; tiles: number }[]; buildings: number }
   | { type: 'gameOver'; winner: number };
 
 export interface Attack {
@@ -82,6 +117,8 @@ export class Game {
   readonly size: number;
   /** Owner id per tile. Water is always NEUTRAL. */
   readonly owner: Uint16Array;
+  /** Tick until which each tile is contaminated by a missile, 0 if never hit. */
+  readonly fallout: Int32Array;
   /** Players by id - 1. Use `player(id)`. */
   readonly players: Player[];
   tick = 0;
@@ -95,6 +132,9 @@ export class Game {
   /** Position of each tile in its owner's border list, or -1. */
   private readonly borderPos: Int32Array;
   private attackList: Attack[] = [];
+  private readonly buildingsByTile = new Map<number, Building>();
+  private missileList: Missile[] = [];
+  private nextId = 1;
   private pending: Intent[] = [];
   private changed: number[] = [];
   private events: GameEvent[] = [];
@@ -112,6 +152,7 @@ export class Game {
     this.size = this.width * this.height;
     this.terrain = this.map.terrain;
     this.owner = new Uint16Array(this.size);
+    this.fallout = new Int32Array(this.size);
     this.borderPos = new Int32Array(this.size).fill(-1);
     this.seen = new Int32Array(this.size);
     this.stack = new Int32Array(this.size);
@@ -132,6 +173,8 @@ export class Game {
       sumY: 0,
       peakTiles: 0,
       place: 0,
+      gold: 0,
+      owned: { city: 0, defense: 0, silo: 0 },
       brain: setup.bot ? createBrain(this.rng, settings.difficulty, i) : null,
     }));
   }
@@ -148,8 +191,70 @@ export class Game {
     return this.attackList;
   }
 
+  /** Buildings in the order they were built. */
+  get buildings(): IterableIterator<Building> {
+    return this.buildingsByTile.values();
+  }
+
+  buildingAt(tile: number): Building | undefined {
+    return this.buildingsByTile.get(tile);
+  }
+
+  get missiles(): readonly Missile[] {
+    return this.missileList;
+  }
+
   maxTroops(p: Player): number {
-    return p.tiles * CONFIG.troopsPerTile;
+    return p.tiles * CONFIG.troopsPerTile * (1 + CONFIG.cityCapBonus * p.owned.city);
+  }
+
+  /** Gold price of the next building of this kind for `p`. */
+  buildCost(p: Player, kind: BuildingKind): number {
+    const { cost, growth } = CONFIG.buildings[kind];
+    let price = cost;
+    for (let i = 0; i < p.owned[kind]; i++) price *= growth;
+    return Math.round(price);
+  }
+
+  missileCost(kind: MissileKind): number {
+    return CONFIG.missiles[kind].cost;
+  }
+
+  /** Null if `p` can put this building on `tile` now, else the reason not. */
+  canBuild(p: Player, kind: BuildingKind, tile: number): Refusal | null {
+    if (tile < 0 || tile >= this.size) return 'offMap';
+    if (this.owner[tile] !== p.id || !p.alive) return 'notYours';
+    const gap = CONFIG.buildingSpacing;
+    const x = tile % this.width;
+    const y = (tile - x) / this.width;
+    for (const b of this.buildingsByTile.values()) {
+      const bx = b.tile % this.width;
+      const by = (b.tile - bx) / this.width;
+      if (Math.abs(bx - x) < gap && Math.abs(by - y) < gap) return 'tooClose';
+    }
+    if (p.gold < this.buildCost(p, kind)) return 'gold';
+    return null;
+  }
+
+  /** Null if `p` can fire this missile now, else the reason not. */
+  canLaunch(p: Player, kind: MissileKind): Refusal | null {
+    if (p.owned.silo === 0 || !p.alive) return 'noSilo';
+    if (p.gold < this.missileCost(kind)) return 'gold';
+    return null;
+  }
+
+  /**
+   * A random free spot for a bot's building: inside its land, or on its
+   * border when `front` is set. Uses the simulation's random numbers, so only
+   * call it from inside the simulation.
+   */
+  findSpot(p: Player, kind: BuildingKind, front = false): number {
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const t = front ? p.border[this.rng.int(p.border.length)] : this.rng.int(this.size);
+      if (t === undefined || (!front && this.borderPos[t] >= 0)) continue;
+      if (this.canBuild(p, kind, t) === null) return t;
+    }
+    return -1;
   }
 
   isLand(tile: number): boolean {
@@ -202,6 +307,7 @@ export class Game {
 
     this.runBots();
     this.updateAttacks();
+    this.updateMissiles();
     this.grow();
     if (this.tick % CONFIG.sweepEvery === 0) this.sweepEnclosures();
     for (const p of this.players) if (p.tiles > p.peakTiles) p.peakTiles = p.tiles;
@@ -215,9 +321,12 @@ export class Game {
     for (let i = 0; i < this.size; i++) h = Math.imul(h ^ this.owner[i], 16777619);
     for (const p of this.players) {
       h = Math.imul(h ^ Math.floor(p.troops), 16777619);
+      h = Math.imul(h ^ Math.floor(p.gold), 16777619);
       h = Math.imul(h ^ p.tiles, 16777619);
       h = Math.imul(h ^ p.capital, 16777619);
     }
+    for (const b of this.buildingsByTile.values()) h = Math.imul(h ^ (b.tile * 4 + b.owner), 16777619);
+    for (const m of this.missileList) h = Math.imul(h ^ m.to, 16777619);
     return h >>> 0;
   }
 
@@ -236,8 +345,19 @@ export class Game {
       return;
     }
     if (this.phase !== 'play' || !p.alive) return;
-    const permille = Math.max(1, Math.min(1000, Math.floor(intent.permille)));
-    this.launch(p, intent.target, Math.floor((p.troops * permille) / 1000));
+    if (intent.type === 'attack') {
+      const permille = Math.max(1, Math.min(1000, Math.floor(intent.permille)));
+      this.launch(p, intent.target, Math.floor((p.troops * permille) / 1000));
+    } else if (intent.type === 'build') {
+      if (!BUILDING_KINDS.includes(intent.kind) || this.canBuild(p, intent.kind, intent.tile) !== null) return;
+      p.gold -= this.buildCost(p, intent.kind);
+      this.buildingsByTile.set(intent.tile, { id: this.nextId++, kind: intent.kind, tile: intent.tile, owner: p.id });
+      p.owned[intent.kind]++;
+    } else if (intent.type === 'launch') {
+      if (!(intent.kind in CONFIG.missiles) || intent.tile < 0 || intent.tile >= this.size) return;
+      if (this.canLaunch(p, intent.kind) !== null) return;
+      this.fireMissile(p, intent.kind, intent.tile);
+    }
   }
 
   private runBots(): void {
@@ -245,8 +365,7 @@ export class Game {
       const brain = p.brain;
       if (!brain || !p.alive || (this.tick + brain.offset) % brain.every !== 0) continue;
       // Bots run inside the simulation on every client, so their intents are not logged.
-      const intent = botThink(this, p, this.rng);
-      if (intent) this.execute(intent);
+      for (const intent of botThink(this, p, this.rng)) this.execute(intent);
     }
   }
 
@@ -360,6 +479,7 @@ export class Game {
     if (this.owner[tile] !== a.target || this.terrain[tile] === Terrain.Water) return;
     let delay = CONFIG.terrainDelay[this.terrain[tile]] + this.rng.int(CONFIG.delayJitter + 1);
     if (a.target !== NEUTRAL) delay += CONFIG.enemyDelay;
+    if (this.defended(tile, a.target)) delay += CONFIG.defenseDelay;
     // Tiles already surrounded on several sides fall sooner, which keeps fronts smooth.
     delay -= this.ownedNeighbors(tile, a.attacker) - 1;
     a.frontier.push(this.tick + Math.max(1, delay), tile);
@@ -377,10 +497,128 @@ export class Game {
   }
 
   private tileCost(tile: number, target: number): number {
-    const terrainCost = CONFIG.terrainCost[this.terrain[tile]];
+    const terrainCost =
+      CONFIG.terrainCost[this.terrain[tile]] * (this.fallout[tile] > this.tick ? CONFIG.falloutCostFactor : 1);
     if (target === NEUTRAL) return CONFIG.neutralCost * terrainCost;
     const d = this.player(target);
-    return (CONFIG.neutralCost + (CONFIG.defenseFactor * d.troops) / d.tiles) * terrainCost;
+    const cost = (CONFIG.neutralCost + (CONFIG.defenseFactor * d.troops) / d.tiles) * terrainCost;
+    return this.defended(tile, target) ? cost * CONFIG.defenseCostFactor : cost;
+  }
+
+  /** Whether a defence post of `owner` covers this tile. */
+  private defended(tile: number, owner: number): boolean {
+    if (owner === NEUTRAL || this.player(owner).owned.defense === 0) return false;
+    const r = CONFIG.defenseRadius;
+    const x = tile % this.width;
+    const y = (tile - x) / this.width;
+    for (const b of this.buildingsByTile.values()) {
+      if (b.kind !== 'defense' || b.owner !== owner) continue;
+      const bx = b.tile % this.width;
+      const dx = bx - x;
+      const dy = (b.tile - bx) / this.width - y;
+      if (dx * dx + dy * dy <= r * r) return true;
+    }
+    return false;
+  }
+
+  // Missiles
+
+  private fireMissile(p: Player, kind: MissileKind, target: number): void {
+    // Launch from the silo nearest the target.
+    const tx = target % this.width;
+    const ty = (target - tx) / this.width;
+    let from = -1;
+    let best = Infinity;
+    for (const b of this.buildingsByTile.values()) {
+      if (b.kind !== 'silo' || b.owner !== p.id) continue;
+      const bx = b.tile % this.width;
+      const by = (b.tile - bx) / this.width;
+      const d = (bx - tx) * (bx - tx) + (by - ty) * (by - ty);
+      if (d < best) {
+        best = d;
+        from = b.tile;
+      }
+    }
+    if (from < 0) return;
+    p.gold -= this.missileCost(kind);
+    const flight = Math.max(CONFIG.missileMinFlight, Math.ceil(Math.sqrt(best) / CONFIG.missileSpeed));
+    const missile: Missile = {
+      id: this.nextId++,
+      kind,
+      owner: p.id,
+      from,
+      to: target,
+      victim: this.owner[target],
+      launched: this.tick,
+      arrives: this.tick + flight,
+    };
+    this.missileList.push(missile);
+    this.events.push({ type: 'launched', missile });
+  }
+
+  private updateMissiles(): void {
+    if (this.missileList.length === 0) return;
+    const landing = this.missileList.filter((m) => m.arrives <= this.tick);
+    if (landing.length === 0) return;
+    this.missileList = this.missileList.filter((m) => m.arrives > this.tick);
+    for (const m of landing) this.impact(m);
+  }
+
+  /** Wipes out everything in the blast: land turns neutral, buildings are destroyed. */
+  private impact(m: Missile): void {
+    const r = CONFIG.missiles[m.kind].radius;
+    const cx = m.to % this.width;
+    const cy = (m.to - cx) / this.width;
+    const hit: number[] = [];
+    let buildings = 0;
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const x = cx + dx;
+        const y = cy + dy;
+        if (dx * dx + dy * dy > r * r || x < 0 || y < 0 || x >= this.width || y >= this.height) continue;
+        const t = y * this.width + x;
+        if (this.terrain[t] !== Terrain.Water) this.fallout[t] = this.tick + CONFIG.falloutTicks;
+        const b = this.buildingsByTile.get(t);
+        if (b) {
+          this.buildingsByTile.delete(t);
+          this.player(b.owner).owned[b.kind]--;
+          buildings++;
+        }
+        if (this.owner[t] !== NEUTRAL) hit.push(t);
+      }
+    }
+
+    const lost = new Map<number, number>();
+    for (const t of hit) lost.set(this.owner[t], (lost.get(this.owner[t]) ?? 0) + 1);
+    for (const [id, tiles] of lost) {
+      const v = this.player(id);
+      v.troops = Math.max(0, v.troops - ((v.troops * tiles) / v.tiles) * CONFIG.missileTroopLoss);
+    }
+    for (const t of hit) this.release(t);
+    for (const id of lost.keys()) {
+      const v = this.player(id);
+      if (v.tiles === 0) this.eliminate(v, m.owner);
+      else if (this.owner[v.capital] !== v.id) this.loseCapital(v, m.owner);
+    }
+    const losses = [...lost].map(([player, tiles]) => ({ player, tiles }));
+    this.events.push({ type: 'impact', missile: m, losses, buildings });
+  }
+
+  /** Makes an owned tile neutral. The caller handles capitals and elimination. */
+  private release(tile: number): void {
+    const { width, size } = this;
+    const prev = this.player(this.owner[tile]);
+    const x = tile % width;
+    this.removeBorder(tile, prev);
+    prev.tiles--;
+    prev.sumX -= x;
+    prev.sumY -= (tile - x) / width;
+    this.owner[tile] = NEUTRAL;
+    if (x > 0) this.refreshBorder(tile - 1);
+    if (x < width - 1) this.refreshBorder(tile + 1);
+    if (tile >= width) this.refreshBorder(tile - width);
+    if (tile + width < size) this.refreshBorder(tile + width);
+    this.changed.push(tile);
   }
 
   private updateAttacks(): void {
@@ -465,6 +703,14 @@ export class Game {
     if (tile >= width) this.refreshBorder(tile - width);
     if (tile + width < size) this.refreshBorder(tile + width);
     this.changed.push(tile);
+
+    const building = this.buildingsByTile.get(tile);
+    if (building && building.owner !== id) {
+      this.player(building.owner).owned[building.kind]--;
+      next.owned[building.kind]++;
+      this.events.push({ type: 'captured', kind: building.kind, tile, from: building.owner, by: id });
+      building.owner = id;
+    }
 
     if (old !== NEUTRAL) {
       const prev = this.player(old);
@@ -558,6 +804,7 @@ export class Game {
       let surrounding = -1;
       let mixed = false;
       let hasCapital = false;
+      let contaminated = false;
       stack[top++] = start;
       seen[start] = stamp;
 
@@ -565,6 +812,7 @@ export class Game {
         const t = stack[--top];
         component[count++] = t;
         if (t === capital) hasCapital = true;
+        if (this.fallout[t] > this.tick) contaminated = true;
         const x = t % width;
         for (let k = 0; k < 4; k++) {
           let n: number;
@@ -599,7 +847,7 @@ export class Game {
       if (mixed || surrounding <= NEUTRAL) continue;
       const enclosing = this.player(surrounding);
       if (o === NEUTRAL) {
-        if (count > Math.min(CONFIG.pocketMax, enclosing.tiles * CONFIG.pocketShare)) continue;
+        if (contaminated || count > Math.min(CONFIG.pocketMax, enclosing.tiles * CONFIG.pocketShare)) continue;
       } else if (hasCapital) {
         continue;
       }
@@ -621,6 +869,7 @@ export class Game {
   private grow(): void {
     for (const p of this.players) {
       if (!p.alive || !p.spawned) continue;
+      p.gold += p.tiles * CONFIG.goldPerTile;
       const max = this.maxTroops(p);
       if (p.troops < max) {
         const gain = p.troops * CONFIG.interest * (1 - p.troops / max) + p.tiles * CONFIG.landIncome;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/core/config';
 import { Game, NEUTRAL, type GameEvent, type GameSettings } from '../src/core/game';
 import { TileHeap } from '../src/core/heap';
 import { mapFromTerrain, Terrain } from '../src/core/map';
@@ -189,5 +190,113 @@ describe('territory', () => {
         expect(listed.has(t)).toBe(onBorder);
       }
     }
+  });
+});
+
+describe('buildings', () => {
+  it('builds a city for gold and raises the troop cap', () => {
+    const game = start(duel(40, 12), [4, 5], [35, 5]);
+    const a = game.player(1);
+    const cap = game.maxTroops(a);
+    a.gold = 5000;
+    const tile = 5 * 40 + 4;
+    game.queue({ type: 'build', player: 1, tile, kind: 'city' });
+    game.step();
+    expect(game.buildingAt(tile)).toMatchObject({ kind: 'city', owner: 1 });
+    expect(a.gold).toBeLessThan(3100);
+    expect(game.maxTroops(a)).toBeCloseTo(cap * 1.2);
+    expect(game.buildCost(a, 'city')).toBe(3000);
+  });
+
+  it('refuses foreign land, crowded spots and empty purses', () => {
+    const game = start(duel(40, 12), [4, 5], [35, 5]);
+    const a = game.player(1);
+    expect(game.canBuild(a, 'city', 5 * 40 + 4)).toBe('gold');
+    a.gold = 1e6;
+    expect(game.canBuild(a, 'city', 5 * 40 + 35)).toBe('notYours');
+    game.queue({ type: 'build', player: 1, tile: 5 * 40 + 4, kind: 'city' });
+    game.step();
+    expect(game.canBuild(a, 'silo', 5 * 40 + 6)).toBe('tooClose');
+  });
+
+  it('hands a building to whoever takes its tile', () => {
+    const moat = Array.from({ length: 7 }, (_, y): [number, number] => [20, y]);
+    const game = start(duel(60, 7, moat), [50, 3], [57, 3]);
+    const b = game.player(2);
+    b.gold = 5000;
+    game.queue({ type: 'build', player: 2, tile: 3 * 60 + 58, kind: 'city' });
+    game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
+    run(game, 900);
+    game.queue({ type: 'attack', player: 1, target: 2, permille: 1000 });
+    const events = run(game, 400);
+    expect(events).toContainEqual({ type: 'captured', kind: 'city', tile: 3 * 60 + 58, from: 2, by: 1 });
+    expect(game.buildingAt(3 * 60 + 58)?.owner).toBe(1);
+    expect(game.player(1).owned.city).toBe(1);
+  });
+
+  it('makes land around a defence post dearer to take', () => {
+    const taken = (post: boolean) => {
+      const game = start(duel(12, 5), [2, 2], [9, 2]);
+      if (post) {
+        game.player(2).gold = 5000;
+        game.queue({ type: 'build', player: 2, tile: 2 * 12 + 9, kind: 'defense' });
+        game.step();
+      }
+      const before = game.player(1).tiles;
+      game.queue({ type: 'attack', player: 1, target: 2, permille: 1000 });
+      run(game, 60);
+      return game.player(1).tiles - before;
+    };
+    expect(taken(true)).toBeLessThan(taken(false));
+  });
+});
+
+describe('missiles', () => {
+  it('needs a silo and gold', () => {
+    const game = start(duel(40, 12), [4, 5], [35, 5]);
+    const a = game.player(1);
+    expect(game.canLaunch(a, 'rocket')).toBe('noSilo');
+    a.gold = 1e6;
+    game.queue({ type: 'build', player: 1, tile: 5 * 40 + 4, kind: 'silo' });
+    game.step();
+    expect(game.canLaunch(a, 'rocket')).toBeNull();
+  });
+
+  it('flies, then wipes out land, buildings and troops in the blast', () => {
+    const game = start(duel(40, 12), [4, 5], [35, 5]);
+    const a = game.player(1);
+    const b = game.player(2);
+    a.gold = 1e6;
+    b.gold = 5000;
+    const target = 5 * 40 + 35;
+    game.queue({ type: 'build', player: 1, tile: 5 * 40 + 4, kind: 'silo' });
+    game.queue({ type: 'build', player: 2, tile: 5 * 40 + 34, kind: 'city' });
+    game.step();
+    game.queue({ type: 'launch', player: 1, tile: target, kind: 'nuke' });
+    game.step();
+    expect(game.missiles).toHaveLength(1);
+    const events = run(game, CONFIG.missileMinFlight + 20);
+    expect(game.missiles).toHaveLength(0);
+    expect(events.some((e) => e.type === 'impact')).toBe(true);
+    expect(events).toContainEqual({ type: 'eliminated', player: 2, by: 1 });
+    expect(game.owner[target]).toBe(NEUTRAL);
+    expect(game.buildingAt(5 * 40 + 34)).toBeUndefined();
+    expect(game.fallout[target]).toBeGreaterThan(game.tick);
+  });
+
+  it('leaves a bombed hole open instead of absorbing it as a pocket', () => {
+    const moat = Array.from({ length: 12 }, (_, y): [number, number] => [30, y]);
+    const game = start(duel(40, 12, moat), [4, 5], [35, 5]);
+    const a = game.player(1);
+    game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
+    run(game, 150);
+    a.gold = 1e6;
+    game.queue({ type: 'build', player: 1, tile: 5 * 40 + 4, kind: 'silo' });
+    game.step();
+    const hole = 6 * 40 + 20;
+    expect(game.owner[hole]).toBe(1);
+    game.queue({ type: 'launch', player: 1, tile: hole, kind: 'rocket' });
+    run(game, CONFIG.missileMinFlight + 30);
+    expect(game.owner[hole]).toBe(NEUTRAL);
   });
 });

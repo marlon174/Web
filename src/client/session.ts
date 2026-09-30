@@ -2,10 +2,11 @@ import { CONFIG } from '../core/config';
 import { NEUTRAL, type Game, type GameEvent, type Player } from '../core/game';
 import { Terrain } from '../core/map';
 import { Camera, type Inset } from './camera';
-import { formatClock, formatShare } from './format';
+import { formatClock, formatShare, formatTroops } from './format';
 import type { Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
+import { isMissile, TOOLS, type ToolKind } from './tools';
 
 const TICK_MS = 1000 / CONFIG.ticksPerSecond;
 const NO_INSET: Inset = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -47,17 +48,21 @@ export class Session implements InputTarget {
   private defeatShown = false;
   private ended = false;
   private spawned = false;
+  private spawnedAt = 0;
   private flight: Flight | null = null;
+  /** Build or missile tool in hand, waiting for a click on the map. */
+  private tool: ToolKind | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     readonly game: Game,
     private readonly options: SessionOptions,
   ) {
-    this.renderer = new Renderer(canvas, game);
     this.me = game.players.find((p) => !p.bot) ?? null;
+    this.renderer = new Renderer(canvas, game, this.me?.id ?? null);
     if (options.play && this.me) {
       this.input = new Input(canvas, this.camera, this);
+      options.play.hud.onTool = (kind) => this.selectTool(kind);
       options.play.hud.show(this.me);
       options.play.hud.setBanner('Pick any spot on land to start.');
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
@@ -110,8 +115,9 @@ export class Session implements InputTarget {
     if (this.options.play) this.handleEvents(this.game.drainEvents());
     if (!this.spawned && this.me?.spawned) {
       this.spawned = true;
-      // On tall phone screens the whole map is small: close in on the new territory.
-      if (this.canvas.height > this.canvas.width * 1.1) this.flyToCapital(2.2);
+      this.spawnedAt = now;
+      // Close in on the new territory, more on tall phone screens where the whole map is small.
+      this.flyToCapital(this.canvas.height > this.canvas.width * 1.1 ? 2.2 : 1.5);
     }
     this.updateFlight(now);
 
@@ -127,6 +133,7 @@ export class Session implements InputTarget {
     if (this.options.play && this.me && this.sinceHud > 150) {
       this.sinceHud = 0;
       this.options.play.hud.update(this.game, this.me);
+      this.options.play.hud.updateTools(this.game, this.me, this.tool);
     }
   };
 
@@ -136,7 +143,77 @@ export class Session implements InputTarget {
       hover: this.hoverTile,
       spawnColor: spawning ? this.me!.color : null,
       spawnValid: spawning && this.canSpawnAt(this.hoverTile),
+      tool: this.tool && this.me ? { kind: this.tool, valid: this.toolRefusal(this.tool, this.hoverTile) === null } : null,
+      tick: this.game.tick + (this.paused ? 0 : this.backlog / TICK_MS),
+      spawnedAt: this.spawnedAt,
     };
+  }
+
+  // Building and missiles
+
+  /** Why the tool can't be used on this tile, or null if it can. */
+  private toolRefusal(kind: ToolKind, tile: number): string | null {
+    const { game, me } = this;
+    if (!me || game.phase !== 'play' || !me.alive) return 'Wait until the match is on.';
+    if (isMissile(kind)) {
+      const refusal = game.canLaunch(me, kind);
+      if (refusal === 'noSilo') return 'Build a missile silo first.';
+      if (refusal === 'gold') return `A ${kind === 'nuke' ? 'nuke' : 'rocket'} costs ${formatTroops(game.missileCost(kind))} gold.`;
+      return tile < 0 ? 'Aim at a spot on the map.' : null;
+    }
+    switch (game.canBuild(me, kind, tile)) {
+      case 'gold':
+        return `That costs ${formatTroops(game.buildCost(me, kind))} gold.`;
+      case 'notYours':
+      case 'offMap':
+        return 'Build on your own land.';
+      case 'tooClose':
+        return 'Too close to another building. Leave 4 tiles between them.';
+      default:
+        return null;
+    }
+  }
+
+  private selectTool(kind: ToolKind): void {
+    const hud = this.options.play?.hud;
+    if (!hud || !this.me || this.paused || hud.overlayOpen) return;
+    if (this.tool === kind) {
+      this.cancel();
+      return;
+    }
+    // Refuse up front when nothing on the map could work (no gold, no silo).
+    const refusal = isMissile(kind) ? this.toolRefusal(kind, 0) : this.game.phase === 'play' && this.me.gold < this.game.buildCost(this.me, kind) ? this.toolRefusal(kind, -1) : this.game.phase !== 'play' ? 'Wait until the match is on.' : null;
+    if (refusal) {
+      hud.toast(refusal);
+      return;
+    }
+    this.tool = kind;
+    const name = TOOLS.find((t) => t.kind === kind)!.name.toLowerCase();
+    hud.setBanner(isMissile(kind) ? `Click a target for your ${name}. Right-click or Esc cancels.` : `Click your land to place a ${name}. Right-click or Esc cancels.`);
+    hud.updateTools(this.game, this.me, this.tool);
+  }
+
+  cancel(): void {
+    if (!this.tool) return;
+    this.tool = null;
+    const hud = this.options.play?.hud;
+    if (hud && this.me) {
+      hud.setBanner('');
+      hud.updateTools(this.game, this.me, null);
+    }
+  }
+
+  private useTool(kind: ToolKind, tile: number): void {
+    const hud = this.options.play!.hud;
+    const me = this.me!;
+    const refusal = this.toolRefusal(kind, tile);
+    if (refusal) {
+      hud.toast(refusal);
+      return;
+    }
+    if (isMissile(kind)) this.game.queue({ type: 'launch', player: me.id, tile, kind });
+    else this.game.queue({ type: 'build', player: me.id, tile, kind });
+    this.cancel();
   }
 
   private canSpawnAt(tile: number): boolean {
@@ -159,6 +236,10 @@ export class Session implements InputTarget {
         game.queue({ type: 'spawn', player: me.id, tile });
         hud.setBanner('');
       }
+      return;
+    }
+    if (this.tool) {
+      this.useTool(this.tool, tile);
       return;
     }
     if (game.phase !== 'play' || !me.alive) return;
@@ -198,6 +279,15 @@ export class Session implements InputTarget {
     if (e.target instanceof HTMLInputElement && e.target.type !== 'range') return;
     const w = this.canvas.width;
     const h = this.canvas.height;
+    if (e.key === 'Escape' && this.tool) {
+      this.cancel();
+      return;
+    }
+    const tool = TOOLS.find((t) => t.key === e.key.toLowerCase());
+    if (tool && !hud.overlayOpen) {
+      this.selectTool(tool.kind);
+      return;
+    }
     if (e.key === ' ' || e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
       if (e.key === ' ' && e.target instanceof HTMLButtonElement) return;
       e.preventDefault();
@@ -219,10 +309,10 @@ export class Session implements InputTarget {
     } else {
       const step = Math.min(w, h) * 0.12;
       const pan: Record<string, [number, number]> = {
-        ArrowLeft: [step, 0], a: [step, 0],
-        ArrowRight: [-step, 0], d: [-step, 0],
-        ArrowUp: [0, step], w: [0, step],
-        ArrowDown: [0, -step], s: [0, -step],
+        ArrowLeft: [step, 0],
+        ArrowRight: [-step, 0],
+        ArrowUp: [0, step],
+        ArrowDown: [0, -step],
       };
       const move = pan[e.key];
       if (!move || e.target instanceof HTMLInputElement) return;
@@ -336,6 +426,26 @@ export class Session implements InputTarget {
       } else if (e.type === 'encircled') {
         if (e.player === me.id) hud.post(`${capitalize(name(e.by))} cut off ${e.tiles} of your tiles and took them.`, 'bad');
         else if (e.by === me.id) hud.post(`You cut off ${e.tiles} tiles from ${name(e.player)} and took them.`, 'good');
+      } else if (e.type === 'captured') {
+        const what = e.kind === 'defense' ? 'defence post' : e.kind === 'silo' ? 'missile silo' : 'city';
+        if (e.by === me.id) hud.post(`You captured ${name(e.from)}'s ${what}.`, 'good');
+        else if (e.from === me.id) hud.post(`${capitalize(name(e.by))} captured your ${what}.`, 'bad');
+      } else if (e.type === 'launched') {
+        const m = e.missile;
+        const what = m.kind === 'nuke' ? 'a nuke' : 'a rocket';
+        if (m.victim === me.id && m.owner !== me.id) hud.post(`${name(m.owner)} fired ${what} at you!`, 'bad');
+        else if (m.kind === 'nuke' && m.owner !== me.id && m.victim !== NEUTRAL) hud.post(`${name(m.owner)} fired a nuke at ${name(m.victim)}.`, 'info');
+      } else if (e.type === 'impact') {
+        this.renderer.explode(e.missile);
+        const mine = e.losses.find((l) => l.player === me.id);
+        const what = e.missile.kind === 'nuke' ? 'nuke' : 'rocket';
+        if (mine && e.missile.owner !== me.id) {
+          hud.post(`${name(e.missile.owner)}'s ${what} destroyed ${mine.tiles} of your tiles.`, 'bad');
+        } else if (e.missile.owner === me.id) {
+          const tiles = e.losses.filter((l) => l.player !== me.id).reduce((sum, l) => sum + l.tiles, 0);
+          const extra = e.buildings ? ` and ${e.buildings} building${e.buildings > 1 ? 's' : ''}` : '';
+          hud.post(`Your ${what} destroyed ${tiles} enemy tiles${extra}.`, 'good');
+        }
       } else if (e.type === 'gameOver') {
         this.showResult(e.winner);
       }

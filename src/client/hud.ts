@@ -2,6 +2,7 @@ import { CONFIG } from '../core/config';
 import { NEUTRAL, type Game, type Player } from '../core/game';
 import { toHex } from './colors';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
+import { iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
 
 export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -39,6 +40,11 @@ export class Hud {
   private readonly growth = byId('growth');
   private readonly land = byId('land');
   private readonly tiles = byId('tiles');
+  private readonly gold = byId('gold');
+  private readonly goldRate = byId('gold-rate');
+  private readonly toolButtons = new Map<ToolKind, HTMLButtonElement>();
+  /** Called when a build bar button is pressed. */
+  onTool: (kind: ToolKind) => void = () => {};
   private readonly meChip = byId('me-chip');
   private readonly meName = byId('me-name');
   private readonly clock = byId('clock');
@@ -56,6 +62,22 @@ export class Hud {
   readonly pauseButton = byId<HTMLButtonElement>('pause-button');
   readonly centerButton = byId<HTMLButtonElement>('center-button');
   private toastTimer = 0;
+
+  constructor() {
+    const bar = byId('tools');
+    for (const tool of TOOLS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tool';
+      button.title = `${tool.name} (${tool.key.toUpperCase()}): ${tool.hint}`;
+      button.innerHTML = `${iconSvg(tool.kind)}<span class="tool-name"></span><span class="tool-cost"></span><kbd></kbd>`;
+      button.querySelector('.tool-name')!.textContent = tool.name;
+      button.querySelector('kbd')!.textContent = tool.key;
+      button.addEventListener('click', () => this.onTool(tool.kind));
+      this.toolButtons.set(tool.kind, button);
+      bar.append(button);
+    }
+  }
 
   show(me: Player): void {
     this.root.hidden = false;
@@ -97,6 +119,8 @@ export class Hud {
       const perTick = me.troops * CONFIG.interest * (1 - me.troops / max) + me.tiles * CONFIG.landIncome;
       this.growth.textContent = `+${formatTroops(perTick * CONFIG.ticksPerSecond)} a second`;
     }
+    this.gold.textContent = formatTroops(me.gold);
+    this.goldRate.textContent = me.alive && game.phase === 'play' ? `+${formatTroops(me.tiles * CONFIG.goldPerTile * CONFIG.ticksPerSecond)} a second` : '';
     this.land.textContent = formatShare(me.tiles / game.map.landTiles);
     this.tiles.textContent = `${formatCount(me.tiles)} tiles`;
     this.ratioOut.textContent = `${this.percent}% · ${formatTroops((me.troops * this.percent) / 100)}`;
@@ -115,6 +139,19 @@ export class Hud {
 
     this.updateBoard(game, me);
     this.updateFronts(game, me);
+  }
+
+  /** Prices, and which tools are usable right now. */
+  updateTools(game: Game, me: Player, active: ToolKind | null): void {
+    for (const [kind, button] of this.toolButtons) {
+      const missile = isMissile(kind);
+      const cost = missile ? game.missileCost(kind) : game.buildCost(me, kind);
+      const ready = me.alive && game.phase === 'play' && me.gold >= cost && (!missile || me.owned.silo > 0);
+      button.querySelector('.tool-cost')!.textContent = formatTroops(cost);
+      button.classList.toggle('locked', !ready);
+      button.classList.toggle('active', kind === active);
+      button.setAttribute('aria-pressed', String(kind === active));
+    }
   }
 
   private updateBoard(game: Game, me: Player): void {
@@ -146,6 +183,14 @@ export class Hud {
 
   private updateFronts(game: Game, me: Player): void {
     const items: HTMLLIElement[] = [];
+    for (const m of game.missiles) {
+      if (m.victim !== me.id || m.owner === me.id) continue;
+      const li = document.createElement('li');
+      li.className = 'incoming';
+      const seconds = Math.max(0, Math.ceil((m.arrives - game.tick) / CONFIG.ticksPerSecond));
+      li.textContent = `${m.kind === 'nuke' ? 'Nuke' : 'Rocket'} from ${game.player(m.owner).name} · ${seconds}s`;
+      items.push(li);
+    }
     for (const a of game.attacks) {
       if (a.attacker !== me.id && a.target !== me.id) continue;
       const li = document.createElement('li');

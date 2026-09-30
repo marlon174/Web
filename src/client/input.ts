@@ -7,6 +7,8 @@ export interface InputTarget {
   leave(): void;
   /** Called after the camera moves, to keep it in bounds. */
   moved(): void;
+  /** Right-click: put down whatever tool is in hand. */
+  cancel(): void;
 }
 
 interface Point {
@@ -122,6 +124,7 @@ export class Input {
 
   private onContextMenu = (e: Event): void => {
     e.preventDefault();
+    this.target.cancel();
   };
 
   private startPinch(): void {

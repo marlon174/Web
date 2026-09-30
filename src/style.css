@@ -17,6 +17,7 @@
   --signal-wash: rgba(255, 112, 179, 0.14);
   --on-signal: #ffffff;
   --good: #62d394;
+  --gold: #f2c14e;
   --bad: #ff7d7d;
   --scrim: rgba(6, 16, 24, 0.62);
   --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
@@ -526,6 +527,10 @@ fieldset:disabled .segmented label {
   font-variant-numeric: tabular-nums;
 }
 
+.stat-value.gold {
+  color: var(--gold);
+}
+
 .stat-max {
   font-size: 18px;
   color: var(--ink-soft);
@@ -697,7 +702,7 @@ fieldset:disabled .segmented label {
   display: grid;
   gap: 8px;
   justify-items: center;
-  width: min(440px, calc(100% - 2 * var(--gutter)));
+  width: min(480px, calc(100% - 2 * var(--gutter)));
 }
 
 .fronts {
@@ -723,6 +728,68 @@ fieldset:disabled .segmented label {
 .fronts li.incoming {
   color: var(--bad);
   border-color: var(--bad);
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+}
+
+.tool {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 7px 4px 5px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tool:hover {
+  background: var(--field-hover);
+}
+
+.tool svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+}
+
+.tool-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tool-cost {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool kbd {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font: 700 10px var(--font-body);
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.tool.locked {
+  opacity: 0.42;
+}
+
+.tool.active {
+  border-color: var(--signal-hi);
+  background: var(--signal-wash);
 }
 
 .send {
@@ -756,7 +823,7 @@ fieldset:disabled .segmented label {
 .toast {
   position: absolute;
   left: 50%;
-  bottom: 130px;
+  bottom: 200px;
   transform: translateX(-50%);
   max-width: calc(100% - 2 * var(--gutter));
   padding: 10px 16px;
@@ -861,11 +928,11 @@ fieldset:disabled .segmented label {
   /* The clock and banner would collide with the corner panels: move them above the slider. */
   .top-center {
     top: auto;
-    bottom: 120px;
+    bottom: 196px;
   }
 
   .toast {
-    bottom: 190px;
+    bottom: 260px;
   }
 }
 
@@ -888,7 +955,11 @@ fieldset:disabled .segmented label {
     font-size: 22px;
   }
 
-  .stat-max {
+  .stat-value.gold {
+  color: var(--gold);
+}
+
+.stat-max {
     font-size: 14px;
   }
 
@@ -926,6 +997,11 @@ fieldset:disabled .segmented label {
   .send-out {
     min-width: 90px;
     font-size: 18px;
+  }
+
+  .tool-name,
+  .tool kbd {
+    display: none;
   }
 
   .field-row {

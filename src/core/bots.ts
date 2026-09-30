@@ -18,17 +18,33 @@ export interface BotBrain {
   attackSend: number;
   /** Chance to attack when an attack is possible. */
   aggression: number;
+  /** Builds cities, and defence posts when attacked. */
+  builds: boolean;
+  /** Attacks much weaker neighbours even before its troops fill up. */
+  opportunist: boolean;
+  /** 0: never fires, 1: rockets, 2: rockets and nukes. */
+  missiles: 0 | 1 | 2;
+  /** Chance per decision to fire when a missile is ready. */
+  missileChance: number;
 }
 
 type Range = readonly [number, number];
 
-const PROFILES: Record<
-  Difficulty,
-  { every: number; expandAt: Range; expandSend: Range; attackAt: Range; attackSend: Range; aggression: number }
-> = {
-  easy: { every: 25, expandAt: [0.1, 0.2], expandSend: [300, 500], attackAt: [0.85, 0.97], attackSend: [200, 350], aggression: 0.25 },
-  normal: { every: 12, expandAt: [0.03, 0.08], expandSend: [500, 750], attackAt: [0.6, 0.85], attackSend: [300, 500], aggression: 0.45 },
-  hard: { every: 6, expandAt: [0.01, 0.04], expandSend: [700, 900], attackAt: [0.45, 0.7], attackSend: [400, 650], aggression: 0.7 },
+interface Profile {
+  every: number;
+  expandAt: Range;
+  expandSend: Range;
+  attackAt: Range;
+  attackSend: Range;
+  aggression: number;
+  missiles: 0 | 1 | 2;
+  missileChance: number;
+}
+
+const PROFILES: Record<Difficulty, Profile> = {
+  easy: { every: 25, expandAt: [0.1, 0.2], expandSend: [300, 500], attackAt: [0.85, 0.97], attackSend: [200, 350], aggression: 0.25, missiles: 0, missileChance: 0 },
+  normal: { every: 12, expandAt: [0.03, 0.08], expandSend: [500, 750], attackAt: [0.6, 0.85], attackSend: [300, 500], aggression: 0.45, missiles: 1, missileChance: 0.03 },
+  hard: { every: 6, expandAt: [0.01, 0.04], expandSend: [700, 900], attackAt: [0.45, 0.7], attackSend: [400, 650], aggression: 0.7, missiles: 2, missileChance: 0.04 },
 };
 
 export function createBrain(rng: Rng, difficulty: Difficulty, index: number): BotBrain {
@@ -41,18 +57,71 @@ export function createBrain(rng: Rng, difficulty: Difficulty, index: number): Bo
     attackAt: rng.range(p.attackAt[0], p.attackAt[1]),
     attackSend: Math.round(rng.range(p.attackSend[0], p.attackSend[1])),
     aggression: p.aggression,
+    // Most bots build; on easy, some don't bother.
+    builds: difficulty !== 'easy' || rng.next() < 0.5,
+    opportunist: difficulty !== 'easy',
+    missiles: p.missiles,
+    missileChance: p.missileChance,
   };
 }
 
 /**
- * Simple rules: grab neutral land while there is any, then pick on the
- * neighbour that is cheapest to attack. Runs inside the simulation, so it may
- * only use the game's own random numbers.
+ * One decision round for a bot: maybe spend gold, maybe send troops. Runs
+ * inside the simulation, so it may only use the game's own random numbers.
  */
-export function botThink(game: Game, p: Player, rng: Rng): Intent | null {
+export function botThink(game: Game, p: Player, rng: Rng): Intent[] {
   const brain = p.brain;
+  if (!brain) return [];
+  const out: Intent[] = [];
+  const spend = spendGold(game, p, brain, rng);
+  if (spend) out.push(spend);
+  const move = sendTroops(game, p, brain, rng);
+  if (move) out.push(move);
+  return out;
+}
+
+/** Cities as land grows, a defence post when attacked, then a silo and missiles at the leader. */
+function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | null {
+  if (brain.builds) {
+    if (p.owned.city < 1 + Math.floor(p.tiles / 1200) && p.gold >= game.buildCost(p, 'city')) {
+      const tile = game.findSpot(p, 'city');
+      if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'city' };
+    }
+    const underAttack = game.attacks.some((a) => a.target === p.id);
+    if (underAttack && p.owned.defense < 1 + Math.floor(p.tiles / 2500) && p.gold >= game.buildCost(p, 'defense')) {
+      const tile = game.findSpot(p, 'defense', true);
+      if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'defense' };
+    }
+  }
+  if (brain.missiles === 0 || p.tiles < 1500) return null;
+  if (p.owned.silo === 0) {
+    if (p.gold < game.buildCost(p, 'silo')) return null;
+    const tile = game.findSpot(p, 'silo');
+    return tile >= 0 ? { type: 'build', player: p.id, tile, kind: 'silo' } : null;
+  }
+  // Keep a reserve, so gold also goes to cities and defence.
+  if (p.gold < 2 * game.missileCost('rocket') || rng.next() > brain.missileChance) return null;
+  // Nukes go for the biggest rival's capital: it costs them half their troops.
+  if (brain.missiles === 2 && game.canLaunch(p, 'nuke') === null) {
+    let rival: Player | null = null;
+    for (const q of game.players) if (q.alive && q.id !== p.id && (!rival || q.tiles > rival.tiles)) rival = q;
+    if (rival && rival.capital >= 0) return { type: 'launch', player: p.id, tile: rival.capital, kind: 'nuke' };
+  }
+  // Rockets clear the way: an enemy defence post or city owned by a neighbour.
+  if (game.canLaunch(p, 'rocket') !== null) return null;
+  let target = -1;
+  for (const b of game.buildings) {
+    if (b.owner === p.id || b.kind === 'silo' || !game.sharesBorder(p, b.owner)) continue;
+    target = b.tile;
+    if (b.kind === 'defense') break;
+  }
+  return target >= 0 ? { type: 'launch', player: p.id, tile: target, kind: 'rocket' } : null;
+}
+
+/** Grab neutral land while there is any, then pick on the neighbour that is cheapest to attack. */
+function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | null {
   const max = game.maxTroops(p);
-  if (!brain || max <= 0) return null;
+  if (max <= 0) return null;
   const fill = p.troops / max;
 
   // Survey the border: how much neutral land, and which neighbours.
@@ -78,7 +147,10 @@ export function botThink(game: Game, p: Player, rng: Rng): Intent | null {
   if (neutral > 0 && fill >= brain.expandAt) {
     return { type: 'attack', player: p.id, target: NEUTRAL, permille: brain.expandSend };
   }
-  if (shared.size === 0 || fill < brain.attackAt) return null;
+  if (shared.size === 0) return null;
+  // Below the usual threshold, only pick on neighbours with under half our troops.
+  const strongerThan = (id: number) => brain.opportunist && game.player(id).troops * 2 < p.troops;
+  if (fill < brain.attackAt && ![...shared.keys()].some(strongerThan)) return null;
   // Still room to grow for free: only fight when nearly full.
   if (neutral > 0 && fill < 0.95) return null;
   if (rng.next() > brain.aggression) return null;
@@ -87,6 +159,7 @@ export function botThink(game: Game, p: Player, rng: Rng): Intent | null {
   let target = NEUTRAL;
   let bestScore = Infinity;
   for (const [id, edge] of shared) {
+    if (fill < brain.attackAt && !strongerThan(id)) continue;
     const e = game.player(id);
     const density = e.troops / e.tiles;
     const score = (density * rng.range(0.75, 1.25)) / Math.sqrt(edge);

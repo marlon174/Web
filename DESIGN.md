@@ -14,6 +14,9 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Capitals | Losing yours halves your troops; a new one is chosen near the middle of your land. | `loseCapital()` |
 | Encirclement | Every second, land cut off by exactly one player changes hands: enemy fragments without their capital, and small neutral pockets. | `sweepEnclosures()` |
 | Winning | Quick match: most land after 5 minutes. Classic: 80% of the land, or last one standing. | `checkEnd()` |
+| Gold | Each tile earns gold every tick. | `grow()` |
+| Buildings | City: +20% troop cap. Defence post: land within 8 tiles costs attackers 2× and falls slower. Silo: launches missiles. Each one you own raises the next one's price. Buildings change hands with their tile. | `canBuild()`, `conquer()` |
+| Missiles | Rocket (radius 5) and nuke (radius 12) fly from your nearest silo. On impact land turns neutral, buildings are destroyed, owners lose troops, and a hit capital counts as lost. Fallout: bombed land isn't absorbed as a pocket and costs double for 30 s. | `fireMissile()`, `impact()` |
 | Bots | Expand while there is empty land; once nearly full, attack the neighbour with the thinnest defences. Difficulty sets reaction time and thresholds. | `bots.ts` |
 
 All numbers live in `src/core/config.ts` and `bots.ts`. `npm run sim` replays a bots-only match in the terminal to check pacing after a change.
@@ -52,7 +55,7 @@ Neutral land runs out after 60 to 120 seconds; classic matches last 7 to 15 minu
 |---|---|---|
 | 1. Single-player MVP | Map, spawning, troop growth, attacks, bots, rendering, send slider | **Done**, plus capitals, quick match and the colour picker |
 | 2. Multiplayer | Lobby server, lockstep tick relay, desync checks via `hash()`, reconnection | Next |
-| 3. Frontwars layer | Gold, cities and ports, boats across water, alliances, real-world maps | Planned |
+| 3. Frontwars layer | Gold, cities, defence posts, silos, rockets and nukes **done**. Still to come: ports and boats, alliances, real-world maps | In progress |
 | 4. Polish | Minimap, sound, replays from `game.log`, tutorial match | Planned |
 
 ## Idea backlog

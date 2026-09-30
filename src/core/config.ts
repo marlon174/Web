@@ -47,4 +47,36 @@ export const CONFIG = {
   // Match
   /** Share of all land that wins a match outright. */
   winShare: 0.8,
+
+  // Gold and buildings
+  /** Gold per owned tile per tick. */
+  goldPerTile: 0.006,
+  /** Base gold price, and how much each one you already own raises the next. */
+  buildings: {
+    city: { cost: 2000, growth: 1.5 },
+    defense: { cost: 1500, growth: 1.25 },
+    silo: { cost: 5000, growth: 1.5 },
+  },
+  /** Buildings stand at least this many tiles apart (in both directions). */
+  buildingSpacing: 4,
+  /** Each city raises your troop cap by this share. */
+  cityCapBonus: 0.2,
+  /** Land within this radius of a defence post costs attackers `defenseCostFactor` × more and falls slower. */
+  defenseRadius: 8,
+  defenseCostFactor: 2,
+  defenseDelay: 3,
+
+  // Missiles
+  missiles: {
+    rocket: { cost: 3000, radius: 5 },
+    nuke: { cost: 10000, radius: 12 },
+  },
+  /** Tiles a missile covers per tick, and its shortest flight. */
+  missileSpeed: 3,
+  missileMinFlight: 20,
+  /** Troops lost per destroyed tile, as a multiple of the owner's troops per tile. */
+  missileTroopLoss: 2,
+  /** Ticks that bombed land stays contaminated: it isn't absorbed as a pocket and costs more to take. */
+  falloutTicks: 300,
+  falloutCostFactor: 2,
 } as const;
