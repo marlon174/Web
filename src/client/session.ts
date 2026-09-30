@@ -43,6 +43,8 @@ export class Session implements InputTarget {
   private backlog = 0;
   private paused = false;
   private hoverTile = -1;
+  /** Cursor position (CSS pixels) for the info card, or null when off the map. */
+  private tipAt: { x: number; y: number } | null = null;
   private sinceLabels = Infinity;
   private sinceHud = Infinity;
   private defeatShown = false;
@@ -63,6 +65,13 @@ export class Session implements InputTarget {
     if (options.play && this.me) {
       this.input = new Input(canvas, this.camera, this);
       options.play.hud.onTool = (kind) => this.selectTool(kind);
+      options.play.hud.onRecall = (target) => {
+        if (!this.me) return;
+        this.game.queue({ type: 'recall', player: this.me.id, target });
+        options.play?.hud.toast('Truppen zurückgerufen.');
+      };
+      options.play.hud.minimap.addEventListener('pointerdown', this.onMinimap);
+      options.play.hud.minimap.addEventListener('pointermove', this.onMinimap);
       options.play.hud.show(this.me);
       options.play.hud.setBanner('Klick auf eine beliebige Stelle an Land, um dort zu starten.');
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
@@ -85,6 +94,9 @@ export class Session implements InputTarget {
     window.removeEventListener('keydown', this.onKey);
     this.options.play?.hud.pauseButton.removeEventListener('click', this.onPauseButton);
     this.options.play?.hud.centerButton.removeEventListener('click', this.onCenterButton);
+    this.options.play?.hud.minimap.removeEventListener('pointerdown', this.onMinimap);
+    this.options.play?.hud.minimap.removeEventListener('pointermove', this.onMinimap);
+    this.options.play?.hud.showTip(null);
   }
 
   /** Re-fits the map, e.g. after the menu changes size. */
@@ -134,6 +146,8 @@ export class Session implements InputTarget {
       this.sinceHud = 0;
       this.options.play.hud.update(this.game, this.me);
       this.options.play.hud.updateTools(this.game, this.me, this.tool);
+      this.drawMinimap();
+      this.updateTip();
     }
   };
 
@@ -329,11 +343,80 @@ export class Session implements InputTarget {
 
   hover(sx: number, sy: number): void {
     this.hoverTile = this.camera.tileAt(sx, sy, this.game.width, this.game.height);
+    const rect = this.canvas.getBoundingClientRect();
+    const k = this.canvas.width / Math.max(1, rect.width);
+    this.tipAt = { x: rect.left + sx / k, y: rect.top + sy / k };
+    this.updateTip();
   }
 
   leave(): void {
     this.hoverTile = -1;
+    this.tipAt = null;
+    this.options.play?.hud.showTip(null);
   }
+
+  /** Who holds the land under the cursor, and what taking it would cost. */
+  private updateTip(): void {
+    const hud = this.options.play?.hud;
+    const { game, me } = this;
+    if (!hud || !me || !this.tipAt) return;
+    const t = this.hoverTile;
+    if (t < 0 || !game.isLand(t) || game.phase !== 'play') {
+      hud.showTip(null);
+      return;
+    }
+    const o = game.owner[t];
+    const height = game.map.relief[t] / 255;
+    const ground = height > 0.87 ? 'Gebirge' : height > 0.7 ? 'Hügel' : 'Flachland';
+    const lines: string[] = [];
+    if (o === NEUTRAL) {
+      lines.push('Freies Land', ground);
+    } else {
+      const p = game.player(o);
+      lines.push(o === me.id ? `${p.name} (du)` : p.name);
+      lines.push(`${formatTroops(p.troops)} Truppen · ${formatShare(p.tiles / game.map.landTiles)} Land`);
+      if (game.allied(me.id, o)) lines.push(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`);
+      lines.push(ground);
+    }
+    if (o !== me.id && !game.allied(me.id, o) && me.alive) {
+      lines.push(`Kostet etwa ${formatTroops(game.costToTake(t, me.id))} Truppen pro Feld`);
+    }
+    hud.showTip(lines, this.tipAt.x, this.tipAt.y);
+  }
+
+  /** The whole map in the corner, with a frame for what's on screen. */
+  private drawMinimap(): void {
+    const mini = this.options.play?.hud.minimap;
+    if (!mini || mini.offsetWidth === 0) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.round(mini.clientWidth * dpr);
+    const h = Math.round((w * this.game.height) / this.game.width);
+    if (mini.width !== w || mini.height !== h) {
+      mini.width = w;
+      mini.height = h;
+      mini.style.height = `${h / dpr}px`;
+    }
+    const ctx = mini.getContext('2d')!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(this.renderer.mapImage, 0, 0, w, h);
+    const k = w / this.game.width;
+    const cam = this.camera;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.strokeRect((-cam.x / cam.scale) * k, (-cam.y / cam.scale) * k, (this.canvas.width / cam.scale) * k, (this.canvas.height / cam.scale) * k);
+  }
+
+  private onMinimap = (e: PointerEvent): void => {
+    if (e.type === 'pointermove' && e.buttons === 0) return;
+    const mini = e.currentTarget as HTMLCanvasElement;
+    const rect = mini.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * this.game.width;
+    const y = ((e.clientY - rect.top) / rect.height) * this.game.height;
+    this.flight = null;
+    this.camera.centerOn(x, y, this.canvas.width, this.canvas.height);
+    this.moved();
+    this.drawMinimap();
+  };
 
   moved(): void {
     this.flight = null;

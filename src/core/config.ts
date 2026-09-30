@@ -53,7 +53,7 @@ export const CONFIG = {
 
   // Match
   /** Share of all land that wins a match outright. */
-  winShare: 0.8,
+  winShare: 0.7,
 
   // Gold and buildings
   /** Gold per owned tile per tick. */

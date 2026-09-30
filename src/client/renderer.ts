@@ -127,6 +127,11 @@ export class Renderer {
     this.repaintAll();
   }
 
+  /** The map at one pixel per tile, for the minimap. */
+  get mapImage(): HTMLCanvasElement {
+    return this.surface;
+  }
+
   repaintAll(): void {
     for (let i = 0; i < this.game.size; i++) this.paint(i);
     this.dirty = { x0: 0, y0: 0, x1: this.game.width - 1, y1: this.game.height - 1 };

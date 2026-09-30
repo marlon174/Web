@@ -14,7 +14,7 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Fronts | Each attack keeps a priority queue of target tiles keyed by the tick they fall. Terrain slows it, tiles surrounded on more sides fall sooner, and a little seeded randomness keeps fronts organic. | `enqueue()`, `heap.ts` |
 | Capitals | Losing yours halves your troops; a new one is chosen near the middle of your land. | `loseCapital()` |
 | Encirclement | Every second, land cut off by exactly one player changes hands: enemy fragments without their capital, and small neutral pockets. | `sweepEnclosures()` |
-| Winning | Quick match: most land after 5 minutes. Classic: 80% of the land, or last one standing. | `checkEnd()` |
+| Winning | Quick match: most land after 5 minutes. Classic: 70% of the land, or last one standing. | `checkEnd()` |
 | Gold | Each tile earns gold every tick. | `grow()` |
 | Buildings | City: +20% troop cap. Bunker (defence post): land within 12 tiles costs attackers 3.5×, falls 6 ticks slower per tile, and its owner loses only half the usual troops there. Overrunning a bunker destroys it; other buildings change hands. Silo: launches missiles. Each one you own raises the next one's price. Buildings change hands with their tile. | `canBuild()`, `conquer()` |
 | Missiles | Rocket (radius 5) and nuke (radius 16) fly from your nearest silo. On impact land turns neutral, buildings are destroyed, owners lose troops, and a hit capital counts as lost. Fallout: bombed land isn't absorbed as a pocket and costs double for 30 s. | `fireMissile()`, `impact()` |

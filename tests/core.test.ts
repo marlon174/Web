@@ -285,7 +285,8 @@ describe('missiles', () => {
   });
 
   it('leaves a bombed hole open instead of absorbing it as a pocket', () => {
-    const moat = Array.from({ length: 12 }, (_, y): [number, number] => [30, y]);
+    // A's side (x < 26) stays under the 70% that would win outright.
+    const moat = Array.from({ length: 12 }, (_, y): [number, number] => [26, y]);
     const game = start(duel(40, 12, moat), [4, 5], [35, 5]);
     const a = game.player(1);
     game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
@@ -429,5 +430,20 @@ describe('silos', () => {
     expect(game.canLaunch(a, 'rocket')).toBe('reloading');
     run(game, CONFIG.siloReload);
     expect(game.canLaunch(a, 'rocket')).toBeNull();
+  });
+});
+
+describe('recall', () => {
+  it('calls an attack off and brings the troops home', () => {
+    const game = start(duel(40, 12), [4, 5], [35, 5]);
+    const a = game.player(1);
+    game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 900 });
+    game.step();
+    const sent = game.attacks[0].troops;
+    const home = a.troops;
+    game.queue({ type: 'recall', player: 1, target: NEUTRAL });
+    game.step();
+    expect(game.attacks).toHaveLength(0);
+    expect(a.troops).toBeGreaterThan(home + sent * 0.9);
   });
 });

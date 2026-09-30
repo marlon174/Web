@@ -17,7 +17,8 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Pick a start.** Click any spot on land (not mountains).
 - **Expand.** Click empty land to push into it along your whole border.
 - **Attack.** Click a neighbour's land. Attacking costs more than it costs them to defend, so pick on thin defences.
-- **Send.** The slider (or keys `1`–`0`) sets what share of your troops each click commits.
+- **Send.** The slider (or keys `1`–`0`) sets what share of your troops each click commits. Click one of your attacks under the map to call it off; the survivors come home.
+- **Scout.** Hover over land to see who holds it, their troops and what a tile would cost you. The minimap (bottom right) jumps anywhere on click.
 - **Grow.** Troops grow fastest when you are well below your cap, and the cap rises with your land. Sitting at the cap wastes growth.
 - **Capitals.** The star in a ring is a capital. Losing yours costs half your troops, and a new one is picked inside your land.
 - **Encircle.** Enemy land cut off from its capital by you alone becomes yours, and so do small pockets of empty land inside your territory.
@@ -28,7 +29,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Ports and boats (`E`).** Build a port on the coast, then click land across the water: troops sail over and land. Islands can only be reached this way.
 - **Alliances (`H`).** Click another player's land to offer a 3-minute alliance; allies can't attack or bomb each other. Use it on an ally to end it early.
 - **Missiles.** With a silo, press `F` (rocket) or `G` (nuke) and click any target. The blast turns land neutral, destroys buildings and kills troops; bombed ground stays poisoned for 30 seconds. Right-click or `Esc` cancels.
-- **Win.** Quick match: most land after 5 minutes. Classic: hold 80% of the land.
+- **Win.** Quick match: most land after 5 minutes. Classic: hold 70% of the land.
 
 Controls: drag to pan, scroll or pinch to zoom, `C` or the target button to find your capital, `Space` to pause.
 

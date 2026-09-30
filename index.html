@@ -46,7 +46,7 @@
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-classic" value="classic" />
                   <span class="mode-name">Klassisch</span>
-                  <span class="mode-note">Halte 80 % des Landes, um zu gewinnen.</span>
+                  <span class="mode-note">Halte 70 % des Landes, um zu gewinnen.</span>
                 </label>
               </div>
             </fieldset>
@@ -88,7 +88,8 @@
             <summary>So wird gespielt</summary>
             <ul>
               <li>Klick auf freies Land, um dich dorthin auszubreiten. Klick auf das Land eines Nachbarn, um ihn anzugreifen.</li>
-              <li>Der Regler <strong>Senden</strong> legt fest, wie viele deiner Truppen jeder Klick losschickt.</li>
+              <li>Der Regler <strong>Senden</strong> legt fest, wie viele deiner Truppen jeder Klick losschickt. Ein Klick auf einen laufenden Angriff unten ruft die Truppen zurück.</li>
+              <li>Fahr mit der Maus über ein Gebiet, um Truppen und Angriffskosten zu sehen. Die Übersichtskarte unten rechts bringt dich per Klick überall hin.</li>
               <li>Truppen wachsen am schnellsten, wenn du weit unter deiner Obergrenze bist. Also gib sie aus.</li>
               <li>Jeder hat eine Hauptstadt, markiert mit einem Stern. Verlierst du deine, verlierst du die Hälfte deiner Truppen.</li>
               <li>Schneidest du feindliches Land von seiner Hauptstadt ab oder umschließt freies Land, gehört es dir.</li>
@@ -163,6 +164,8 @@
           </div>
         </div>
 
+        <canvas id="minimap" class="panel minimap" aria-label="Übersichtskarte"></canvas>
+        <div class="tip" id="tip" hidden></div>
         <p class="keys">Q–H Werkzeuge · 1–0 Truppen · C Hauptstadt · Leertaste Pause</p>
         <div class="toast" id="toast" role="alert" hidden></div>
       </div>

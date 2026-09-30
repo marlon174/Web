@@ -123,7 +123,8 @@ export type Intent =
   | { type: 'launch'; player: number; tile: number; kind: MissileKind }
   | { type: 'boat'; player: number; tile: number; permille: number }
   | { type: 'ally'; player: number; target: number }
-  | { type: 'breakAlly'; player: number; target: number };
+  | { type: 'breakAlly'; player: number; target: number }
+  | { type: 'recall'; player: number; target: number };
 
 export type GameEvent =
   | { type: 'capitalLost'; player: number; by: number }
@@ -587,6 +588,10 @@ export class Game {
       this.buildingsByTile.set(intent.tile, { id: this.nextId++, kind: intent.kind, tile: intent.tile, owner: p.id });
       p.owned[intent.kind]++;
       if (intent.kind === 'defense') this.postsOf(p.id).push(intent.tile);
+    } else if (intent.type === 'recall') {
+      // Call an attack off: the surviving troops come home.
+      const a = this.findAttack(p.id, intent.target);
+      if (a) this.finish(a);
     } else if (intent.type === 'boat') {
       this.sendBoat(p, intent.tile, intent.permille);
     } else if (intent.type === 'ally') {
@@ -757,6 +762,12 @@ export class Game {
     if (tile >= width && owner[tile - width] === id) n++;
     if (tile + width < size && owner[tile + width] === id) n++;
     return n;
+  }
+
+  /** Troops it would cost to take this tile now (0 for your own or water). Pure: safe for the client. */
+  costToTake(tile: number, attacker: number): number {
+    if (!this.isLand(tile) || this.owner[tile] === attacker) return 0;
+    return this.tileCost(tile, this.owner[tile]);
   }
 
   private tileCost(tile: number, target: number): number {

@@ -45,6 +45,10 @@ export class Hud {
   private readonly toolButtons = new Map<ToolKind, HTMLButtonElement>();
   /** Called when a build bar button is pressed. */
   onTool: (kind: ToolKind) => void = () => {};
+  /** Called when one of your attacks is clicked, to call it off. */
+  onRecall: (target: number) => void = () => {};
+  readonly minimap = byId<HTMLCanvasElement>('minimap');
+  private readonly tip = byId('tip');
   private readonly meChip = byId('me-chip');
   private readonly meName = byId('me-name');
   private readonly clock = byId('clock');
@@ -64,6 +68,11 @@ export class Hud {
   private toastTimer = 0;
 
   constructor() {
+    // The chips are rebuilt several times a second, so act on press, not click.
+    this.fronts.addEventListener('pointerdown', (e) => {
+      const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-target]');
+      if (li) this.onRecall(Number(li.dataset.target));
+    });
     const bar = byId('tools');
     for (const tool of TOOLS) {
       const button = document.createElement('button');
@@ -212,11 +221,45 @@ export class Hud {
       const outgoing = a.attacker === me.id;
       li.className = outgoing ? 'outgoing' : 'incoming';
       const who = outgoing ? (a.target === NEUTRAL ? 'Freies Land' : game.player(a.target).name) : game.player(a.attacker).name;
-      li.textContent = `${outgoing ? '→' : '←'} ${who} · ${formatTroops(a.troops)}`;
-      li.title = outgoing ? `Deine Truppen rücken vor: ${who}` : `${who} greift dich an`;
+      li.textContent = `${outgoing ? '→' : '←'} ${who} · ${formatTroops(a.troops)}${outgoing ? ' ✕' : ''}`;
+      li.title = outgoing ? `Deine Truppen rücken vor: ${who}. Klicken ruft sie zurück.` : `${who} greift dich an`;
+      if (outgoing) li.dataset.target = String(a.target);
       items.push(li);
     }
-    this.fronts.replaceChildren(...items);
+    // Keep the same elements when only the numbers changed, so a press on a chip always lands.
+    const old = [...this.fronts.children] as HTMLElement[];
+    const same =
+      old.length === items.length &&
+      items.every((li, i) => old[i].className === li.className && old[i].dataset.target === li.dataset.target);
+    if (same) {
+      items.forEach((li, i) => {
+        old[i].textContent = li.textContent;
+        old[i].title = li.title;
+      });
+    } else {
+      this.fronts.replaceChildren(...items);
+    }
+  }
+
+  /** A small card next to the cursor (CSS pixels), or null to hide it. */
+  showTip(lines: string[] | null, x = 0, y = 0): void {
+    if (!lines) {
+      this.tip.hidden = true;
+      return;
+    }
+    this.tip.replaceChildren(
+      ...lines.map((text, i) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        if (i === 0) div.className = 'tip-title';
+        return div;
+      }),
+    );
+    this.tip.hidden = false;
+    const w = this.tip.offsetWidth;
+    const flip = x + 18 + w > window.innerWidth - 8;
+    this.tip.style.left = `${flip ? x - 14 - w : x + 18}px`;
+    this.tip.style.top = `${y + 14}px`;
   }
 
   post(text: string, tone: Tone): void {
