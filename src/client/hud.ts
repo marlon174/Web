@@ -144,10 +144,15 @@ export class Hud {
   /** Prices, and which tools are usable right now. */
   updateTools(game: Game, me: Player, active: ToolKind | null): void {
     for (const [kind, button] of this.toolButtons) {
-      const missile = isMissile(kind);
-      const cost = missile ? game.missileCost(kind) : game.buildCost(me, kind);
-      const ready = me.alive && game.phase === 'play' && me.gold >= cost && (!missile || me.owned.silo > 0);
-      button.querySelector('.tool-cost')!.textContent = formatTroops(cost);
+      let ready = me.alive && game.phase === 'play';
+      if (kind === 'ally') {
+        button.querySelector('.tool-cost')!.textContent = '3 Min';
+      } else {
+        const missile = isMissile(kind);
+        const cost = missile ? game.missileCost(kind) : game.buildCost(me, kind);
+        ready &&= me.gold >= cost && (!missile || me.owned.silo > 0);
+        button.querySelector('.tool-cost')!.textContent = formatTroops(cost);
+      }
       button.classList.toggle('locked', !ready);
       button.classList.toggle('active', kind === active);
       button.setAttribute('aria-pressed', String(kind === active));
@@ -168,7 +173,9 @@ export class Hud {
       dot.style.setProperty('--c', toHex(p.color));
       const name = document.createElement('span');
       name.className = 'name';
-      name.textContent = p.name;
+      const ends = game.allianceEnds(me.id, p.id);
+      name.textContent = ends ? `🤝 ${p.name} · ${formatClock((ends - game.tick) / CONFIG.ticksPerSecond)}` : p.name;
+      if (ends) li.classList.add('ally');
       const share = document.createElement('span');
       share.className = 'share';
       share.textContent = formatShare(p.tiles / game.map.landTiles);
@@ -183,6 +190,13 @@ export class Hud {
 
   private updateFronts(game: Game, me: Player): void {
     const items: HTMLLIElement[] = [];
+    for (const b of game.boats) {
+      if (b.owner !== me.id) continue;
+      const li = document.createElement('li');
+      li.className = 'outgoing';
+      li.textContent = `⛵ Boot · ${formatTroops(b.troops)}`;
+      items.push(li);
+    }
     for (const m of game.missiles) {
       if (m.victim !== me.id || m.owner === me.id) continue;
       const li = document.createElement('li');

@@ -87,6 +87,15 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | n
       const tile = game.findSpot(p, 'city');
       if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'city' };
     }
+    // A factory once there are cities for its trains to visit.
+    if (p.owned.city >= 2 && p.owned.factory < Math.ceil(p.owned.city / 4) && p.gold >= game.buildCost(p, 'factory')) {
+      const tile = game.findSpot(p, 'factory');
+      if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'factory' };
+    }
+    if (p.owned.port === 0 && p.tiles > 800 && p.gold >= game.buildCost(p, 'port')) {
+      const tile = game.findSpot(p, 'port');
+      if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'port' };
+    }
     const underAttack = game.attacks.some((a) => a.target === p.id);
     if (underAttack && p.owned.defense < 1 + Math.floor(p.tiles / 2500) && p.gold >= game.buildCost(p, 'defense')) {
       const tile = game.findSpot(p, 'defense', true);
@@ -104,14 +113,16 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | n
   // Nukes go for the biggest rival's capital: it costs them half their troops.
   if (brain.missiles === 2 && game.canLaunch(p, 'nuke') === null) {
     let rival: Player | null = null;
-    for (const q of game.players) if (q.alive && q.id !== p.id && (!rival || q.tiles > rival.tiles)) rival = q;
+    for (const q of game.players) {
+      if (q.alive && q.id !== p.id && !game.allied(p.id, q.id) && (!rival || q.tiles > rival.tiles)) rival = q;
+    }
     if (rival && rival.capital >= 0) return { type: 'launch', player: p.id, tile: rival.capital, kind: 'nuke' };
   }
   // Rockets clear the way: an enemy defence post or city owned by a neighbour.
   if (game.canLaunch(p, 'rocket') !== null) return null;
   let target = -1;
   for (const b of game.buildings) {
-    if (b.owner === p.id || b.kind === 'silo' || !game.sharesBorder(p, b.owner)) continue;
+    if (b.owner === p.id || b.kind === 'silo' || game.allied(p.id, b.owner) || !game.sharesBorder(p, b.owner)) continue;
     target = b.tile;
     if (b.kind === 'defense') break;
   }
@@ -124,6 +135,16 @@ function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | 
   if (max <= 0) return null;
   const fill = p.troops / max;
 
+  // With a port, now and then ship troops to an unclaimed island.
+  if (p.owned.port > 0 && p.troops > 800 && rng.next() < 0.25) {
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const t = rng.int(game.size);
+      if (game.map.terrain[t] === Terrain.Water || game.map.mainland[t] || game.owner[t] !== NEUTRAL) continue;
+      if (typeof game.planBoat(p, t) !== 'string') return { type: 'boat', player: p.id, tile: t, permille: 350 };
+      break;
+    }
+  }
+
   // Survey the border: how much neutral land, and which neighbours.
   const { owner, width, size } = game;
   const terrain = game.map.terrain;
@@ -132,7 +153,7 @@ function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | 
   const look = (n: number) => {
     if (terrain[n] === Terrain.Water) return;
     const o = owner[n];
-    if (o === p.id) return;
+    if (o === p.id || game.allied(p.id, o)) return;
     if (o === NEUTRAL) neutral++;
     else shared.set(o, (shared.get(o) ?? 0) + 1);
   };

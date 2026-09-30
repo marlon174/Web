@@ -40,11 +40,11 @@ while (game.phase !== 'over' && game.tick < 20 * 60 * perSecond) {
       .map((p) => `${p.name} ${((100 * p.tiles) / map.landTiles).toFixed(1)}%`)
       .join(', ');
     const neutral = map.landTiles - alive.reduce((sum, p) => sum + p.tiles, 0);
-    const built = { city: 0, defense: 0, silo: 0 };
+    const built = { city: 0, defense: 0, silo: 0, port: 0, factory: 0 };
     for (const b of game.buildings) built[b.kind]++;
     console.log(
       `${String(game.tick / perSecond).padStart(5)}s  alive ${String(alive.length).padStart(2)}  neutral ${((100 * neutral) / map.landTiles).toFixed(1).padStart(5)}%  ` +
-        `cities ${built.city} posts ${built.defense} silos ${built.silo} missiles ${launched}  ${top}`,
+        `cities ${built.city} posts ${built.defense} silos ${built.silo} ports ${built.port} factories ${built.factory} trains ${game.trains.length} boats ${game.boats.length} missiles ${launched}  ${top}`,
     );
   }
 }

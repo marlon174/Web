@@ -151,22 +151,32 @@ export class Session implements InputTarget {
 
   // Building and missiles
 
-  /** Why the tool can't be used on this tile, or null if it can. */
+  /** Why the tool can't be used on this tile, or null if it can. Tile -1: only the checks that don't depend on a spot. */
   private toolRefusal(kind: ToolKind, tile: number): string | null {
     const { game, me } = this;
     if (!me || game.phase !== 'play' || !me.alive) return 'Warte, bis die Partie läuft.';
+    if (kind === 'ally') {
+      if (tile < 0) return null;
+      const o = game.owner[tile];
+      if (o === NEUTRAL || o === me.id) return 'Klick auf das Land eines anderen Spielers.';
+      return null;
+    }
     if (isMissile(kind)) {
       const refusal = game.canLaunch(me, kind);
       if (refusal === 'noSilo') return 'Bau zuerst ein Raketensilo.';
       if (refusal === 'gold') return `${kind === 'nuke' ? 'Eine Atombombe' : 'Eine Rakete'} kostet ${formatTroops(game.missileCost(kind))} Gold.`;
-      return tile < 0 ? 'Ziel auf eine Stelle der Karte.' : null;
+      if (tile >= 0 && game.allied(me.id, game.owner[tile])) return 'Du kannst nicht auf Verbündete schießen.';
+      return null;
     }
+    if (tile < 0) return me.gold < game.buildCost(me, kind) ? `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.` : null;
     switch (game.canBuild(me, kind, tile)) {
       case 'gold':
         return `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.`;
       case 'notYours':
       case 'offMap':
         return 'Bau auf deinem eigenen Land.';
+      case 'notCoast':
+        return 'Häfen müssen direkt am Wasser stehen.';
       case 'tooClose':
         return 'Zu nah an einem anderen Gebäude. Lass 4 Felder Abstand.';
       default:
@@ -182,18 +192,27 @@ export class Session implements InputTarget {
       return;
     }
     // Refuse up front when nothing on the map could work (no gold, no silo).
-    const refusal = isMissile(kind) ? this.toolRefusal(kind, 0) : this.game.phase === 'play' && this.me.gold < this.game.buildCost(this.me, kind) ? this.toolRefusal(kind, -1) : this.game.phase !== 'play' ? 'Warte, bis die Partie läuft.' : null;
+    const refusal = this.toolRefusal(kind, -1);
     if (refusal) {
       hud.toast(refusal);
       return;
     }
     this.tool = kind;
     const name = TOOLS.find((t) => t.kind === kind)!.name;
-    const building = { city: 'eine Stadt', defense: 'einen Verteidigungsposten', silo: 'ein Raketensilo' } as Record<string, string>;
+    const building: Record<string, string> = {
+      city: 'eine Stadt',
+      factory: 'eine Fabrik',
+      port: 'einen Hafen (an der Küste)',
+      defense: 'einen Abwehrposten',
+      silo: 'ein Raketensilo',
+    };
+    const cancel = 'Rechtsklick oder Esc bricht ab.';
     hud.setBanner(
-      isMissile(kind)
-        ? `Klick auf ein Ziel für deine ${name}. Rechtsklick oder Esc bricht ab.`
-        : `Klick auf dein Land, um ${building[kind]} zu bauen. Rechtsklick oder Esc bricht ab.`,
+      kind === 'ally'
+        ? `Klick auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`
+        : isMissile(kind)
+          ? `Klick auf ein Ziel für deine ${name}. ${cancel}`
+          : `Klick auf dein Land, um ${building[kind]} zu bauen. ${cancel}`,
     );
     hud.updateTools(this.game, this.me, this.tool);
   }
@@ -216,9 +235,36 @@ export class Session implements InputTarget {
       hud.toast(refusal);
       return;
     }
-    if (isMissile(kind)) this.game.queue({ type: 'launch', player: me.id, tile, kind });
+    if (kind === 'ally') {
+      const target = this.game.owner[tile];
+      if (this.game.allied(me.id, target)) this.game.queue({ type: 'breakAlly', player: me.id, target });
+      else this.game.queue({ type: 'ally', player: me.id, target });
+    } else if (isMissile(kind)) this.game.queue({ type: 'launch', player: me.id, tile, kind });
     else this.game.queue({ type: 'build', player: me.id, tile, kind });
     this.cancel();
+  }
+
+  /** Land across the water: ship the troops over from a port. */
+  private sendBoat(tile: number): void {
+    const hud = this.options.play!.hud;
+    const me = this.me!;
+    const plan = this.game.planBoat(me, tile);
+    const why: Record<string, string> = {
+      noPort: 'Dieses Land grenzt nicht an deins. Mit einem Hafen kannst du übers Wasser übersetzen.',
+      boats: `Du hast schon ${CONFIG.maxBoats} Boote unterwegs.`,
+      ally: 'Dort wohnt ein Verbündeter.',
+      noRoute: 'Kein Seeweg von deinen Häfen zu dieser Küste.',
+      offMap: 'Ziel auf Land.',
+    };
+    if (typeof plan === 'string') {
+      hud.toast(why[plan] ?? 'Dorthin kann kein Boot fahren.');
+      return;
+    }
+    if (me.troops < 2) {
+      hud.toast('Du hast noch keine Truppen zum Losschicken.');
+      return;
+    }
+    this.game.queue({ type: 'boat', player: me.id, tile, permille: hud.percent * 10 });
   }
 
   private canSpawnAt(tile: number): boolean {
@@ -249,13 +295,18 @@ export class Session implements InputTarget {
     }
     if (game.phase !== 'play' || !me.alive) return;
     if (!game.isLand(tile)) {
-      hud.toast('Deine Truppen können noch nicht übers Wasser.');
+      hud.toast('Klick auf Land jenseits des Wassers. Boote brauchen einen Hafen.');
       return;
     }
     const target = game.owner[tile];
     if (target === me.id) return;
+    if (game.allied(me.id, target)) {
+      hud.toast(`${game.player(target).name} ist dein Verbündeter.`);
+      return;
+    }
     if (!game.sharesBorder(me, target)) {
-      hud.toast(target === NEUTRAL ? 'Dieses Land grenzt nicht an deins.' : `Du hast keine gemeinsame Grenze mit ${game.player(target).name}.`);
+      if (me.owned.port > 0) this.sendBoat(tile);
+      else hud.toast(target === NEUTRAL ? 'Dieses Land grenzt nicht an deins. Mit einem Hafen kommst du übers Wasser.' : `Du hast keine gemeinsame Grenze mit ${game.player(target).name}.`);
       return;
     }
     if (me.troops < 2) {
@@ -432,7 +483,7 @@ export class Session implements InputTarget {
         if (e.player === me.id) hud.post(`${name(e.by)} hat ${e.tiles} deiner Felder abgeschnitten und übernommen.`, 'bad');
         else if (e.by === me.id) hud.post(`Du hast ${e.tiles} Felder von ${name(e.player)} abgeschnitten und übernommen.`, 'good');
       } else if (e.type === 'captured') {
-        const what = e.kind === 'defense' ? 'den Verteidigungsposten' : e.kind === 'silo' ? 'das Raketensilo' : 'die Stadt';
+        const what = { defense: 'den Abwehrposten', silo: 'das Raketensilo', city: 'die Stadt', port: 'den Hafen', factory: 'die Fabrik' }[e.kind];
         if (e.by === me.id) hud.post(`Du hast ${what} von ${name(e.from)} erobert.`, 'good');
         else if (e.from === me.id) hud.post(`${name(e.by)} hat ${what} von dir erobert.`, 'bad');
       } else if (e.type === 'launched') {
@@ -450,6 +501,24 @@ export class Session implements InputTarget {
           const tiles = e.losses.filter((l) => l.player !== me.id).reduce((sum, l) => sum + l.tiles, 0);
           const extra = e.buildings ? ` und ${e.buildings} Gebäude` : '';
           hud.post(`Deine ${what} hat ${tiles} feindliche Felder${extra} zerstört.`, 'good');
+        }
+      } else if (e.type === 'trainStop') {
+        if (e.owner === me.id) this.renderer.floatText(e.tile, `+${formatTroops(e.gold)}`);
+      } else if (e.type === 'landed') {
+        if (e.owner === me.id) hud.post(e.target === NEUTRAL ? 'Deine Truppen sind gelandet.' : `Deine Truppen sind bei ${name(e.target)} gelandet.`, 'good');
+        else if (e.target === me.id) hud.post(`${name(e.owner)} ist an deiner Küste gelandet!`, 'bad');
+      } else if (e.type === 'repelled') {
+        if (e.owner === me.id) hud.post('Deine Landung wurde abgewehrt.', 'bad');
+        else if (e.target === me.id) hud.post(`Du hast eine Landung von ${name(e.owner)} abgewehrt.`, 'good');
+      } else if (e.type === 'alliance') {
+        if (e.from === me.id) hud.post(e.accepted ? `${name(e.to)} ist jetzt dein Verbündeter (3 Minuten).` : `${name(e.to)} lehnt ein Bündnis ab. Versuch es später nochmal.`, e.accepted ? 'good' : 'info');
+        else if (e.to === me.id && e.accepted) hud.post(`${name(e.from)} ist jetzt dein Verbündeter.`, 'good');
+      } else if (e.type === 'allianceEnded') {
+        const other = e.a === me.id ? e.b : e.b === me.id ? e.a : NEUTRAL;
+        if (other !== NEUTRAL) {
+          if (e.brokenBy === me.id) hud.post(`Du hast das Bündnis mit ${name(other)} beendet.`, 'info');
+          else if (e.brokenBy === other) hud.post(`${name(other)} hat das Bündnis gebrochen!`, 'bad');
+          else hud.post(`Das Bündnis mit ${name(other)} ist abgelaufen.`, 'info');
         }
       } else if (e.type === 'gameOver') {
         this.showResult(e.winner);

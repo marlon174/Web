@@ -671,6 +671,10 @@ fieldset:disabled .segmented label {
   font-variant-numeric: tabular-nums;
 }
 
+.board li.ally .name {
+  color: var(--good);
+}
+
 .board li.me {
   background: var(--field-hover);
   font-weight: 700;
@@ -702,7 +706,7 @@ fieldset:disabled .segmented label {
   display: grid;
   gap: 8px;
   justify-items: center;
-  width: min(480px, calc(100% - 2 * var(--gutter)));
+  width: min(640px, calc(100% - 2 * var(--gutter)));
 }
 
 .fronts {
@@ -732,7 +736,7 @@ fieldset:disabled .segmented label {
 
 .tools {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
   width: 100%;
   box-sizing: border-box;

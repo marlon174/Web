@@ -48,9 +48,9 @@ export interface Player {
   readonly brain: BotBrain | null;
 }
 
-export type BuildingKind = 'city' | 'defense' | 'silo';
+export type BuildingKind = 'city' | 'defense' | 'silo' | 'port' | 'factory';
 export type MissileKind = 'rocket' | 'nuke';
-export const BUILDING_KINDS: readonly BuildingKind[] = ['city', 'defense', 'silo'];
+export const BUILDING_KINDS: readonly BuildingKind[] = ['city', 'defense', 'silo', 'port', 'factory'];
 
 export interface Building {
   readonly id: number;
@@ -73,13 +73,48 @@ export interface Missile {
 }
 
 /** Why a build or launch isn't possible right now. */
-export type Refusal = 'notYours' | 'tooClose' | 'gold' | 'noSilo' | 'offMap';
+export type Refusal =
+  | 'notYours'
+  | 'tooClose'
+  | 'gold'
+  | 'noSilo'
+  | 'offMap'
+  | 'notCoast'
+  | 'noPort'
+  | 'noRoute'
+  | 'boats'
+  | 'ally';
+
+/** A train running from a factory through your cities and ports, and back. */
+export interface Train {
+  readonly id: number;
+  readonly owner: number;
+  /** Factory, the stops in order, then the factory again. */
+  readonly route: number[];
+  /** Index of the stop it is heading for, and tiles covered on this leg. */
+  leg: number;
+  progress: number;
+}
+
+/** Troops at sea, heading for a beach. */
+export interface Boat {
+  readonly id: number;
+  readonly owner: number;
+  troops: number;
+  /** Water tiles from the port to the beach, then the beach tile itself. */
+  readonly path: number[];
+  /** Position along the path, in tiles. */
+  pos: number;
+}
 
 export type Intent =
   | { type: 'spawn'; player: number; tile: number }
   | { type: 'attack'; player: number; target: number; permille: number }
   | { type: 'build'; player: number; tile: number; kind: BuildingKind }
-  | { type: 'launch'; player: number; tile: number; kind: MissileKind };
+  | { type: 'launch'; player: number; tile: number; kind: MissileKind }
+  | { type: 'boat'; player: number; tile: number; permille: number }
+  | { type: 'ally'; player: number; target: number }
+  | { type: 'breakAlly'; player: number; target: number };
 
 export type GameEvent =
   | { type: 'capitalLost'; player: number; by: number }
@@ -88,6 +123,11 @@ export type GameEvent =
   | { type: 'captured'; kind: BuildingKind; tile: number; from: number; by: number }
   | { type: 'launched'; missile: Missile }
   | { type: 'impact'; missile: Missile; losses: { player: number; tiles: number }[]; buildings: number }
+  | { type: 'trainStop'; owner: number; tile: number; gold: number }
+  | { type: 'landed'; owner: number; tile: number; target: number }
+  | { type: 'repelled'; owner: number; tile: number; target: number }
+  | { type: 'alliance'; from: number; to: number; accepted: boolean }
+  | { type: 'allianceEnded'; a: number; b: number; brokenBy: number }
   | { type: 'gameOver'; winner: number };
 
 export interface Attack {
@@ -135,6 +175,13 @@ export class Game {
   private readonly buildingsByTile = new Map<number, Building>();
   private missileList: Missile[] = [];
   private nextId = 1;
+  private trainList: Train[] = [];
+  private boatList: Boat[] = [];
+  /** Alliance expiry tick, and cool-down end tick, keyed by "low:high" player ids. */
+  private readonly alliances = new Map<string, number>();
+  private readonly cooldowns = new Map<string, number>();
+  /** Human-to-human alliance offers waiting for an answer: "from:to". */
+  private readonly offers = new Set<string>();
   private pending: Intent[] = [];
   private changed: number[] = [];
   private events: GameEvent[] = [];
@@ -174,7 +221,7 @@ export class Game {
       peakTiles: 0,
       place: 0,
       gold: 0,
-      owned: { city: 0, defense: 0, silo: 0 },
+      owned: { city: 0, defense: 0, silo: 0, port: 0, factory: 0 },
       brain: setup.bot ? createBrain(this.rng, settings.difficulty, i) : null,
     }));
   }
@@ -210,10 +257,145 @@ export class Game {
 
   /** Gold price of the next building of this kind for `p`. */
   buildCost(p: Player, kind: BuildingKind): number {
-    const { cost, growth } = CONFIG.buildings[kind];
-    let price = cost;
-    for (let i = 0; i < p.owned[kind]; i++) price *= growth;
-    return Math.round(price);
+    const { cost, step, max } = CONFIG.buildings[kind];
+    return Math.min(max, cost + step * p.owned[kind]);
+  }
+
+  get trains(): readonly Train[] {
+    return this.trainList;
+  }
+
+  get boats(): readonly Boat[] {
+    return this.boatList;
+  }
+
+  isCoast(tile: number): boolean {
+    if (!this.isLand(tile)) return false;
+    const { width, size, terrain } = this;
+    const x = tile % width;
+    return (
+      (x > 0 && terrain[tile - 1] === Terrain.Water) ||
+      (x < width - 1 && terrain[tile + 1] === Terrain.Water) ||
+      (tile >= width && terrain[tile - width] === Terrain.Water) ||
+      (tile + width < size && terrain[tile + width] === Terrain.Water)
+    );
+  }
+
+  // Alliances
+
+  private pairKey(a: number, b: number): string {
+    return a < b ? `${a}:${b}` : `${b}:${a}`;
+  }
+
+  allied(a: number, b: number): boolean {
+    return a !== b && a !== NEUTRAL && b !== NEUTRAL && this.alliances.has(this.pairKey(a, b));
+  }
+
+  /** Tick an alliance ends, or 0 if the two aren't allied. */
+  allianceEnds(a: number, b: number): number {
+    return this.alliances.get(this.pairKey(a, b)) ?? 0;
+  }
+
+  /**
+   * The cities and ports a factory's rail reaches, in the order its train
+   * visits them: nearest first, then always on to the nearest unvisited one.
+   */
+  railRoute(factory: Building): number[] {
+    const w = this.width;
+    const fx = factory.tile % w;
+    const fy = (factory.tile - fx) / w;
+    const dist2 = (a: number, bx: number, by: number) => {
+      const ax = a % w;
+      const ay = (a - ax) / w;
+      return (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
+    };
+    const range = CONFIG.railRange * CONFIG.railRange;
+    const near: number[] = [];
+    for (const b of this.buildingsByTile.values()) {
+      if (b.owner !== factory.owner || (b.kind !== 'city' && b.kind !== 'port')) continue;
+      if (dist2(b.tile, fx, fy) <= range) near.push(b.tile);
+    }
+    near.sort((a, b) => dist2(a, fx, fy) - dist2(b, fx, fy) || a - b);
+    const pool = near.slice(0, CONFIG.railStops);
+    const route: number[] = [];
+    let cx = fx;
+    let cy = fy;
+    while (pool.length) {
+      let best = 0;
+      for (let i = 1; i < pool.length; i++) if (dist2(pool[i], cx, cy) < dist2(pool[best], cx, cy)) best = i;
+      const next = pool.splice(best, 1)[0];
+      route.push(next);
+      cx = next % w;
+      cy = (next - cx) / w;
+    }
+    return route;
+  }
+
+  /**
+   * Where a boat sent at `tile` would land and the water route there from one
+   * of `p`'s ports, or the reason it can't go. Pure: safe for the client.
+   */
+  planBoat(p: Player, tile: number): { path: number[]; target: number } | Refusal {
+    if (p.owned.port === 0) return 'noPort';
+    if (!this.isLand(tile)) return 'offMap';
+    if (this.boatList.filter((b) => b.owner === p.id).length >= CONFIG.maxBoats) return 'boats';
+    const { width: w, size, terrain, owner } = this;
+    // The beach: the clicked tile if it's on the coast, else the nearest coast within reach.
+    let beach = -1;
+    if (this.isCoast(tile) && owner[tile] !== p.id) beach = tile;
+    else {
+      const seen = new Map<number, number>([[tile, 0]]);
+      const queue = [tile];
+      for (let head = 0; head < queue.length && beach < 0; head++) {
+        const t = queue[head];
+        const d = seen.get(t)!;
+        if (d >= CONFIG.landingSearch) continue;
+        const x = t % w;
+        for (const n of [x > 0 ? t - 1 : -1, x < w - 1 ? t + 1 : -1, t - w, t + w]) {
+          if (n < 0 || n >= size || seen.has(n) || terrain[n] === Terrain.Water) continue;
+          seen.set(n, d + 1);
+          if (this.isCoast(n) && owner[n] !== p.id) {
+            beach = n;
+            break;
+          }
+          queue.push(n);
+        }
+      }
+    }
+    if (beach < 0) return 'noRoute';
+    if (this.allied(p.id, owner[beach])) return 'ally';
+
+    // Breadth-first search over water, from the beach out to any of p's ports.
+    const ports = new Set<number>();
+    for (const b of this.buildingsByTile.values()) if (b.kind === 'port' && b.owner === p.id) ports.add(b.tile);
+    const parent = new Map<number, number>();
+    const queue: number[] = [];
+    const bx = beach % w;
+    for (const n of [bx > 0 ? beach - 1 : -1, bx < w - 1 ? beach + 1 : -1, beach - w, beach + w]) {
+      if (n >= 0 && n < size && terrain[n] === Terrain.Water && !parent.has(n)) {
+        parent.set(n, -1);
+        queue.push(n);
+      }
+    }
+    for (let head = 0; head < queue.length; head++) {
+      const t = queue[head];
+      const x = t % w;
+      for (const n of [x > 0 ? t - 1 : -1, x < w - 1 ? t + 1 : -1, t - w, t + w]) {
+        if (n < 0 || n >= size) continue;
+        if (ports.has(n)) {
+          // Found a port: walk back to the beach.
+          const path: number[] = [];
+          for (let c = t; c !== -1; c = parent.get(c)!) path.push(c);
+          path.push(beach);
+          return { path, target: beach };
+        }
+        if (terrain[n] === Terrain.Water && !parent.has(n)) {
+          parent.set(n, t);
+          queue.push(n);
+        }
+      }
+    }
+    return 'noRoute';
   }
 
   missileCost(kind: MissileKind): number {
@@ -224,6 +406,7 @@ export class Game {
   canBuild(p: Player, kind: BuildingKind, tile: number): Refusal | null {
     if (tile < 0 || tile >= this.size) return 'offMap';
     if (this.owner[tile] !== p.id || !p.alive) return 'notYours';
+    if (kind === 'port' && !this.isCoast(tile)) return 'notCoast';
     const gap = CONFIG.buildingSpacing;
     const x = tile % this.width;
     const y = (tile - x) / this.width;
@@ -249,9 +432,9 @@ export class Game {
    * call it from inside the simulation.
    */
   findSpot(p: Player, kind: BuildingKind, front = false): number {
-    for (let attempt = 0; attempt < 60; attempt++) {
+    for (let attempt = 0; attempt < (kind === 'port' ? 400 : 60); attempt++) {
       const t = front ? p.border[this.rng.int(p.border.length)] : this.rng.int(this.size);
-      if (t === undefined || (!front && this.borderPos[t] >= 0)) continue;
+      if (t === undefined || (!front && kind !== 'port' && this.borderPos[t] >= 0)) continue;
       if (this.canBuild(p, kind, t) === null) return t;
     }
     return -1;
@@ -308,6 +491,9 @@ export class Game {
     this.runBots();
     this.updateAttacks();
     this.updateMissiles();
+    this.updateTrains();
+    this.updateBoats();
+    this.updateAlliances();
     this.grow();
     if (this.tick % CONFIG.sweepEvery === 0) this.sweepEnclosures();
     for (const p of this.players) if (p.tiles > p.peakTiles) p.peakTiles = p.tiles;
@@ -327,6 +513,9 @@ export class Game {
     }
     for (const b of this.buildingsByTile.values()) h = Math.imul(h ^ (b.tile * 4 + b.owner), 16777619);
     for (const m of this.missileList) h = Math.imul(h ^ m.to, 16777619);
+    for (const t of this.trainList) h = Math.imul(h ^ (t.leg * 1000 + Math.floor(t.progress)), 16777619);
+    for (const b of this.boatList) h = Math.imul(h ^ Math.floor(b.pos * 10 + b.troops), 16777619);
+    for (const [key, ends] of this.alliances) h = Math.imul(h ^ (ends + key.length), 16777619);
     return h >>> 0;
   }
 
@@ -353,8 +542,15 @@ export class Game {
       p.gold -= this.buildCost(p, intent.kind);
       this.buildingsByTile.set(intent.tile, { id: this.nextId++, kind: intent.kind, tile: intent.tile, owner: p.id });
       p.owned[intent.kind]++;
+    } else if (intent.type === 'boat') {
+      this.sendBoat(p, intent.tile, intent.permille);
+    } else if (intent.type === 'ally') {
+      this.proposeAlliance(p, intent.target);
+    } else if (intent.type === 'breakAlly') {
+      if (this.isPlayerId(intent.target) && this.allied(p.id, intent.target)) this.endAlliance(p.id, intent.target, p.id);
     } else if (intent.type === 'launch') {
       if (!(intent.kind in CONFIG.missiles) || intent.tile < 0 || intent.tile >= this.size) return;
+      if (this.allied(p.id, this.owner[intent.tile])) return;
       if (this.canLaunch(p, intent.kind) !== null) return;
       this.fireMissile(p, intent.kind, intent.tile);
     }
@@ -371,8 +567,14 @@ export class Game {
 
   // Spawning
 
-  private isSpawnable(tile: number): boolean {
-    return this.isLand(tile) && this.owner[tile] === NEUTRAL && this.terrain[tile] !== Terrain.Mountains;
+  /** Humans may start anywhere on land except mountains; bots only on the continent. */
+  isSpawnable(tile: number, mainlandOnly = false): boolean {
+    return (
+      this.isLand(tile) &&
+      (!mainlandOnly || this.map.mainland[tile] === 1) &&
+      this.owner[tile] === NEUTRAL &&
+      this.terrain[tile] !== Terrain.Mountains
+    );
   }
 
   private spawnAt(p: Player, tile: number): void {
@@ -402,7 +604,7 @@ export class Game {
       while (!placed && spacing >= 0.5) {
         for (let attempt = 0; attempt < 400 && !placed; attempt++) {
           const t = this.rng.int(this.size);
-          if (!this.isSpawnable(t) || this.nearCapital(t, spacing)) continue;
+          if (!this.isSpawnable(t, true) || this.nearCapital(t, spacing)) continue;
           this.spawnAt(p, t);
           placed = true;
         }
@@ -434,9 +636,19 @@ export class Game {
   private launch(p: Player, target: number, troops: number): void {
     if (troops < 1 || target === p.id || (target !== NEUTRAL && !this.isPlayerId(target))) return;
     const enemy = target === NEUTRAL ? null : this.player(target);
-    if (enemy && !enemy.alive) return;
+    if (enemy && (!enemy.alive || this.allied(p.id, target))) return;
     if (!this.sharesBorder(p, target)) return;
     p.troops -= troops;
+    this.deploy(p, target, troops);
+  }
+
+  /** Puts troops already taken from `p` into an attack on `target`. */
+  private deploy(p: Player, target: number, troops: number): void {
+    const enemy = target === NEUTRAL ? null : this.player(target);
+    if (enemy && !enemy.alive) {
+      p.troops += troops;
+      return;
+    }
 
     // Attacking someone who is attacking you: the two armies meet first.
     if (enemy) {
@@ -519,6 +731,147 @@ export class Game {
       if (dx * dx + dy * dy <= r * r) return true;
     }
     return false;
+  }
+
+  // Trains
+
+  private updateTrains(): void {
+    // A factory sends a train once per interval (staggered by id) if none of its own is out.
+    for (const b of this.buildingsByTile.values()) {
+      if (b.kind !== 'factory' || (this.tick + b.id * 37) % CONFIG.trainInterval !== 0) continue;
+      if (this.trainList.some((t) => t.route[0] === b.tile)) continue;
+      const stops = this.railRoute(b);
+      if (stops.length === 0) continue;
+      this.trainList.push({ id: this.nextId++, owner: b.owner, route: [b.tile, ...stops, b.tile], leg: 1, progress: 0 });
+    }
+    if (this.trainList.length === 0) return;
+    const w = this.width;
+    for (const t of this.trainList) {
+      t.progress += CONFIG.trainSpeed;
+      for (;;) {
+        const a = t.route[t.leg - 1];
+        const b = t.route[t.leg];
+        const dx = (a % w) - (b % w);
+        const dy = Math.floor(a / w) - Math.floor(b / w);
+        const length = Math.sqrt(dx * dx + dy * dy);
+        if (t.progress < length) break;
+        t.progress -= length;
+        // Pays at each of the owner's cities and ports still standing on its route.
+        const stop = this.buildingsByTile.get(b);
+        if (t.leg < t.route.length - 1 && stop && stop.owner === t.owner && this.player(t.owner).alive) {
+          this.player(t.owner).gold += CONFIG.trainStopGold;
+          this.events.push({ type: 'trainStop', owner: t.owner, tile: b, gold: CONFIG.trainStopGold });
+        }
+        t.leg++;
+        if (t.leg >= t.route.length) break;
+      }
+    }
+    this.trainList = this.trainList.filter((t) => t.leg < t.route.length);
+  }
+
+  // Boats
+
+  private sendBoat(p: Player, tile: number, permille: number): void {
+    const plan = this.planBoat(p, tile);
+    if (typeof plan === 'string') return;
+    const troops = Math.floor((p.troops * Math.max(1, Math.min(1000, Math.floor(permille)))) / 1000);
+    if (troops < 1) return;
+    p.troops -= troops;
+    this.boatList.push({ id: this.nextId++, owner: p.id, troops, path: plan.path, pos: 0 });
+  }
+
+  private updateBoats(): void {
+    if (this.boatList.length === 0) return;
+    const landed: Boat[] = [];
+    for (const b of this.boatList) {
+      b.pos += CONFIG.boatSpeed;
+      if (b.pos >= b.path.length - 1) landed.push(b);
+    }
+    if (landed.length === 0) return;
+    this.boatList = this.boatList.filter((b) => b.pos < b.path.length - 1);
+    for (const b of landed) this.land(b);
+  }
+
+  /** Troops come ashore: take the beach, then push inland from it. */
+  private land(b: Boat): void {
+    const p = this.player(b.owner);
+    const beach = b.path[b.path.length - 1];
+    const target = this.owner[beach];
+    if (!p.alive) return;
+    if (target === p.id || this.allied(p.id, target)) {
+      p.troops += b.troops;
+      return;
+    }
+    const cost = this.tileCost(beach, target);
+    if (b.troops < cost) {
+      this.events.push({ type: 'repelled', owner: p.id, tile: beach, target });
+      return;
+    }
+    let troops = b.troops - cost;
+    if (target !== NEUTRAL) {
+      const d = this.player(target);
+      d.troops -= d.troops / d.tiles;
+    }
+    this.conquer(beach, p.id);
+    this.events.push({ type: 'landed', owner: p.id, tile: beach, target });
+    if (target !== NEUTRAL && !this.player(target).alive) {
+      p.troops += troops;
+      return;
+    }
+    // A little goes into holding the beach; the rest marches on.
+    troops = Math.max(0, troops);
+    this.deploy(p, target, troops);
+  }
+
+  // Alliances
+
+  private proposeAlliance(p: Player, target: number): void {
+    if (!this.isPlayerId(target) || target === p.id) return;
+    const q = this.player(target);
+    const key = this.pairKey(p.id, target);
+    if (!q.alive || this.alliances.has(key)) return;
+    if ((this.cooldowns.get(key) ?? 0) > this.tick) {
+      this.events.push({ type: 'alliance', from: p.id, to: target, accepted: false });
+      return;
+    }
+    let accepted: boolean;
+    if (q.bot) {
+      // Bots side with players who aren't much smaller than they are, most of the time.
+      accepted = q.tiles <= p.tiles * 2 && this.rng.next() < 0.75;
+    } else {
+      // Between humans both have to ask.
+      accepted = this.offers.has(`${target}:${p.id}`);
+      if (!accepted) {
+        this.offers.add(`${p.id}:${target}`);
+        return;
+      }
+      this.offers.delete(`${target}:${p.id}`);
+    }
+    if (!accepted) {
+      this.cooldowns.set(key, this.tick + CONFIG.allianceCooldown);
+      this.events.push({ type: 'alliance', from: p.id, to: target, accepted: false });
+      return;
+    }
+    this.alliances.set(key, this.tick + CONFIG.allianceTicks);
+    // Call off fighting between the new allies; the troops go home.
+    for (const a of this.attackList) {
+      if ((a.attacker === p.id && a.target === target) || (a.attacker === target && a.target === p.id)) this.finish(a);
+    }
+    this.events.push({ type: 'alliance', from: p.id, to: target, accepted: true });
+  }
+
+  private endAlliance(a: number, b: number, brokenBy: number): void {
+    const key = this.pairKey(a, b);
+    this.alliances.delete(key);
+    this.cooldowns.set(key, this.tick + CONFIG.allianceCooldown);
+    this.events.push({ type: 'allianceEnded', a, b, brokenBy });
+  }
+
+  private updateAlliances(): void {
+    for (const [key, ends] of this.alliances) {
+      const [a, b] = key.split(':').map(Number);
+      if (ends <= this.tick || !this.player(a).alive || !this.player(b).alive) this.endAlliance(a, b, NEUTRAL);
+    }
   }
 
   // Missiles

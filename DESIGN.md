@@ -17,6 +17,10 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Gold | Each tile earns gold every tick. | `grow()` |
 | Buildings | City: +20% troop cap. Defence post: land within 8 tiles costs attackers 2× and falls slower. Silo: launches missiles. Each one you own raises the next one's price. Buildings change hands with their tile. | `canBuild()`, `conquer()` |
 | Missiles | Rocket (radius 5) and nuke (radius 12) fly from your nearest silo. On impact land turns neutral, buildings are destroyed, owners lose troops, and a hit capital counts as lost. Fallout: bombed land isn't absorbed as a pocket and costs double for 30 s. | `fireMissile()`, `impact()` |
+| Prices | `cost + step × owned`, capped at `max` per kind. | `buildCost()` |
+| Trains | A factory's rail runs to up to 6 of its owner's cities and ports within 60 tiles, nearest-neighbour order. One train per factory per minute; +10K gold per city/port passed. | `railRoute()`, `updateTrains()` |
+| Boats | Ports sit on the coast. A boat's route is a breadth-first search over water from the beach back to one of your ports; on arrival the troops take the beach and attack inland from it. Max 3 at sea. The map keeps islands (80+ tiles); bots always start on the continent. | `planBoat()`, `land()` |
+| Alliances | Offer with the alliance tool; bots accept 75% of the time if you're at least half their size. 3 minutes; attacks, missiles and landings between allies are blocked. | `proposeAlliance()` |
 | Bots | Expand while there is empty land; once nearly full, attack the neighbour with the thinnest defences. Difficulty sets reaction time and thresholds. | `bots.ts` |
 
 All numbers live in `src/core/config.ts` and `bots.ts`. `npm run sim` replays a bots-only match in the terminal to check pacing after a change.
@@ -55,7 +59,7 @@ Neutral land runs out after 60 to 120 seconds; classic matches last 7 to 15 minu
 |---|---|---|
 | 1. Single-player MVP | Map, spawning, troop growth, attacks, bots, rendering, send slider | **Done**, plus capitals, quick match and the colour picker |
 | 2. Multiplayer | Lobby server, lockstep tick relay, desync checks via `hash()`, reconnection | Next |
-| 3. Frontwars layer | Gold, cities, defence posts, silos, rockets and nukes **done**. Still to come: ports and boats, alliances, real-world maps | In progress |
+| 3. Frontwars layer | Gold, cities, defence posts, silos, rockets, nukes, factories with trains, ports with boats, alliances **done**. Still to come: real-world maps | Mostly done |
 | 4. Polish | Minimap, sound, replays from `game.log`, tutorial match | Planned |
 
 ## Idea backlog

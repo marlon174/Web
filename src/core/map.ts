@@ -13,6 +13,8 @@ export interface GameMap {
   /** One Terrain value per tile, row by row (index = y * width + x). */
   readonly terrain: Uint8Array;
   readonly landTiles: number;
+  /** 1 for tiles of the largest landmass, where everyone starts. Other land is islands. */
+  readonly mainland: Uint8Array;
 }
 
 export type MapSize = 'small' | 'medium' | 'large';
@@ -28,15 +30,25 @@ const LAND_SHARE = 0.56;
 const HIGHLANDS_FROM = 0.64;
 const MOUNTAINS_FROM = 0.88;
 
+/** Islands smaller than this are sunk: too small to be worth a boat. */
+const MIN_ISLAND = 80;
+
 export function mapFromTerrain(width: number, height: number, terrain: Uint8Array): GameMap {
   let landTiles = 0;
   for (let i = 0; i < terrain.length; i++) if (terrain[i] !== Terrain.Water) landTiles++;
-  return { width, height, terrain, landTiles };
+  const { label, sizes } = labelLandmasses(terrain, width);
+  let largest = -1;
+  sizes.forEach((n, id) => {
+    if (largest < 0 || n > sizes[largest]) largest = id;
+  });
+  const mainland = new Uint8Array(terrain.length);
+  for (let i = 0; i < terrain.length; i++) if (label[i] === largest && largest >= 0) mainland[i] = 1;
+  return { width, height, terrain, landTiles, mainland };
 }
 
 /**
- * Builds one connected continent from layered value noise. Land not joined
- * to the largest landmass is sunk, because nobody can cross water yet.
+ * Builds a continent plus islands from layered value noise. Everyone starts
+ * on the continent; islands are reached by boat.
  */
 export function generateMap(seed: number, width: number, height: number): GameMap {
   const size = width * height;
@@ -65,7 +77,7 @@ export function generateMap(seed: number, width: number, height: number): GameMa
   const seaLevel = quantile(elevation, 1 - LAND_SHARE);
   const terrain = new Uint8Array(size);
   for (let i = 0; i < size; i++) if (elevation[i] > seaLevel) terrain[i] = Terrain.Plains;
-  keepLargestLandmass(terrain, width);
+  sinkSmallIslands(terrain, width);
 
   // Rank land by height plus ridges, so every map gets the same terrain mix
   // and mountains form chains rather than blobs.
@@ -125,17 +137,15 @@ function quantile(values: Float64Array, q: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
 }
 
-function keepLargestLandmass(terrain: Uint8Array, width: number): void {
+/** Connected landmasses (4-neighbour): a label per tile (-1 for water) and each one's size. */
+function labelLandmasses(terrain: Uint8Array, width: number): { label: Int32Array; sizes: number[] } {
   const size = terrain.length;
   const label = new Int32Array(size).fill(-1);
   const stack = new Int32Array(size);
-  let best = -1;
-  let bestSize = 0;
-  let count = 0;
-
+  const sizes: number[] = [];
   for (let start = 0; start < size; start++) {
     if (terrain[start] === Terrain.Water || label[start] >= 0) continue;
-    const id = count++;
+    const id = sizes.length;
     let top = 0;
     let tiles = 0;
     stack[top++] = start;
@@ -144,28 +154,19 @@ function keepLargestLandmass(terrain: Uint8Array, width: number): void {
       const t = stack[--top];
       tiles++;
       const x = t % width;
-      if (x > 0 && terrain[t - 1] !== Terrain.Water && label[t - 1] < 0) {
-        label[t - 1] = id;
-        stack[top++] = t - 1;
-      }
-      if (x < width - 1 && terrain[t + 1] !== Terrain.Water && label[t + 1] < 0) {
-        label[t + 1] = id;
-        stack[top++] = t + 1;
-      }
-      if (t >= width && terrain[t - width] !== Terrain.Water && label[t - width] < 0) {
-        label[t - width] = id;
-        stack[top++] = t - width;
-      }
-      if (t + width < size && terrain[t + width] !== Terrain.Water && label[t + width] < 0) {
-        label[t + width] = id;
-        stack[top++] = t + width;
+      for (const n of [x > 0 ? t - 1 : -1, x < width - 1 ? t + 1 : -1, t - width, t + width]) {
+        if (n >= 0 && n < size && terrain[n] !== Terrain.Water && label[n] < 0) {
+          label[n] = id;
+          stack[top++] = n;
+        }
       }
     }
-    if (tiles > bestSize) {
-      bestSize = tiles;
-      best = id;
-    }
+    sizes.push(tiles);
   }
+  return { label, sizes };
+}
 
-  for (let i = 0; i < size; i++) if (label[i] !== best) terrain[i] = Terrain.Water;
+function sinkSmallIslands(terrain: Uint8Array, width: number): void {
+  const { label, sizes } = labelLandmasses(terrain, width);
+  for (let i = 0; i < terrain.length; i++) if (label[i] >= 0 && sizes[label[i]] < MIN_ISLAND) terrain[i] = Terrain.Water;
 }

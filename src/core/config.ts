@@ -51,11 +51,16 @@ export const CONFIG = {
   // Gold and buildings
   /** Gold per owned tile per tick. */
   goldPerTile: 0.006,
-  /** Base gold price, and how much each one you already own raises the next. */
+  /**
+   * Gold price of the first building of each kind; each one you already own
+   * adds `step`, up to `max`. (20 cities: the 21st costs 20K, not trillions.)
+   */
   buildings: {
-    city: { cost: 2000, growth: 1.5 },
-    defense: { cost: 1500, growth: 1.25 },
-    silo: { cost: 5000, growth: 1.5 },
+    city: { cost: 2000, step: 1000, max: 20000 },
+    defense: { cost: 1500, step: 500, max: 8000 },
+    silo: { cost: 5000, step: 2500, max: 20000 },
+    port: { cost: 3000, step: 1500, max: 12000 },
+    factory: { cost: 6000, step: 3000, max: 24000 },
   },
   /** Buildings stand at least this many tiles apart (in both directions). */
   buildingSpacing: 4,
@@ -79,4 +84,30 @@ export const CONFIG = {
   /** Ticks that bombed land stays contaminated: it isn't absorbed as a pocket and costs more to take. */
   falloutTicks: 300,
   falloutCostFactor: 2,
+
+  // Trains
+  /** A factory links by rail to your cities and ports within this many tiles... */
+  railRange: 60,
+  /** ...up to this many of them, nearest first. */
+  railStops: 6,
+  /** Ticks between a factory's trains (600 = one a minute). */
+  trainInterval: 600,
+  /** Tiles a train covers per tick. */
+  trainSpeed: 1.2,
+  /** Gold for each of your cities or ports a train passes through. */
+  trainStopGold: 10000,
+
+  // Boats
+  /** Tiles a boat sails per tick. */
+  boatSpeed: 2,
+  /** Boats a player can have at sea at once. */
+  maxBoats: 3,
+  /** How far inland from the clicked spot to look for a beach. */
+  landingSearch: 12,
+
+  // Alliances
+  /** Ticks an alliance lasts (1800 = 3 minutes). */
+  allianceTicks: 1800,
+  /** After an alliance ends or is refused, ticks before the same bot will talk again. */
+  allianceCooldown: 600,
 } as const;

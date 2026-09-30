@@ -41,6 +41,12 @@ export interface Overlay {
   spawnedAt: number;
 }
 
+interface FloatText {
+  tile: number;
+  text: string;
+  start: number;
+}
+
 interface Explosion {
   x: number;
   y: number;
@@ -67,6 +73,7 @@ export class Renderer {
   private readonly capitalInk: string[];
   private dirty = { x0: 0, y0: 0, x1: -1, y1: -1 };
   private explosions: Explosion[] = [];
+  private floats: FloatText[] = [];
   /** Bombed areas to repaint once their fallout ends. */
   private scorched: { tiles: number[]; until: number }[] = [];
 
@@ -126,6 +133,11 @@ export class Renderer {
     }
   }
 
+  /** Gold rising from a spot, e.g. "+10K" where a train stops. */
+  floatText(tile: number, text: string): void {
+    this.floats.push({ tile, text, start: performance.now() });
+  }
+
   /** Flash and shockwave where a missile lands, and scorch the ground. */
   explode(m: Missile): void {
     const { width: w, height: h } = this.game;
@@ -179,12 +191,15 @@ export class Renderer {
 
     const dpr = canvas.width / Math.max(1, canvas.clientWidth);
     const now = performance.now();
+    this.drawRails(camera, dpr, overlay.tick);
+    this.drawBoats(camera, dpr);
     this.drawBuildings(camera, dpr);
     this.drawCapitals(camera, dpr);
     this.drawLabels(camera, dpr);
     this.drawYou(camera, dpr, now, overlay.spawnedAt);
     this.drawMissiles(camera, dpr, now, overlay.tick);
     this.drawExplosions(camera, now);
+    this.drawFloats(camera, dpr, now);
     this.drawSpawnPreview(camera, overlay, dpr);
     this.drawToolPreview(camera, overlay, dpr);
   }
@@ -335,6 +350,115 @@ export class Renderer {
 
   private visible(sx: number, sy: number, margin: number): boolean {
     return sx > -margin && sy > -margin && sx < this.canvas.width + margin && sy < this.canvas.height + margin;
+  }
+
+  /** Rails from each factory through its stops, and trains running on them. */
+  private drawRails(camera: Camera, dpr: number, tick: number): void {
+    const { ctx, game } = this;
+    const w = game.width;
+    const point = (t: number): [number, number] => this.screen(camera, t);
+    ctx.lineCap = 'round';
+    for (const b of game.buildings) {
+      if (b.kind !== 'factory') continue;
+      const route = [b.tile, ...game.railRoute(b)];
+      if (route.length < 2) continue;
+      ctx.beginPath();
+      route.forEach((t, i) => {
+        const [x, y] = point(t);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineWidth = Math.max(3 * dpr, camera.scale * 0.9);
+      ctx.strokeStyle = 'rgba(15, 28, 39, 0.75)';
+      ctx.stroke();
+      ctx.setLineDash([2 * dpr, 3 * dpr]);
+      ctx.lineWidth = Math.max(1.2 * dpr, camera.scale * 0.35);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    for (const t of game.trains) {
+      const a = t.route[t.leg - 1];
+      const b = t.route[t.leg];
+      const ax = a % w;
+      const ay = Math.floor(a / w);
+      const dx = (b % w) - ax;
+      const dy = Math.floor(b / w) - ay;
+      const len = Math.max(0.001, Math.hypot(dx, dy));
+      // Smooth between ticks: estimate the fraction of this tick already run.
+      const k = Math.min(1, (t.progress + (tick % 1) * 1.2) / len);
+      const [x, y] = [camera.x + (ax + dx * k + 0.5) * camera.scale, camera.y + (ay + dy * k + 0.5) * camera.scale];
+      const size = Math.max(6 * dpr, camera.scale * 2);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.atan2(dy, dx));
+      ctx.fillStyle = this.capitalInk[t.owner];
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath();
+      ctx.roundRect(-size, -size / 2.4, size * 2, size / 1.2, size / 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /** Boats under way: their route ahead, dashed, and the boat itself. */
+  private drawBoats(camera: Camera, dpr: number): void {
+    const { ctx } = this;
+    for (const b of this.game.boats) {
+      const i = Math.min(b.path.length - 1, Math.floor(b.pos));
+      ctx.beginPath();
+      for (let k = i; k < b.path.length; k += 2) {
+        const [x, y] = this.screen(camera, b.path[k]);
+        if (k === i) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      const [ex, ey] = this.screen(camera, b.path[b.path.length - 1]);
+      ctx.lineTo(ex, ey);
+      ctx.setLineDash([4 * dpr, 4 * dpr]);
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.strokeStyle = b.owner === this.me ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.35)';
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const [x, y] = this.screen(camera, b.path[i]);
+      const r = Math.max(6 * dpr, camera.scale * 1.8);
+      // Hull and sail.
+      ctx.beginPath();
+      ctx.moveTo(x - r, y);
+      ctx.lineTo(x + r, y);
+      ctx.lineTo(x + r * 0.6, y + r * 0.55);
+      ctx.lineTo(x - r * 0.6, y + r * 0.55);
+      ctx.closePath();
+      ctx.fillStyle = this.capitalInk[b.owner];
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x, y - r * 1.2);
+      ctx.lineTo(x + r * 0.7, y - r * 0.1);
+      ctx.lineTo(x, y - r * 0.1);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+  }
+
+  private drawFloats(camera: Camera, dpr: number, now: number): void {
+    const { ctx } = this;
+    this.floats = this.floats.filter((f) => now - f.start < 1600);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `800 ${14 * dpr}px "Public Sans", system-ui, sans-serif`;
+    for (const f of this.floats) {
+      const t = (now - f.start) / 1600;
+      const [x, y] = this.screen(camera, f.tile);
+      ctx.globalAlpha = 1 - t;
+      ctx.lineWidth = 3 * dpr;
+      ctx.strokeStyle = INK;
+      ctx.strokeText(f.text, x, y - (14 + t * 30) * dpr);
+      ctx.fillStyle = '#f2c14e';
+      ctx.fillText(f.text, x, y - (14 + t * 30) * dpr);
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** A white disc ringed in the owner's colour, with the building's symbol. */
