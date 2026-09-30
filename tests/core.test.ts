@@ -416,3 +416,18 @@ describe('bunkers', () => {
     expect(game.player(1).owned.defense).toBe(0);
   });
 });
+
+describe('silos', () => {
+  it('reload for a while after each launch', () => {
+    const game = start(duel(40, 12), [4, 5], [35, 5]);
+    const a = game.player(1);
+    a.gold = 1e6;
+    game.queue({ type: 'build', player: 1, tile: 5 * 40 + 4, kind: 'silo' });
+    game.step();
+    game.queue({ type: 'launch', player: 1, tile: 5 * 40 + 20, kind: 'rocket' });
+    game.step();
+    expect(game.canLaunch(a, 'rocket')).toBe('reloading');
+    run(game, CONFIG.siloReload);
+    expect(game.canLaunch(a, 'rocket')).toBeNull();
+  });
+});

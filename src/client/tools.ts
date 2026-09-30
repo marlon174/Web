@@ -12,7 +12,7 @@ export interface Tool {
 
 /** The build bar, in order. Keys sit in one row on the keyboard. */
 export const TOOLS: Tool[] = [
-  { kind: 'city', action: 'build', key: 'q', name: 'Stadt', hint: 'Erhöht deine Truppenobergrenze um 20 %.' },
+  { kind: 'city', action: 'build', key: 'q', name: 'Stadt', hint: 'Erhöht deine Truppenobergrenze um 20 % (höchstens +100 % mit 5 Städten; weitere zahlen sich über Züge aus). Du kannst 2 plus 1 je 2.500 Felder bauen.' },
   { kind: 'factory', action: 'build', key: 'w', name: 'Fabrik', hint: 'Verlegt Gleise zu deinen Städten und Häfen in der Nähe. Jede Minute fährt ein Zug; jede Stadt und jeder Hafen auf der Strecke bringt 10K Gold.' },
   { kind: 'port', action: 'build', key: 'e', name: 'Hafen', hint: 'An der Küste. Damit schickst du Truppen per Boot übers Wasser: einfach auf Land jenseits des Wassers klicken.' },
   { kind: 'defense', action: 'build', key: 'r', name: 'Bunker', hint: 'Im großen Umkreis kostet dein Land Angreifer 3,5-mal so viel, fällt viel langsamer, und du verlierst dort nur halb so viele Truppen. Wird sein Feld erobert, ist er zerstört.' },

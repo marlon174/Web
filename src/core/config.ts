@@ -71,8 +71,14 @@ export const CONFIG = {
   },
   /** Buildings stand at least this many tiles apart (in both directions). */
   buildingSpacing: 4,
-  /** Each city raises your troop cap by this share. */
+  /** Each city raises your troop cap by this share, up to `cityCapMax` in total. */
   cityCapBonus: 0.2,
+  cityCapMax: 1,
+  /**
+   * How many of each building a player may build: 2, plus one per this many
+   * tiles of land. Stops a big empire from carpeting the map.
+   */
+  tilesPerBuilding: { city: 2500, defense: 1500, silo: 6000, port: 4000, factory: 8000 },
   /** Land within this radius of a defence post costs attackers `defenseCostFactor` × more and falls slower. */
   defenseRadius: 12,
   defenseCostFactor: 3.5,
@@ -85,6 +91,8 @@ export const CONFIG = {
     rocket: { cost: 3000, radius: 5 },
     nuke: { cost: 10000, radius: 16 },
   },
+  /** Ticks a silo needs to reload after each launch. */
+  siloReload: 100,
   /** Tiles a missile covers per tick, and its shortest flight. */
   missileSpeed: 3,
   missileMinFlight: 20,

@@ -60,6 +60,10 @@ export interface Building {
   readonly kind: BuildingKind;
   readonly tile: number;
   owner: number;
+  /** Tick a train last paid out here (cities and ports). */
+  paidAt?: number;
+  /** Tick a silo can fire again. */
+  readyAt?: number;
 }
 
 export interface Missile {
@@ -86,7 +90,9 @@ export type Refusal =
   | 'noPort'
   | 'noRoute'
   | 'boats'
-  | 'ally';
+  | 'ally'
+  | 'limit'
+  | 'reloading';
 
 /** A train running from a factory through your cities and ports, and back. */
 export interface Train {
@@ -269,7 +275,13 @@ export class Game {
   }
 
   maxTroops(p: Player): number {
-    return p.tiles * CONFIG.troopsPerTile * (1 + CONFIG.cityCapBonus * p.owned.city);
+    const bonus = Math.min(CONFIG.cityCapMax, CONFIG.cityCapBonus * p.owned.city);
+    return p.tiles * CONFIG.troopsPerTile * (1 + bonus);
+  }
+
+  /** How many buildings of this kind `p` may own before needing more land. */
+  buildLimit(p: Player, kind: BuildingKind): number {
+    return 2 + Math.floor(p.tiles / CONFIG.tilesPerBuilding[kind]);
   }
 
   /** Gold price of the next building of this kind for `p`. */
@@ -428,6 +440,7 @@ export class Game {
     if (tile < 0 || tile >= this.size) return 'offMap';
     if (this.owner[tile] !== p.id || !p.alive) return 'notYours';
     if (kind === 'port' && !this.isCoast(tile)) return 'notCoast';
+    if (p.owned[kind] >= this.buildLimit(p, kind)) return 'limit';
     const gap = CONFIG.buildingSpacing;
     const x = tile % this.width;
     const y = (tile - x) / this.width;
@@ -444,7 +457,17 @@ export class Game {
   canLaunch(p: Player, kind: MissileKind): Refusal | null {
     if (p.owned.silo === 0 || !p.alive) return 'noSilo';
     if (p.gold < this.missileCost(kind)) return 'gold';
+    if (this.readySilos(p) === 0) return 'reloading';
     return null;
+  }
+
+  /** How many of `p`'s silos are loaded right now. */
+  readySilos(p: Player): number {
+    let n = 0;
+    for (const b of this.buildingsByTile.values()) {
+      if (b.kind === 'silo' && b.owner === p.id && (b.readyAt ?? 0) <= this.tick) n++;
+    }
+    return n;
   }
 
   /**
@@ -801,7 +824,15 @@ export class Game {
         t.progress -= length;
         // Pays at each of the owner's cities and ports still standing on its route.
         const stop = this.buildingsByTile.get(b);
-        if (t.leg < t.route.length - 1 && stop && stop.owner === t.owner && this.player(t.owner).alive) {
+        // Each stop pays at most once per interval, however many trains pass.
+        if (
+          t.leg < t.route.length - 1 &&
+          stop &&
+          stop.owner === t.owner &&
+          this.player(t.owner).alive &&
+          (stop.paidAt === undefined || this.tick - stop.paidAt >= CONFIG.trainInterval)
+        ) {
+          stop.paidAt = this.tick;
           this.player(t.owner).gold += CONFIG.trainStopGold;
           this.events.push({ type: 'trainStop', owner: t.owner, tile: b, gold: CONFIG.trainStopGold });
         }
@@ -926,7 +957,7 @@ export class Game {
     let from = -1;
     let best = Infinity;
     for (const b of this.buildingsByTile.values()) {
-      if (b.kind !== 'silo' || b.owner !== p.id) continue;
+      if (b.kind !== 'silo' || b.owner !== p.id || (b.readyAt ?? 0) > this.tick) continue;
       const bx = b.tile % this.width;
       const by = (b.tile - bx) / this.width;
       const d = (bx - tx) * (bx - tx) + (by - ty) * (by - ty);
@@ -936,6 +967,7 @@ export class Game {
       }
     }
     if (from < 0) return;
+    this.buildingsByTile.get(from)!.readyAt = this.tick + CONFIG.siloReload;
     p.gold -= this.missileCost(kind);
     const flight = Math.max(CONFIG.missileMinFlight, Math.ceil(Math.sqrt(best) / CONFIG.missileSpeed));
     const missile: Missile = {

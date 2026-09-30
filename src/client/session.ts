@@ -1,8 +1,8 @@
 import { CONFIG } from '../core/config';
-import { NEUTRAL, type Game, type GameEvent, type Player } from '../core/game';
+import { NEUTRAL, type BuildingKind, type Game, type GameEvent, type Player } from '../core/game';
 import { Terrain } from '../core/map';
 import { Camera, type Inset } from './camera';
-import { formatClock, formatShare, formatTroops } from './format';
+import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import type { Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
@@ -164,11 +164,15 @@ export class Session implements InputTarget {
     if (isMissile(kind)) {
       const refusal = game.canLaunch(me, kind);
       if (refusal === 'noSilo') return 'Bau zuerst ein Raketensilo.';
+      if (refusal === 'reloading') return 'Deine Silos laden nach. Jedes Silo kann alle 10 Sekunden feuern.';
       if (refusal === 'gold') return `${kind === 'nuke' ? 'Eine Atombombe' : 'Eine Rakete'} kostet ${formatTroops(game.missileCost(kind))} Gold.`;
       if (tile >= 0 && game.allied(me.id, game.owner[tile])) return 'Du kannst nicht auf Verbündete schießen.';
       return null;
     }
-    if (tile < 0) return me.gold < game.buildCost(me, kind) ? `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.` : null;
+    if (tile < 0) {
+      if (me.owned[kind] >= game.buildLimit(me, kind)) return this.limitText(kind);
+      return me.gold < game.buildCost(me, kind) ? `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.` : null;
+    }
     switch (game.canBuild(me, kind, tile)) {
       case 'gold':
         return `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.`;
@@ -177,11 +181,18 @@ export class Session implements InputTarget {
         return 'Bau auf deinem eigenen Land.';
       case 'notCoast':
         return 'Häfen müssen direkt am Wasser stehen.';
+      case 'limit':
+        return this.limitText(kind);
       case 'tooClose':
         return 'Zu nah an einem anderen Gebäude. Lass 4 Felder Abstand.';
       default:
         return null;
     }
+  }
+
+  private limitText(kind: BuildingKind): string {
+    const per = formatCount(CONFIG.tilesPerBuilding[kind]);
+    return `Mehr davon geht erst mit mehr Land: 2 plus 1 je ${per} Felder.`;
   }
 
   private selectTool(kind: ToolKind): void {
@@ -471,6 +482,19 @@ export class Session implements InputTarget {
     const hud = this.options.play!.hud;
     const me = this.me!;
     const name = (id: number) => (id === me.id ? 'du' : this.game.player(id).name);
+    // Many buildings can change hands at once: report them together.
+    const captures = new Map<string, number>();
+    for (const e of events) {
+      if (e.type !== 'captured' || (e.by !== me.id && e.from !== me.id)) continue;
+      const key = `${e.by}:${e.from}`;
+      captures.set(key, (captures.get(key) ?? 0) + 1);
+    }
+    for (const [key, n] of captures) {
+      const [by, from] = key.split(':').map(Number);
+      const what = n === 1 ? 'ein Gebäude' : `${n} Gebäude`;
+      if (by === me.id) hud.post(`Du hast ${what} von ${name(from)} erobert.`, 'good');
+      else hud.post(`${name(by)} hat ${what} von dir erobert.`, 'bad');
+    }
     for (const e of events) {
       if (e.type === 'capitalLost') {
         if (e.player === me.id) hud.post(`${name(e.by)} hat deine Hauptstadt erobert. Du hast die Hälfte deiner Truppen verloren.`, 'bad');
@@ -483,25 +507,7 @@ export class Session implements InputTarget {
         if (e.player === me.id) hud.post(`${name(e.by)} hat ${e.tiles} deiner Felder abgeschnitten und übernommen.`, 'bad');
         else if (e.by === me.id) hud.post(`Du hast ${e.tiles} Felder von ${name(e.player)} abgeschnitten und übernommen.`, 'good');
       } else if (e.type === 'captured') {
-        const what = { defense: 'den Bunker', silo: 'das Raketensilo', city: 'die Stadt', port: 'den Hafen', factory: 'die Fabrik' }[e.kind];
-        if (e.by === me.id) hud.post(`Du hast ${what} von ${name(e.from)} erobert.`, 'good');
-        else if (e.from === me.id) hud.post(`${name(e.by)} hat ${what} von dir erobert.`, 'bad');
-      } else if (e.type === 'launched') {
-        const m = e.missile;
-        const what = m.kind === 'nuke' ? 'eine Atombombe' : 'eine Rakete';
-        if (m.victim === me.id && m.owner !== me.id) hud.post(`${name(m.owner)} hat ${what} auf dich abgefeuert!`, 'bad');
-        else if (m.kind === 'nuke' && m.owner !== me.id && m.victim !== NEUTRAL) hud.post(`${name(m.owner)} hat eine Atombombe auf ${name(m.victim)} abgefeuert.`, 'info');
-      } else if (e.type === 'impact') {
-        this.renderer.explode(e.missile);
-        const mine = e.losses.find((l) => l.player === me.id);
-        const what = e.missile.kind === 'nuke' ? 'Atombombe' : 'Rakete';
-        if (mine && e.missile.owner !== me.id) {
-          hud.post(`Eine ${what} von ${name(e.missile.owner)} hat ${mine.tiles} deiner Felder zerstört.`, 'bad');
-        } else if (e.missile.owner === me.id) {
-          const tiles = e.losses.filter((l) => l.player !== me.id).reduce((sum, l) => sum + l.tiles, 0);
-          const extra = e.buildings ? ` und ${e.buildings} Gebäude` : '';
-          hud.post(`Deine ${what} hat ${tiles} feindliche Felder${extra} zerstört.`, 'good');
-        }
+        // Reported together above.
       } else if (e.type === 'bunkerDestroyed') {
         if (e.by === me.id) hud.post(`Du hast einen Bunker von ${name(e.from)} zerstört.`, 'good');
         else if (e.from === me.id) hud.post(`${name(e.by)} hat einen deiner Bunker zerstört.`, 'bad');
@@ -537,7 +543,7 @@ export class Session implements InputTarget {
     const me = this.me!;
     const place = me.place || this.game.players.filter((p) => p.alive && p.tiles > me.tiles).length + 1;
     return [
-      ['Platz', `${place} von ${this.game.players.length}`],
+      ['Platz', `${place}/${this.game.players.length}`],
       ['Meistes Land', formatShare(me.peakTiles / this.game.map.landTiles)],
       ['Zeit', this.matchTime()],
     ];

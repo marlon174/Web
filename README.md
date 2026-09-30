@@ -23,7 +23,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Encircle.** Enemy land cut off from its capital by you alone becomes yours, and so do small pockets of empty land inside your territory.
 - **Gold and buildings.** Land earns gold. Press `Q` for a city (+20% troop cap), `R` for a bunker (land within 12 tiles costs attackers 3.5×, falls much slower, and you lose half as many troops there; an enemy who overruns it destroys it), `T` for a missile silo, then click your land.
 - **Height.** The higher the ground, the slower and dearer it is to take. Low meadows are quick; mountain peaks are fortresses.
-- **Prices.** Each building of a kind you already own adds a fixed amount to the next one's price, up to a cap (the 21st city costs 20K).
+- **Prices and limits.** Each building of a kind you already own adds a fixed amount to the next one's price, up to a cap. How many you can build grows with your land (for cities: 2 plus 1 per 2,500 tiles). Cities add +20% troop cap each, up to +100%. Silos reload for 10 seconds after each launch.
 - **Factories and trains (`W`).** A factory lays rail to your cities and ports within 60 tiles. Every minute a train runs the line; each city or port it passes pays 10K gold.
 - **Ports and boats (`E`).** Build a port on the coast, then click land across the water: troops sail over and land. Islands can only be reached this way.
 - **Alliances (`H`).** Click another player's land to offer a 3-minute alliance; allies can't attack or bomb each other. Use it on an ally to end it early.

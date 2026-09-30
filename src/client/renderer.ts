@@ -155,6 +155,8 @@ export class Renderer {
 
   /** Gold rising from a spot, e.g. "+10K" where a train stops. */
   floatText(tile: number, text: string): void {
+    // A handful at a time; more is just noise.
+    if (this.floats.length >= 4) return;
     this.floats.push({ tile, text, start: performance.now() });
   }
 
@@ -412,14 +414,18 @@ export class Renderer {
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       });
-      ctx.lineWidth = Math.max(3 * dpr, camera.scale * 0.9);
-      ctx.strokeStyle = 'rgba(15, 28, 39, 0.75)';
+      // Faint from afar, a proper track with sleepers up close.
+      const near = camera.scale >= 3 * dpr;
+      ctx.lineWidth = near ? Math.min(5 * dpr, camera.scale * 0.7) : 1.2 * dpr;
+      ctx.strokeStyle = near ? 'rgba(15, 28, 39, 0.6)' : 'rgba(15, 28, 39, 0.28)';
       ctx.stroke();
-      ctx.setLineDash([2 * dpr, 3 * dpr]);
-      ctx.lineWidth = Math.max(1.2 * dpr, camera.scale * 0.35);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.stroke();
-      ctx.setLineDash([]);
+      if (near) {
+        ctx.setLineDash([2 * dpr, 3 * dpr]);
+        ctx.lineWidth = 1.2 * dpr;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
     for (const t of game.trains) {
       const a = t.route[t.leg - 1];
@@ -527,11 +533,24 @@ export class Renderer {
   }
 
   private drawBuildings(camera: Camera, dpr: number): void {
+    const { ctx } = this;
+    // Zoomed far out, full icons would bury the map: draw small dots instead.
+    const far = camera.scale < 2.2 * dpr;
     const size = Math.min(26 * dpr, Math.max(11 * dpr, camera.scale * 3.2));
     for (const b of this.game.buildings) {
       const [sx, sy] = this.screen(camera, b.tile);
       if (!this.visible(sx, sy, size)) continue;
-      this.drawIcon(b.kind, sx, sy, size, this.capitalInk[b.owner]);
+      if (far) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2.2 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = dpr;
+        ctx.strokeStyle = this.capitalInk[b.owner];
+        ctx.stroke();
+      } else {
+        this.drawIcon(b.kind, sx, sy, size, this.capitalInk[b.owner]);
+      }
     }
   }
 

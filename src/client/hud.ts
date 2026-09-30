@@ -114,7 +114,7 @@ export class Hud {
     } else if (!me.alive) {
       this.growth.textContent = 'Ausgeschieden';
     } else if (me.troops >= max) {
-      this.growth.textContent = 'Obergrenze erreicht. Schick Truppen los, dann wächst du wieder.';
+      this.growth.textContent = 'Voll: schick Truppen los';
     } else {
       const perTick = me.troops * CONFIG.interest * (1 - me.troops / max) + me.tiles * CONFIG.landIncome;
       this.growth.textContent = `+${formatTroops(perTick * CONFIG.ticksPerSecond)} pro Sekunde`;
@@ -150,8 +150,9 @@ export class Hud {
       } else {
         const missile = isMissile(kind);
         const cost = missile ? game.missileCost(kind) : game.buildCost(me, kind);
-        ready &&= me.gold >= cost && (!missile || me.owned.silo > 0);
-        button.querySelector('.tool-cost')!.textContent = formatTroops(cost);
+        const full = !missile && me.owned[kind] >= game.buildLimit(me, kind);
+        ready &&= !full && me.gold >= cost && (!missile || game.readySilos(me) > 0);
+        button.querySelector('.tool-cost')!.textContent = full ? 'voll' : formatTroops(cost);
       }
       button.classList.toggle('locked', !ready);
       button.classList.toggle('active', kind === active);
