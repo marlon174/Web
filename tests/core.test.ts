@@ -397,3 +397,22 @@ describe('alliances', () => {
     expect(game.allied(1, bot.id)).toBe(false);
   });
 });
+
+describe('bunkers', () => {
+  it('are destroyed, not captured, when an enemy takes their tile', () => {
+    const moat = Array.from({ length: 7 }, (_, y): [number, number] => [20, y]);
+    const game = start(duel(60, 7, moat), [50, 3], [57, 3]);
+    game.player(2).gold = 5000;
+    game.queue({ type: 'build', player: 2, tile: 3 * 60 + 58, kind: 'defense' });
+    game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
+    run(game, 900);
+    expect(game.buildingAt(3 * 60 + 58)?.kind).toBe('defense');
+    // Bunkers are tough: bring an overwhelming army.
+    game.player(1).troops = 1e6;
+    game.queue({ type: 'attack', player: 1, target: 2, permille: 1000 });
+    const events = run(game, 600);
+    expect(events).toContainEqual({ type: 'bunkerDestroyed', tile: 3 * 60 + 58, from: 2, by: 1 });
+    expect(game.buildingAt(3 * 60 + 58)).toBeUndefined();
+    expect(game.player(1).owned.defense).toBe(0);
+  });
+});

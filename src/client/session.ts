@@ -502,6 +502,9 @@ export class Session implements InputTarget {
           const extra = e.buildings ? ` und ${e.buildings} Gebäude` : '';
           hud.post(`Deine ${what} hat ${tiles} feindliche Felder${extra} zerstört.`, 'good');
         }
+      } else if (e.type === 'bunkerDestroyed') {
+        if (e.by === me.id) hud.post(`Du hast einen Bunker von ${name(e.from)} zerstört.`, 'good');
+        else if (e.from === me.id) hud.post(`${name(e.by)} hat einen deiner Bunker zerstört.`, 'bad');
       } else if (e.type === 'trainStop') {
         if (e.owner === me.id) this.renderer.floatText(e.tile, `+${formatTroops(e.gold)}`);
       } else if (e.type === 'landed') {

@@ -7,6 +7,9 @@ import { Rng } from './rng';
 /** Owner id of land nobody holds. Players are numbered from 1. */
 export const NEUTRAL = 0;
 
+/** Attack fronts schedule tiles in tenths of a tick. */
+const SUBTICKS = 10;
+
 export interface PlayerSetup {
   name: string;
   /** 0xRRGGBB */
@@ -121,6 +124,7 @@ export type GameEvent =
   | { type: 'eliminated'; player: number; by: number }
   | { type: 'encircled'; player: number; by: number; tiles: number }
   | { type: 'captured'; kind: BuildingKind; tile: number; from: number; by: number }
+  | { type: 'bunkerDestroyed'; tile: number; from: number; by: number }
   | { type: 'launched'; missile: Missile }
   | { type: 'impact'; missile: Missile; losses: { player: number; tiles: number }[]; buildings: number }
   | { type: 'trainStop'; owner: number; tile: number; gold: number }
@@ -717,7 +721,8 @@ export class Game {
     if (this.defended(tile, a.target)) delay += CONFIG.defenseDelay;
     // Tiles already surrounded on several sides fall sooner, which keeps fronts smooth.
     delay -= this.ownedNeighbors(tile, a.attacker) - 1;
-    a.frontier.push(this.tick + Math.max(1, delay), tile);
+    // Keys are in tenths of a tick, so the speed multiplier isn't lost to rounding.
+    a.frontier.push(this.tick * SUBTICKS + Math.max(SUBTICKS, Math.round((delay * SUBTICKS) / CONFIG.troopSpeed)), tile);
   }
 
   private ownedNeighbors(tile: number, id: number): number {
@@ -1034,7 +1039,7 @@ export class Game {
     const heap = a.frontier;
     const defender = a.target === NEUTRAL ? null : this.player(a.target);
 
-    while (heap.size > 0 && heap.peekKey() <= this.tick) {
+    while (heap.size > 0 && heap.peekKey() <= this.tick * SUBTICKS) {
       const t = heap.pop();
       // Skip tiles someone else took, or that lost contact with our front.
       if (owner[t] !== a.target || this.ownedNeighbors(t, a.attacker) === 0) continue;
@@ -1100,7 +1105,13 @@ export class Game {
     this.changed.push(tile);
 
     const building = this.buildingsByTile.get(tile);
-    if (building && building.owner !== id) {
+    if (building && building.owner !== id && building.kind === 'defense') {
+      // Bunkers don't change hands: whoever overruns one blows it up.
+      this.player(building.owner).owned.defense--;
+      this.dropPost(building.owner, tile);
+      this.buildingsByTile.delete(tile);
+      this.events.push({ type: 'bunkerDestroyed', tile, from: building.owner, by: id });
+    } else if (building && building.owner !== id) {
       this.player(building.owner).owned[building.kind]--;
       next.owned[building.kind]++;
       if (building.kind === 'defense') {

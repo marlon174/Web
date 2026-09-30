@@ -38,6 +38,8 @@ export const CONFIG = {
   flatUpTo: 90,
   /** Extra ticks per tile when the tile belongs to another player. */
   enemyDelay: 2,
+  /** Speed multiplier for all fronts (1.1 = 10% faster than the delays above). */
+  troopSpeed: 1.1,
   /** Random extra ticks per tile, so fronts grow unevenly. */
   delayJitter: 2,
 
@@ -81,7 +83,7 @@ export const CONFIG = {
   // Missiles
   missiles: {
     rocket: { cost: 3000, radius: 5 },
-    nuke: { cost: 10000, radius: 12 },
+    nuke: { cost: 10000, radius: 16 },
   },
   /** Tiles a missile covers per tick, and its shortest flight. */
   missileSpeed: 3,
