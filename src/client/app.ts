@@ -94,11 +94,11 @@ export class App {
     // Any other colour, through the browser's picker.
     const custom = document.createElement('label');
     custom.className = 'swatch custom';
-    custom.title = 'Pick any colour';
+    custom.title = 'Eigene Farbe wählen';
     const picker = document.createElement('input');
     picker.type = 'color';
     picker.id = 'color-custom';
-    picker.setAttribute('aria-label', 'Pick any colour');
+    picker.setAttribute('aria-label', 'Eigene Farbe wählen');
     const preset = SWATCHES.some((s) => s.color === this.color);
     picker.value = toHex(preset ? 0x888888 : this.color);
     custom.classList.toggle('selected', !preset);
@@ -121,7 +121,7 @@ export class App {
   }
 
   private options(): MatchOptions {
-    const name = this.nameInput.value.trim().slice(0, 16) || 'You';
+    const name = this.nameInput.value.trim().slice(0, 16) || 'Du';
     return {
       seed: this.seed,
       mode: this.radio('mode') as Mode,
@@ -152,7 +152,7 @@ export class App {
     const game = new Game(createSettings(options, this.mapFor(options)));
     this.session?.dispose();
     this.session = new Session(this.canvas, game, { inset: () => this.menuInset() });
-    this.chartNo.textContent = `No. ${this.seed}`;
+    this.chartNo.textContent = `Nr. ${this.seed}`;
   }
 
   private showMenu(): void {

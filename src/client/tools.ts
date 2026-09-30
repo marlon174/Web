@@ -12,11 +12,11 @@ export interface Tool {
 
 /** The build bar, in order. Keys sit in one row on the keyboard. */
 export const TOOLS: Tool[] = [
-  { kind: 'city', action: 'build', key: 'q', name: 'City', hint: 'Raises your troop cap by 20%. Each one costs more than the last.' },
-  { kind: 'defense', action: 'build', key: 'w', name: 'Defence', hint: 'Land around it costs attackers twice as much and falls slower.' },
-  { kind: 'silo', action: 'build', key: 'e', name: 'Silo', hint: 'Needed to fire rockets and nukes.' },
-  { kind: 'rocket', action: 'launch', key: 'r', name: 'Rocket', hint: 'Wipes out land and buildings in a small area.' },
-  { kind: 'nuke', action: 'launch', key: 't', name: 'Nuke', hint: 'Wipes out a large area and poisons it for 30 seconds.' },
+  { kind: 'city', action: 'build', key: 'q', name: 'Stadt', hint: 'Erhöht deine Truppenobergrenze um 20 %. Jede weitere kostet mehr.' },
+  { kind: 'defense', action: 'build', key: 'w', name: 'Verteidigung', hint: 'Land im Umkreis kostet Angreifer doppelt so viel und fällt langsamer.' },
+  { kind: 'silo', action: 'build', key: 'e', name: 'Silo', hint: 'Nötig, um Raketen und Atombomben abzufeuern.' },
+  { kind: 'rocket', action: 'launch', key: 'r', name: 'Rakete', hint: 'Zerstört Land und Gebäude in einem kleinen Umkreis.' },
+  { kind: 'nuke', action: 'launch', key: 't', name: 'Atombombe', hint: 'Zerstört einen großen Umkreis und verseucht ihn 30 Sekunden lang.' },
 ];
 
 export function isMissile(kind: ToolKind): kind is MissileKind {

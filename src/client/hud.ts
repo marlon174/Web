@@ -112,17 +112,17 @@ export class Hud {
     if (game.phase === 'spawn') {
       this.growth.textContent = '';
     } else if (!me.alive) {
-      this.growth.textContent = 'Eliminated';
+      this.growth.textContent = 'Ausgeschieden';
     } else if (me.troops >= max) {
-      this.growth.textContent = 'At the cap. Send troops to grow again.';
+      this.growth.textContent = 'Obergrenze erreicht. Schick Truppen los, dann wächst du wieder.';
     } else {
       const perTick = me.troops * CONFIG.interest * (1 - me.troops / max) + me.tiles * CONFIG.landIncome;
-      this.growth.textContent = `+${formatTroops(perTick * CONFIG.ticksPerSecond)} a second`;
+      this.growth.textContent = `+${formatTroops(perTick * CONFIG.ticksPerSecond)} pro Sekunde`;
     }
     this.gold.textContent = formatTroops(me.gold);
-    this.goldRate.textContent = me.alive && game.phase === 'play' ? `+${formatTroops(me.tiles * CONFIG.goldPerTile * CONFIG.ticksPerSecond)} a second` : '';
+    this.goldRate.textContent = me.alive && game.phase === 'play' ? `+${formatTroops(me.tiles * CONFIG.goldPerTile * CONFIG.ticksPerSecond)} pro Sekunde` : '';
     this.land.textContent = formatShare(me.tiles / game.map.landTiles);
-    this.tiles.textContent = `${formatCount(me.tiles)} tiles`;
+    this.tiles.textContent = `${formatCount(me.tiles)} Felder`;
     this.ratioOut.textContent = `${this.percent}% · ${formatTroops((me.troops * this.percent) / 100)}`;
 
     const limit = game.settings.timeLimit;
@@ -188,7 +188,7 @@ export class Hud {
       const li = document.createElement('li');
       li.className = 'incoming';
       const seconds = Math.max(0, Math.ceil((m.arrives - game.tick) / CONFIG.ticksPerSecond));
-      li.textContent = `${m.kind === 'nuke' ? 'Nuke' : 'Rocket'} from ${game.player(m.owner).name} · ${seconds}s`;
+      li.textContent = `${m.kind === 'nuke' ? 'Atombombe' : 'Rakete'} von ${game.player(m.owner).name} · ${seconds} s`;
       items.push(li);
     }
     for (const a of game.attacks) {
@@ -196,9 +196,9 @@ export class Hud {
       const li = document.createElement('li');
       const outgoing = a.attacker === me.id;
       li.className = outgoing ? 'outgoing' : 'incoming';
-      const who = outgoing ? (a.target === NEUTRAL ? 'Empty land' : game.player(a.target).name) : game.player(a.attacker).name;
+      const who = outgoing ? (a.target === NEUTRAL ? 'Freies Land' : game.player(a.target).name) : game.player(a.attacker).name;
       li.textContent = `${outgoing ? '→' : '←'} ${who} · ${formatTroops(a.troops)}`;
-      li.title = outgoing ? `Your troops heading into ${who}` : `${who} is attacking you`;
+      li.title = outgoing ? `Deine Truppen rücken vor: ${who}` : `${who} greift dich an`;
       items.push(li);
     }
     this.fronts.replaceChildren(...items);

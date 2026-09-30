@@ -412,7 +412,7 @@ export class Renderer {
     }
     const font = `800 ${13 * dpr}px "Public Sans", system-ui, sans-serif`;
     ctx.font = font;
-    const text = 'YOU';
+    const text = 'DU';
     const w = ctx.measureText(text).width + 12 * dpr;
     const h = 18 * dpr;
     const ty = sy - 30 * dpr - h;

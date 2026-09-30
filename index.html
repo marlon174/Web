@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Landgrab</title>
-    <meta name="description" content="Grow your troops, push your borders and take the map in a territory strategy game against bots." />
+    <meta name="description" content="Lass deine Truppen wachsen, verschieb deine Grenzen und erobere die Karte: ein Territorium-Strategiespiel gegen Bots." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,48 +14,48 @@
   </head>
   <body>
     <div id="app">
-      <canvas id="view" tabindex="-1" aria-label="Game map"></canvas>
+      <canvas id="view" tabindex="-1" aria-label="Spielkarte"></canvas>
 
       <section id="menu" class="menu" aria-labelledby="menu-title">
         <div class="menu-card">
           <header class="menu-head">
             <h1 id="menu-title" class="wordmark">Landgrab</h1>
-            <p class="tagline">Grow troops, push borders, take the map.</p>
+            <p class="tagline">Truppen sammeln, Grenzen verschieben, Karte erobern.</p>
           </header>
 
           <form id="menu-form" class="menu-form" novalidate>
             <div class="field">
               <label for="name">Name</label>
-              <input id="name" name="name" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Your name" />
+              <input id="name" name="name" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Dein Name" />
             </div>
 
             <fieldset class="field">
-              <legend>Colour</legend>
+              <legend>Farbe</legend>
               <div id="swatches" class="swatches"></div>
             </fieldset>
 
             <fieldset class="field">
-              <legend>Mode</legend>
+              <legend>Modus</legend>
               <div class="modes">
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-quick" value="quick" checked />
-                  <span class="mode-name">Quick match</span>
-                  <span class="mode-note">5 minutes on a small map. Most land wins.</span>
+                  <span class="mode-name">Schnelles Spiel</span>
+                  <span class="mode-note">5 Minuten auf einer kleinen Karte. Das meiste Land gewinnt.</span>
                 </label>
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-classic" value="classic" />
-                  <span class="mode-name">Classic</span>
-                  <span class="mode-note">Hold 80% of the land to win.</span>
+                  <span class="mode-name">Klassisch</span>
+                  <span class="mode-note">Halte 80 % des Landes, um zu gewinnen.</span>
                 </label>
               </div>
             </fieldset>
 
             <fieldset class="field" id="size-field" disabled>
-              <legend>Map size</legend>
+              <legend>Kartengröße</legend>
               <div class="segmented">
-                <input type="radio" name="size" id="size-small" value="small" /><label for="size-small">Small</label>
-                <input type="radio" name="size" id="size-medium" value="medium" checked /><label for="size-medium">Medium</label>
-                <input type="radio" name="size" id="size-large" value="large" /><label for="size-large">Large</label>
+                <input type="radio" name="size" id="size-small" value="small" /><label for="size-small">Klein</label>
+                <input type="radio" name="size" id="size-medium" value="medium" checked /><label for="size-medium">Mittel</label>
+                <input type="radio" name="size" id="size-large" value="large" /><label for="size-large">Groß</label>
               </div>
             </fieldset>
 
@@ -65,33 +65,33 @@
                 <input type="range" id="bots" name="bots" min="3" max="24" value="7" />
               </div>
               <fieldset class="field">
-                <legend>Bot skill</legend>
+                <legend>Bot-Stärke</legend>
                 <div class="segmented">
-                  <input type="radio" name="difficulty" id="diff-easy" value="easy" /><label for="diff-easy">Easy</label>
+                  <input type="radio" name="difficulty" id="diff-easy" value="easy" /><label for="diff-easy">Leicht</label>
                   <input type="radio" name="difficulty" id="diff-normal" value="normal" checked /><label for="diff-normal">Normal</label>
-                  <input type="radio" name="difficulty" id="diff-hard" value="hard" /><label for="diff-hard">Hard</label>
+                  <input type="radio" name="difficulty" id="diff-hard" value="hard" /><label for="diff-hard">Schwer</label>
                 </div>
               </fieldset>
             </div>
 
             <div class="menu-actions">
               <button type="button" id="reroll" class="button ghost">
-                New map <span class="chart-no" id="chart-no"></span>
+                Neue Karte <span class="chart-no" id="chart-no"></span>
               </button>
-              <button type="submit" id="play" class="button primary">Play</button>
+              <button type="submit" id="play" class="button primary">Spielen</button>
             </div>
           </form>
 
           <details class="howto">
-            <summary>How to play</summary>
+            <summary>So wird gespielt</summary>
             <ul>
-              <li>Click empty land to expand into it. Click a neighbour's land to attack them.</li>
-              <li>The <strong>Send</strong> slider sets how many of your troops each click commits.</li>
-              <li>Troops grow fastest when you are well below your cap, so keep spending them.</li>
-              <li>Each player has a capital, marked with a star. Losing yours costs half your troops.</li>
-              <li>Cut off enemy land from its capital, or surround empty land, and it becomes yours.</li>
-              <li>Land earns <strong>gold</strong>. Spend it on cities (more troops), defence posts and missile silos.</li>
-              <li>With a silo, fire <strong>rockets</strong> and <strong>nukes</strong> anywhere. Bombed land turns neutral and stays poisoned for 30 seconds.</li>
+              <li>Klick auf freies Land, um dich dorthin auszubreiten. Klick auf das Land eines Nachbarn, um ihn anzugreifen.</li>
+              <li>Der Regler <strong>Senden</strong> legt fest, wie viele deiner Truppen jeder Klick losschickt.</li>
+              <li>Truppen wachsen am schnellsten, wenn du weit unter deiner Obergrenze bist. Also gib sie aus.</li>
+              <li>Jeder hat eine Hauptstadt, markiert mit einem Stern. Verlierst du deine, verlierst du die Hälfte deiner Truppen.</li>
+              <li>Schneidest du feindliches Land von seiner Hauptstadt ab oder umschließt freies Land, gehört es dir.</li>
+              <li>Land bringt <strong>Gold</strong>. Gib es für Städte (mehr Truppen), Verteidigungsposten und Raketensilos aus.</li>
+              <li>Mit einem Silo feuerst du <strong>Raketen</strong> und <strong>Atombomben</strong> auf jedes Ziel. Getroffenes Land wird neutral und bleibt 30 Sekunden verseucht.</li>
             </ul>
           </details>
         </div>
@@ -99,10 +99,10 @@
 
       <div id="hud" class="hud" hidden>
         <div class="top-left">
-          <section class="panel stats" aria-label="Your empire">
+          <section class="panel stats" aria-label="Dein Reich">
             <div class="who"><span class="chip" id="me-chip"></span><span id="me-name"></span></div>
             <div class="stat">
-              <span class="stat-label">Troops</span>
+              <span class="stat-label">Truppen</span>
               <span class="stat-value"><span id="troops">0</span><span class="stat-max"> / <span id="troops-max">0</span></span></span>
               <span class="stat-note" id="growth"></span>
             </div>
@@ -127,37 +127,37 @@
 
         <div class="top-right">
           <div class="hud-buttons">
-            <button type="button" class="icon-button" id="center-button" aria-label="Find your capital" title="Find your capital (C)">
+            <button type="button" class="icon-button" id="center-button" aria-label="Zu deiner Hauptstadt" title="Zu deiner Hauptstadt (C)">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6" />
                 <circle cx="8" cy="8" r="1.7" fill="currentColor" />
                 <path d="M8 0.8v3M8 12.2v3M0.8 8h3M12.2 8h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
               </svg>
             </button>
-            <button type="button" class="icon-button" id="pause-button" aria-label="Pause" title="Pause (Space)">
+            <button type="button" class="icon-button" id="pause-button" aria-label="Pause" title="Pause (Leertaste)">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
                 <rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
               </svg>
             </button>
           </div>
-          <section class="panel board" aria-label="Leaderboard">
-            <h2 class="panel-title">Land held</h2>
+          <section class="panel board" aria-label="Rangliste">
+            <h2 class="panel-title">Landbesitz</h2>
             <ol id="board"></ol>
           </section>
         </div>
 
         <div class="bottom-center">
           <ul class="fronts" id="fronts"></ul>
-          <div class="panel tools" id="tools" role="toolbar" aria-label="Build and fire"></div>
+          <div class="panel tools" id="tools" role="toolbar" aria-label="Bauen und feuern"></div>
           <div class="panel send">
-            <label for="ratio" class="send-label">Send</label>
+            <label for="ratio" class="send-label">Senden</label>
             <input type="range" id="ratio" min="5" max="100" step="5" value="40" />
             <output id="ratio-out" for="ratio" class="send-out"></output>
           </div>
         </div>
 
-        <p class="keys">Q–T build and fire · 1–0 troops · Scroll zoom · C capital · Space pause</p>
+        <p class="keys">Q–T bauen · 1–0 Truppen · C Hauptstadt · Leertaste Pause</p>
         <div class="toast" id="toast" role="alert" hidden></div>
       </div>
 

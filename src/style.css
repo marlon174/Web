@@ -515,7 +515,7 @@ fieldset:disabled .segmented label {
 
 .stat {
   display: grid;
-  grid-template-columns: 66px 1fr;
+  grid-template-columns: 80px 1fr;
   align-items: baseline;
 }
 

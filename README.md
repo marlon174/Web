@@ -1,6 +1,6 @@
 # Landgrab
 
-A territory-conquest strategy game for the browser, in the spirit of territorial.io and frontwars.io. You start on a few tiles of a generated continent, grow troops and push your borders against bots until the map is yours.
+A territory-conquest strategy game for the browser (German interface), in the spirit of territorial.io and frontwars.io. You start on a few tiles of a generated continent, grow troops and push your borders against bots until the map is yours.
 
 ## Run it
 

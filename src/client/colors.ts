@@ -1,17 +1,17 @@
 /** Colours a player can pick in the menu. Bots get generated colours that avoid the pick. */
 export const SWATCHES: { name: string; color: number }[] = [
-  { name: 'Crimson', color: 0xd7263d },
-  { name: 'Tangerine', color: 0xf46036 },
-  { name: 'Saffron', color: 0xf2b134 },
-  { name: 'Lime', color: 0x8cc63f },
-  { name: 'Emerald', color: 0x1b9e5a },
-  { name: 'Teal', color: 0x17a2a4 },
-  { name: 'Azure', color: 0x2e86de },
+  { name: 'Karmesin', color: 0xd7263d },
+  { name: 'Mandarine', color: 0xf46036 },
+  { name: 'Safran', color: 0xf2b134 },
+  { name: 'Limette', color: 0x8cc63f },
+  { name: 'Smaragd', color: 0x1b9e5a },
+  { name: 'Petrol', color: 0x17a2a4 },
+  { name: 'Azur', color: 0x2e86de },
   { name: 'Indigo', color: 0x4b4bc8 },
-  { name: 'Violet', color: 0x8e44d8 },
+  { name: 'Violett', color: 0x8e44d8 },
   { name: 'Magenta', color: 0xd63384 },
-  { name: 'Rose', color: 0xff7aa2 },
-  { name: 'Charcoal', color: 0x3a4750 },
+  { name: 'Rosa', color: 0xff7aa2 },
+  { name: 'Anthrazit', color: 0x3a4750 },
 ];
 
 export function toHex(rgb: number): string {
