@@ -15,6 +15,7 @@
   <body>
     <div id="app">
       <canvas id="view" tabindex="-1" aria-label="Spielkarte"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
 
       <section id="menu" class="menu" aria-labelledby="menu-title">
         <div class="menu-card">
@@ -40,7 +41,7 @@
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-quick" value="quick" checked />
                   <span class="mode-name">Schnelles Spiel</span>
-                  <span class="mode-note">5 Minuten auf einer kleinen Karte. Das meiste Land gewinnt.</span>
+                  <span class="mode-note">5 Minuten auf der kleinsten Karte. Das meiste Land gewinnt.</span>
                 </label>
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-classic" value="classic" />
@@ -56,13 +57,14 @@
                 <input type="radio" name="size" id="size-small" value="small" /><label for="size-small">Klein</label>
                 <input type="radio" name="size" id="size-medium" value="medium" checked /><label for="size-medium">Mittel</label>
                 <input type="radio" name="size" id="size-large" value="large" /><label for="size-large">Groß</label>
+                <input type="radio" name="size" id="size-huge" value="huge" /><label for="size-huge">Riesig</label>
               </div>
             </fieldset>
 
             <div class="field-row">
               <div class="field">
-                <label for="bots">Bots <output id="bots-out" for="bots">7</output></label>
-                <input type="range" id="bots" name="bots" min="3" max="24" value="7" />
+                <label for="bots">Bots <output id="bots-out" for="bots">15</output></label>
+                <input type="range" id="bots" name="bots" min="3" max="100" value="15" />
               </div>
               <fieldset class="field">
                 <legend>Bot-Stärke</legend>

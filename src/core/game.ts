@@ -173,6 +173,14 @@ export class Game {
   private readonly borderPos: Int32Array;
   private attackList: Attack[] = [];
   private readonly buildingsByTile = new Map<number, Building>();
+  /** Defence post tiles per owner, so coverage checks only look at that player's posts. */
+  private readonly posts = new Map<number, number[]>();
+  private readonly sweepInterval: number;
+  // Scratch space for boat routes.
+  private readonly waterParent: Int32Array;
+  private readonly waterSeen: Int32Array;
+  private readonly waterQueue: Int32Array;
+  private waterStamp = 0;
   private missileList: Missile[] = [];
   private nextId = 1;
   private trainList: Train[] = [];
@@ -204,6 +212,11 @@ export class Game {
     this.seen = new Int32Array(this.size);
     this.stack = new Int32Array(this.size);
     this.component = new Int32Array(this.size);
+    this.waterParent = new Int32Array(this.size);
+    this.waterSeen = new Int32Array(this.size);
+    this.waterQueue = new Int32Array(this.size);
+    // The encirclement sweep scans the whole map, so big maps run it less often.
+    this.sweepInterval = Math.max(CONFIG.sweepEvery, Math.round((CONFIG.sweepEvery * this.size) / 200000));
     this.rng = new Rng(settings.seed);
     this.players = settings.players.map((setup, i) => ({
       id: i + 1,
@@ -368,30 +381,34 @@ export class Game {
     // Breadth-first search over water, from the beach out to any of p's ports.
     const ports = new Set<number>();
     for (const b of this.buildingsByTile.values()) if (b.kind === 'port' && b.owner === p.id) ports.add(b.tile);
-    const parent = new Map<number, number>();
-    const queue: number[] = [];
+    const { waterParent: parent, waterSeen: seenAt, waterQueue: queue } = this;
+    const stamp = ++this.waterStamp;
+    let tail = 0;
     const bx = beach % w;
     for (const n of [bx > 0 ? beach - 1 : -1, bx < w - 1 ? beach + 1 : -1, beach - w, beach + w]) {
-      if (n >= 0 && n < size && terrain[n] === Terrain.Water && !parent.has(n)) {
-        parent.set(n, -1);
-        queue.push(n);
+      if (n >= 0 && n < size && terrain[n] === Terrain.Water && seenAt[n] !== stamp) {
+        seenAt[n] = stamp;
+        parent[n] = -1;
+        queue[tail++] = n;
       }
     }
-    for (let head = 0; head < queue.length; head++) {
+    for (let head = 0; head < tail; head++) {
       const t = queue[head];
       const x = t % w;
-      for (const n of [x > 0 ? t - 1 : -1, x < w - 1 ? t + 1 : -1, t - w, t + w]) {
+      for (let k = 0; k < 4; k++) {
+        const n = k === 0 ? (x > 0 ? t - 1 : -1) : k === 1 ? (x < w - 1 ? t + 1 : -1) : k === 2 ? t - w : t + w;
         if (n < 0 || n >= size) continue;
         if (ports.has(n)) {
           // Found a port: walk back to the beach.
           const path: number[] = [];
-          for (let c = t; c !== -1; c = parent.get(c)!) path.push(c);
+          for (let c = t; c !== -1; c = parent[c]) path.push(c);
           path.push(beach);
           return { path, target: beach };
         }
-        if (terrain[n] === Terrain.Water && !parent.has(n)) {
-          parent.set(n, t);
-          queue.push(n);
+        if (terrain[n] === Terrain.Water && seenAt[n] !== stamp) {
+          seenAt[n] = stamp;
+          parent[n] = t;
+          queue[tail++] = n;
         }
       }
     }
@@ -495,7 +512,7 @@ export class Game {
     this.updateBoats();
     this.updateAlliances();
     this.grow();
-    if (this.tick % CONFIG.sweepEvery === 0) this.sweepEnclosures();
+    if (this.tick % this.sweepInterval === 0) this.sweepEnclosures();
     for (const p of this.players) if (p.tiles > p.peakTiles) p.peakTiles = p.tiles;
     this.checkEnd();
     this.tick++;
@@ -542,6 +559,7 @@ export class Game {
       p.gold -= this.buildCost(p, intent.kind);
       this.buildingsByTile.set(intent.tile, { id: this.nextId++, kind: intent.kind, tile: intent.tile, owner: p.id });
       p.owned[intent.kind]++;
+      if (intent.kind === 'defense') this.postsOf(p.id).push(intent.tile);
     } else if (intent.type === 'boat') {
       this.sendBoat(p, intent.tile, intent.permille);
     } else if (intent.type === 'ally') {
@@ -719,18 +737,31 @@ export class Game {
 
   /** Whether a defence post of `owner` covers this tile. */
   private defended(tile: number, owner: number): boolean {
-    if (owner === NEUTRAL || this.player(owner).owned.defense === 0) return false;
+    if (owner === NEUTRAL) return false;
+    const posts = this.posts.get(owner);
+    if (!posts || posts.length === 0) return false;
     const r = CONFIG.defenseRadius;
     const x = tile % this.width;
     const y = (tile - x) / this.width;
-    for (const b of this.buildingsByTile.values()) {
-      if (b.kind !== 'defense' || b.owner !== owner) continue;
-      const bx = b.tile % this.width;
+    for (const post of posts) {
+      const bx = post % this.width;
       const dx = bx - x;
-      const dy = (b.tile - bx) / this.width - y;
+      const dy = (post - bx) / this.width - y;
       if (dx * dx + dy * dy <= r * r) return true;
     }
     return false;
+  }
+
+  private postsOf(owner: number): number[] {
+    let list = this.posts.get(owner);
+    if (!list) this.posts.set(owner, (list = []));
+    return list;
+  }
+
+  private dropPost(owner: number, tile: number): void {
+    const list = this.posts.get(owner);
+    const i = list ? list.indexOf(tile) : -1;
+    if (list && i >= 0) list.splice(i, 1);
   }
 
   // Trains
@@ -935,6 +966,7 @@ export class Game {
         if (b) {
           this.buildingsByTile.delete(t);
           this.player(b.owner).owned[b.kind]--;
+          if (b.kind === 'defense') this.dropPost(b.owner, t);
           buildings++;
         }
         if (this.owner[t] !== NEUTRAL) hit.push(t);
@@ -1061,6 +1093,10 @@ export class Game {
     if (building && building.owner !== id) {
       this.player(building.owner).owned[building.kind]--;
       next.owned[building.kind]++;
+      if (building.kind === 'defense') {
+        this.dropPost(building.owner, tile);
+        this.postsOf(id).push(tile);
+      }
       this.events.push({ type: 'captured', kind: building.kind, tile, from: building.owner, by: id });
       building.owner = id;
     }

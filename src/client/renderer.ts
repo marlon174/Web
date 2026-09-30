@@ -7,15 +7,30 @@ import { formatTroops } from './format';
 import { LabelLayout } from './labels';
 import { ICONS, isMissile, type ToolKind } from './tools';
 
-/** Unclaimed land, by terrain: pale chart buff, darker with height. */
-const LAND = [0, 0xe8dec3, 0xd5c6a0, 0xb3a58b];
-/** Depth bands, like soundings on a nautical chart: [max tiles from shore, colour]. */
-const DEPTHS: [number, number][] = [
-  [2, 0x33698a],
-  [4, 0x295c7c],
-  [7, 0x22516f],
-  [12, 0x1c4763],
+/** Land colour by height (0–1): meadow, dry grass, hills, rock, snow. */
+const RAMP: [number, number][] = [
+  [0, 0xc9dba0],
+  [0.45, 0xdcd4a2],
+  [0.7, 0xcbb68e],
+  [0.87, 0xa39687],
+  [0.95, 0xd9d6cf],
+  [1, 0xf4f2ee],
 ];
+const SAND = 0xeadba9;
+const SHALLOW = 0x4b9fc1;
+/** Tiles from shore at which the sea reaches full depth. */
+const DEEP = 16;
+
+function ramp(h: number): number {
+  for (let k = 1; k < RAMP.length; k++) {
+    const [h1, c1] = RAMP[k];
+    if (h <= h1) {
+      const [h0, c0] = RAMP[k - 1];
+      return mix(c0, c1, (h - h0) / (h1 - h0));
+    }
+  }
+  return RAMP[RAMP.length - 1][1];
+}
 export const OPEN_SEA = 0x173d57;
 /** Bombed land, while the fallout lasts. */
 const SCORCHED = 0x4a4636;
@@ -67,8 +82,11 @@ export class Renderer {
   private readonly pixels: Uint32Array;
   /** Pixel for each tile when nobody owns it. */
   private readonly base: Uint32Array;
-  /** Territory pixels by player id × 4 + terrain. */
-  private readonly fills: Uint32Array;
+  /** Unlit landscape colour (0xRRGGBB) of each tile, blended under territory. */
+  private readonly ground: Int32Array;
+  /** Hill-shading factor of each tile (1 = flat). */
+  private readonly light: Float32Array;
+  private readonly playerRgb: Int32Array;
   private readonly borders: Uint32Array;
   private readonly capitalInk: string[];
   private dirty = { x0: 0, y0: 0, x1: -1, y1: -1 };
@@ -92,14 +110,16 @@ export class Renderer {
     this.surfaceCtx = this.surface.getContext('2d')!;
     this.image = this.surfaceCtx.createImageData(game.width, game.height);
     this.pixels = new Uint32Array(this.image.data.buffer);
+    this.ground = new Int32Array(game.size);
+    this.light = new Float32Array(game.size).fill(1);
     this.base = this.paintBase();
 
     const slots = game.players.length + 1;
-    this.fills = new Uint32Array(slots * 4);
+    this.playerRgb = new Int32Array(slots);
     this.borders = new Uint32Array(slots);
     this.capitalInk = new Array<string>(slots).fill('#000');
     for (const p of game.players) {
-      for (let t = 1; t <= 3; t++) this.fills[p.id * 4 + t] = toPixel(mix(p.color, LAND[t], 0.18));
+      this.playerRgb[p.id] = p.color;
       this.borders[p.id] = p.id === me ? toPixel(0xffffff) : toPixel(shade(p.color, -0.38));
       this.capitalInk[p.id] = toHex(shade(p.color, -0.2));
     }
@@ -220,17 +240,29 @@ export class Renderer {
       (x < w - 1 && owner[i + 1] !== o) ||
       (i >= w && owner[i - w] !== o) ||
       (i + w < size && owner[i + w] !== o);
-    this.pixels[i] = edge ? this.borders[o] : this.fills[o * 4 + this.game.map.terrain[i]];
+    this.pixels[i] = edge ? this.borders[o] : this.lit(mix(this.playerRgb[o], this.ground[i], 0.3), this.light[i]);
+  }
+
+  /** A colour brightened or darkened by hill shading, as a pixel. */
+  private lit(rgb: number, k: number): number {
+    const r = Math.min(255, ((rgb >> 16) & 255) * k);
+    const g = Math.min(255, ((rgb >> 8) & 255) * k);
+    const b = Math.min(255, (rgb & 255) * k);
+    return toPixel((r << 16) | (g << 8) | b);
   }
 
   private scorchedPixel(i: number): number {
-    return toPixel(mix(LAND[this.game.map.terrain[i]], SCORCHED, 0.75 + ((i * 7919) % 5) * 0.05));
+    return this.lit(mix(this.ground[i], SCORCHED, 0.72 + ((i * 7919) % 5) * 0.05), this.light[i]);
   }
 
-  /** Terrain colours, with sea shaded in depth bands and a darker shoreline. */
+  /**
+   * The landscape: a colour ramp from meadow to snow by height, lit from the
+   * north-west so hills stand out; sand on low coasts; water that deepens
+   * from turquoise to navy with a pale line of surf along the shore.
+   */
   private paintBase(): Uint32Array {
     const { width: w, size } = this.game;
-    const terrain = this.game.map.terrain;
+    const { terrain, relief } = this.game.map;
     const depth = new Uint8Array(size).fill(255);
     const queue = new Int32Array(size);
     let head = 0;
@@ -244,31 +276,43 @@ export class Renderer {
     while (head < tail) {
       const t = queue[head++];
       const next = depth[t] + 1;
-      if (next > 12) continue;
+      if (next > DEEP) continue;
       const x = t % w;
-      for (const n of [x > 0 ? t - 1 : -1, x < w - 1 ? t + 1 : -1, t - w, t + w]) {
-        if (n >= 0 && n < size && depth[n] === 255) {
-          depth[n] = next;
-          queue[tail++] = n;
-        }
-      }
+      if (x > 0 && depth[t - 1] === 255) (depth[t - 1] = next), (queue[tail++] = t - 1);
+      if (x < w - 1 && depth[t + 1] === 255) (depth[t + 1] = next), (queue[tail++] = t + 1);
+      if (t >= w && depth[t - w] === 255) (depth[t - w] = next), (queue[tail++] = t - w);
+      if (t + w < size && depth[t + w] === 255) (depth[t + w] = next), (queue[tail++] = t + w);
     }
 
     const base = new Uint32Array(size);
     for (let i = 0; i < size; i++) {
-      const t = terrain[i];
-      if (t === Terrain.Water) {
-        const band = DEPTHS.find(([max]) => depth[i] <= max);
-        base[i] = toPixel(band ? band[1] : OPEN_SEA);
-      } else {
-        const x = i % w;
-        const shore =
-          (x > 0 && terrain[i - 1] === Terrain.Water) ||
-          (x < w - 1 && terrain[i + 1] === Terrain.Water) ||
-          (i >= w && terrain[i - w] === Terrain.Water) ||
-          (i + w < size && terrain[i + w] === Terrain.Water);
-        base[i] = toPixel(shore ? shade(LAND[t], -0.14) : LAND[t]);
+      const grain = 1 + (((i * 2654435761) >>> 24) / 255 - 0.5) * 0.05;
+      if (terrain[i] === Terrain.Water) {
+        const d = Math.min(DEEP, depth[i]) / DEEP;
+        const deep = d * d * (3 - 2 * d);
+        let color = mix(SHALLOW, OPEN_SEA, deep);
+        if (depth[i] === 1) color = mix(color, 0xffffff, 0.22);
+        this.ground[i] = color;
+        base[i] = this.lit(color, grain);
+        continue;
       }
+      const x = i % w;
+      const h = relief[i] / 255;
+      let color = ramp(h);
+      const shore = depth[i] === 0 && (
+        (x > 0 && terrain[i - 1] === Terrain.Water) ||
+        (x < w - 1 && terrain[i + 1] === Terrain.Water) ||
+        (i >= w && terrain[i - w] === Terrain.Water) ||
+        (i + w < size && terrain[i + w] === Terrain.Water));
+      if (shore && h < 0.55) color = SAND;
+      // Slope towards the light (up and to the left) is bright, away from it dark.
+      const at = (n: number) => (n >= 0 && n < size && terrain[n] !== Terrain.Water ? relief[n] : relief[i] * 0.6);
+      const gx = at(x < w - 1 ? i + 1 : i) - at(x > 0 ? i - 1 : i);
+      const gy = at(i + w) - at(i - w);
+      const k = Math.max(0.72, Math.min(1.28, 1 + (gx + gy) * 0.018)) * grain;
+      this.ground[i] = color;
+      this.light[i] = k;
+      base[i] = this.lit(color, k);
     }
     return base;
   }

@@ -42,7 +42,7 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
   const players: PlayerSetup[] = [];
   if (options.human) players.push({ name: options.human.name, color: options.human.color, bot: false });
 
-  const names = shuffle([...BOT_NAMES], rng).filter((n) => n !== options.human?.name);
+  const names = botNames(options.bots + 1, rng).filter((n) => n !== options.human?.name);
   const colors = botColors(options.bots, options.human?.color ?? null, rng);
   for (let i = 0; i < options.bots; i++) {
     const name = i < names.length ? names[i] : `${names[i % names.length]} ${Math.floor(i / names.length) + 1}`;
@@ -56,6 +56,19 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
     difficulty: options.difficulty,
     timeLimit: options.mode === 'quick' ? QUICK_MATCH_SECONDS * CONFIG.ticksPerSecond : 0,
   };
+}
+
+const PREFIXES = ['Ash', 'Black', 'Bright', 'Cold', 'Dun', 'East', 'Ember', 'Fen', 'Frost', 'Glass', 'Gold', 'Harrow', 'High', 'Iron', 'North', 'Oak', 'Pine', 'Raven', 'Red', 'Salt', 'Silver', 'South', 'Stone', 'Storm', 'Thorn', 'Vale', 'West', 'Wolf', 'Elder', 'Moss'];
+const SUFFIXES = ['ford', 'fen', 'water', 'holt', 'harbor', 'mark', 'more', 'mere', 'wick', 'wind', 'gate', 'moor', 'haven', 'crest', 'ton', 'cliff', 'marsh', 'bury', 'field', 'wood', 'reach', 'bridge', 'hollow', 'keep', 'watch', 'stead', 'port', 'dale'];
+
+/** The hand-picked names first, then made-up ones from syllables: enough for any bot count. */
+function botNames(count: number, rng: Rng): string[] {
+  const names = shuffle([...BOT_NAMES], rng);
+  const taken = new Set(names);
+  const made: string[] = [];
+  for (const a of PREFIXES) for (const b of SUFFIXES) if (!taken.has(a + b)) made.push(a + b);
+  names.push(...shuffle(made, rng));
+  return names.slice(0, Math.max(count, BOT_NAMES.length));
 }
 
 function shuffle<T>(items: T[], rng: Rng): T[] {

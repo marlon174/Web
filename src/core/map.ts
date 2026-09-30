@@ -15,14 +15,17 @@ export interface GameMap {
   readonly landTiles: number;
   /** 1 for tiles of the largest landmass, where everyone starts. Other land is islands. */
   readonly mainland: Uint8Array;
+  /** Height of each land tile, 0–255, for hill shading. Water is 0. */
+  readonly relief: Uint8Array;
 }
 
-export type MapSize = 'small' | 'medium' | 'large';
+export type MapSize = 'small' | 'medium' | 'large' | 'huge';
 
 export const MAP_DIMENSIONS: Record<MapSize, { width: number; height: number }> = {
-  small: { width: 320, height: 200 },
-  medium: { width: 480, height: 300 },
-  large: { width: 640, height: 400 },
+  small: { width: 480, height: 300 },
+  medium: { width: 800, height: 500 },
+  large: { width: 1200, height: 750 },
+  huge: { width: 1600, height: 1000 },
 };
 
 const LAND_SHARE = 0.56;
@@ -33,7 +36,7 @@ const MOUNTAINS_FROM = 0.88;
 /** Islands smaller than this are sunk: too small to be worth a boat. */
 const MIN_ISLAND = 80;
 
-export function mapFromTerrain(width: number, height: number, terrain: Uint8Array): GameMap {
+export function mapFromTerrain(width: number, height: number, terrain: Uint8Array, relief?: Uint8Array): GameMap {
   let landTiles = 0;
   for (let i = 0; i < terrain.length; i++) if (terrain[i] !== Terrain.Water) landTiles++;
   const { label, sizes } = labelLandmasses(terrain, width);
@@ -43,7 +46,11 @@ export function mapFromTerrain(width: number, height: number, terrain: Uint8Arra
   });
   const mainland = new Uint8Array(terrain.length);
   for (let i = 0; i < terrain.length; i++) if (label[i] === largest && largest >= 0) mainland[i] = 1;
-  return { width, height, terrain, landTiles, mainland };
+  if (!relief) {
+    relief = new Uint8Array(terrain.length);
+    for (let i = 0; i < terrain.length; i++) relief[i] = terrain[i] * 60;
+  }
+  return { width, height, terrain, landTiles, mainland, relief };
 }
 
 /**
@@ -98,7 +105,19 @@ export function generateMap(seed: number, width: number, height: number): GameMa
     terrain[i] = s >= mountains ? Terrain.Mountains : s >= highlands ? Terrain.Highlands : Terrain.Plains;
   }
 
-  return mapFromTerrain(width, height, terrain);
+  // Relief for shading: height rank on land, smooth enough to light like hills.
+  const relief = new Uint8Array(size);
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < size; i++) {
+    if (terrain[i] === Terrain.Water) continue;
+    if (scores[i] < lo) lo = scores[i];
+    if (scores[i] > hi) hi = scores[i];
+  }
+  for (let i = 0; i < size; i++) {
+    if (terrain[i] !== Terrain.Water) relief[i] = 1 + Math.floor((254 * (scores[i] - lo)) / Math.max(1e-9, hi - lo));
+  }
+  return mapFromTerrain(width, height, terrain, relief);
 }
 
 function valueNoise(seed: number, x: number, y: number): number {

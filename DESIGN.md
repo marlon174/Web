@@ -39,7 +39,7 @@ The client (`src/client`) draws the map as one pixel per tile on an offscreen ca
 
 ## Performance
 
-About 0.3 ms per tick on a 480×300 map with 12 bots, ticking 10 times a second. The encirclement sweep is the heaviest step at a few milliseconds once a second.
+Map sizes: 480×300, 800×500, 1200×750 and 1600×1000 tiles, with 3–100 bots. On 1200×750 with 60 bots a tick averages about 2 ms (10 ticks a second); occasional ticks reach 30–80 ms when the encirclement sweep runs, which is scheduled less often on bigger maps. Moving the simulation into a Web Worker would remove those hitches.
 
 ## Balance check
 

@@ -20,6 +20,7 @@
   --gold: #f2c14e;
   --bad: #ff7d7d;
   --scrim: rgba(6, 16, 24, 0.62);
+  --vignette: rgba(4, 12, 20, 0.5);
   --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
   --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --gutter: 16px;
@@ -63,6 +64,13 @@ body {
   touch-action: none;
   cursor: crosshair;
   outline: none;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, var(--vignette) 100%);
 }
 
 #view.dragging {

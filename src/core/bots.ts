@@ -73,15 +73,45 @@ export function botThink(game: Game, p: Player, rng: Rng): Intent[] {
   const brain = p.brain;
   if (!brain) return [];
   const out: Intent[] = [];
-  const spend = spendGold(game, p, brain, rng);
+  const survey = surveyBorder(game, p);
+  const spend = spendGold(game, p, brain, rng, survey.shared);
   if (spend) out.push(spend);
-  const move = sendTroops(game, p, brain, rng);
+  const move = sendTroops(game, p, brain, rng, survey);
   if (move) out.push(move);
   return out;
 }
 
+interface Survey {
+  /** Border tiles facing unclaimed land. */
+  neutral: number;
+  /** Border tiles facing each (non-allied) neighbour. */
+  shared: Map<number, number>;
+}
+
+function surveyBorder(game: Game, p: Player): Survey {
+  const { owner, width, size } = game;
+  const terrain = game.map.terrain;
+  let neutral = 0;
+  const shared = new Map<number, number>();
+  const look = (n: number) => {
+    if (terrain[n] === Terrain.Water) return;
+    const o = owner[n];
+    if (o === p.id || game.allied(p.id, o)) return;
+    if (o === NEUTRAL) neutral++;
+    else shared.set(o, (shared.get(o) ?? 0) + 1);
+  };
+  for (const t of p.border) {
+    const x = t % width;
+    if (x > 0) look(t - 1);
+    if (x < width - 1) look(t + 1);
+    if (t >= width) look(t - width);
+    if (t + width < size) look(t + width);
+  }
+  return { neutral, shared };
+}
+
 /** Cities as land grows, a defence post when attacked, then a silo and missiles at the leader. */
-function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | null {
+function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours: Map<number, number>): Intent | null {
   if (brain.builds) {
     if (p.owned.city < 1 + Math.floor(p.tiles / 1200) && p.gold >= game.buildCost(p, 'city')) {
       const tile = game.findSpot(p, 'city');
@@ -122,7 +152,7 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | n
   if (game.canLaunch(p, 'rocket') !== null) return null;
   let target = -1;
   for (const b of game.buildings) {
-    if (b.owner === p.id || b.kind === 'silo' || game.allied(p.id, b.owner) || !game.sharesBorder(p, b.owner)) continue;
+    if (b.kind === 'silo' || !neighbours.has(b.owner)) continue;
     target = b.tile;
     if (b.kind === 'defense') break;
   }
@@ -130,7 +160,7 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | n
 }
 
 /** Grab neutral land while there is any, then pick on the neighbour that is cheapest to attack. */
-function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | null {
+function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng, survey: Survey): Intent | null {
   const max = game.maxTroops(p);
   if (max <= 0) return null;
   const fill = p.troops / max;
@@ -145,25 +175,7 @@ function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng): Intent | 
     }
   }
 
-  // Survey the border: how much neutral land, and which neighbours.
-  const { owner, width, size } = game;
-  const terrain = game.map.terrain;
-  let neutral = 0;
-  const shared = new Map<number, number>();
-  const look = (n: number) => {
-    if (terrain[n] === Terrain.Water) return;
-    const o = owner[n];
-    if (o === p.id || game.allied(p.id, o)) return;
-    if (o === NEUTRAL) neutral++;
-    else shared.set(o, (shared.get(o) ?? 0) + 1);
-  };
-  for (const t of p.border) {
-    const x = t % width;
-    if (x > 0) look(t - 1);
-    if (x < width - 1) look(t + 1);
-    if (t >= width) look(t - width);
-    if (t + width < size) look(t + width);
-  }
+  const { neutral, shared } = survey;
 
   if (neutral > 0 && fill >= brain.expandAt) {
     return { type: 'attack', player: p.id, target: NEUTRAL, permille: brain.expandSend };
