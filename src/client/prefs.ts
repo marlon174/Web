@@ -1,0 +1,49 @@
+import type { Difficulty } from '../core/bots';
+import type { MapSize } from '../core/map';
+import type { Mode } from '../core/setup';
+import { SWATCHES } from './colors';
+
+/** Menu choices, remembered in this browser between visits. */
+export interface Prefs {
+  name: string;
+  color: number;
+  mode: Mode;
+  mapSize: MapSize;
+  bots: number;
+  difficulty: Difficulty;
+}
+
+const KEY = 'landgrab.prefs.v1';
+
+const DEFAULTS: Prefs = {
+  name: '',
+  color: SWATCHES[0].color,
+  mode: 'quick',
+  mapSize: 'medium',
+  bots: 7,
+  difficulty: 'normal',
+};
+
+export function loadPrefs(): Prefs {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Prefs>;
+    return {
+      name: typeof saved.name === 'string' ? saved.name.slice(0, 16) : DEFAULTS.name,
+      color: typeof saved.color === 'number' ? saved.color & 0xffffff : DEFAULTS.color,
+      mode: saved.mode === 'classic' ? 'classic' : 'quick',
+      mapSize: saved.mapSize === 'small' || saved.mapSize === 'large' ? saved.mapSize : 'medium',
+      bots: typeof saved.bots === 'number' ? Math.min(24, Math.max(3, Math.round(saved.bots))) : DEFAULTS.bots,
+      difficulty: saved.difficulty === 'easy' || saved.difficulty === 'hard' ? saved.difficulty : 'normal',
+    };
+  } catch {
+    return { ...DEFAULTS };
+  }
+}
+
+export function savePrefs(prefs: Prefs): void {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(prefs));
+  } catch {
+    // Private windows and blocked storage: the menu just won't remember.
+  }
+}

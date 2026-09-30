@@ -1,0 +1,194 @@
+import type { Difficulty } from '../core/bots';
+import { Game } from '../core/game';
+import type { GameMap, MapSize } from '../core/map';
+import { createMap, createSettings, mapSizeFor, type MatchOptions, type Mode } from '../core/setup';
+import { fromHex, SWATCHES, toHex } from './colors';
+import { byId, Hud } from './hud';
+import { loadPrefs, savePrefs, type Prefs } from './prefs';
+import { Session } from './session';
+
+function randomSeed(): number {
+  return 10000 + Math.floor(Math.random() * 90000);
+}
+
+/** Switches between the menu (with a live preview of the next map) and a match. */
+export class App {
+  private readonly canvas = byId<HTMLCanvasElement>('view');
+  private readonly menu = byId('menu');
+  private readonly menuCard = this.menu.querySelector<HTMLElement>('.menu-card')!;
+  private readonly form = byId<HTMLFormElement>('menu-form');
+  private readonly nameInput = byId<HTMLInputElement>('name');
+  private readonly botsInput = byId<HTMLInputElement>('bots');
+  private readonly botsOut = byId<HTMLOutputElement>('bots-out');
+  private readonly sizeField = byId<HTMLFieldSetElement>('size-field');
+  private readonly swatches = byId('swatches');
+  private readonly chartNo = byId('chart-no');
+  private readonly hud = new Hud();
+  private session: Session | null = null;
+  private seed = randomSeed();
+  private map: GameMap | null = null;
+  private mapKey = '';
+  private color: number;
+
+  constructor() {
+    const prefs = loadPrefs();
+    this.color = prefs.color;
+    this.initMenu(prefs);
+    this.showMenu();
+  }
+
+  private initMenu(prefs: Prefs): void {
+    this.nameInput.value = prefs.name;
+    this.botsInput.value = String(prefs.bots);
+    this.botsOut.textContent = String(prefs.bots);
+    this.check(`mode-${prefs.mode}`);
+    this.check(`size-${prefs.mapSize}`);
+    this.check(`diff-${prefs.difficulty}`);
+    this.sizeField.disabled = prefs.mode === 'quick';
+    this.buildSwatches();
+
+    this.botsInput.addEventListener('input', () => (this.botsOut.textContent = this.botsInput.value));
+    this.form.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.name === 'mode') this.sizeField.disabled = target.value === 'quick';
+      if (target.name === 'mode' || target.name === 'size') this.preview();
+    });
+    byId('reroll').addEventListener('click', () => {
+      this.seed = randomSeed();
+      this.preview();
+    });
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.play();
+    });
+    window.addEventListener('resize', () => {
+      if (!this.menu.hidden) this.session?.refit();
+    });
+  }
+
+  private check(id: string): void {
+    byId<HTMLInputElement>(id).checked = true;
+  }
+
+  private buildSwatches(): void {
+    const items = SWATCHES.map((s, i) => {
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'color';
+      input.id = `color-${i}`;
+      input.value = toHex(s.color);
+      input.checked = s.color === this.color;
+      input.addEventListener('change', () => (this.color = s.color));
+      const label = document.createElement('label');
+      label.htmlFor = input.id;
+      label.className = 'swatch';
+      label.title = s.name;
+      label.style.setProperty('--c', toHex(s.color));
+      const text = document.createElement('span');
+      text.className = 'sr-only';
+      text.textContent = s.name;
+      label.append(text);
+      return [input, label];
+    });
+
+    // Any other colour, through the browser's picker.
+    const custom = document.createElement('label');
+    custom.className = 'swatch custom';
+    custom.title = 'Pick any colour';
+    const picker = document.createElement('input');
+    picker.type = 'color';
+    picker.id = 'color-custom';
+    picker.setAttribute('aria-label', 'Pick any colour');
+    const preset = SWATCHES.some((s) => s.color === this.color);
+    picker.value = toHex(preset ? 0x888888 : this.color);
+    custom.classList.toggle('selected', !preset);
+    custom.style.setProperty('--c', picker.value);
+    picker.addEventListener('input', () => {
+      this.color = fromHex(picker.value);
+      custom.style.setProperty('--c', picker.value);
+      custom.classList.add('selected');
+      this.swatches.querySelectorAll<HTMLInputElement>('input[name=color]').forEach((r) => (r.checked = false));
+    });
+    this.swatches.addEventListener('change', (e) => {
+      if ((e.target as HTMLInputElement).name === 'color') custom.classList.remove('selected');
+    });
+    custom.append(picker);
+    this.swatches.replaceChildren(...items.flat(), custom);
+  }
+
+  private radio(name: string): string {
+    return this.form.querySelector<HTMLInputElement>(`input[name=${name}]:checked`)?.value ?? '';
+  }
+
+  private options(): MatchOptions {
+    const name = this.nameInput.value.trim().slice(0, 16) || 'You';
+    return {
+      seed: this.seed,
+      mode: this.radio('mode') as Mode,
+      mapSize: this.radio('size') as MapSize,
+      bots: Number(this.botsInput.value),
+      difficulty: this.radio('difficulty') as Difficulty,
+      human: { name, color: this.color },
+    };
+  }
+
+  /** The map for these options, generated once per seed and size. */
+  private mapFor(options: MatchOptions): GameMap {
+    const key = `${options.seed}:${mapSizeFor(options)}`;
+    if (!this.map || key !== this.mapKey) {
+      this.map = createMap(options);
+      this.mapKey = key;
+    }
+    return this.map;
+  }
+
+  private menuInset() {
+    if (window.innerWidth < 760) return { left: 0, top: 0, right: 0, bottom: 0 };
+    return { left: this.menuCard.getBoundingClientRect().right + 24, top: 24, right: 24, bottom: 24 };
+  }
+
+  private preview(): void {
+    const options = this.options();
+    const game = new Game(createSettings(options, this.mapFor(options)));
+    this.session?.dispose();
+    this.session = new Session(this.canvas, game, { inset: () => this.menuInset() });
+    this.chartNo.textContent = `No. ${this.seed}`;
+  }
+
+  private showMenu(): void {
+    this.hud.hide();
+    this.menu.hidden = false;
+    this.preview();
+  }
+
+  private play(): void {
+    const options = this.options();
+    savePrefs({
+      name: this.nameInput.value.trim().slice(0, 16),
+      color: this.color,
+      mode: options.mode,
+      mapSize: options.mapSize,
+      bots: options.bots,
+      difficulty: options.difficulty,
+    });
+    const game = new Game(createSettings(options, this.mapFor(options)));
+    this.menu.hidden = true;
+    this.session?.dispose();
+    this.session = new Session(this.canvas, game, {
+      play: {
+        hud: this.hud,
+        hooks: {
+          playAgain: () => {
+            this.seed = randomSeed();
+            this.play();
+          },
+          menu: () => {
+            this.seed = randomSeed();
+            this.showMenu();
+          },
+        },
+      },
+    });
+    this.canvas.focus({ preventScroll: true });
+  }
+}
