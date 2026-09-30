@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stromkosten-Rechner: Was kostet ein Gerät im Jahr? | Rechenhelfer</title>
+  <meta name="description" content="Stromverbrauch und Stromkosten von Fernseher, PC, Router &amp; Co. berechnen – pro Jahr, Monat und Tag, inklusive Standby. Kostenlos und sofort.">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 10h14M9 16h.01M16 16h.01M23 16h.01M9 22h.01M16 22h.01M23 22h.01' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="rechner.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Rechner springen</a>
+
+  <header class="kopf">
+    <div class="container kopf-inner">
+      <a class="logo" href="index.html">
+        <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 7h12M6 12h.01M12 12h.01M18 12h.01M6 17h.01M12 17h.01M18 17h.01"/></svg></span>
+        Rechenhelfer
+      </a>
+      <nav class="nav" aria-label="Rechner">
+        <a href="mwst-rechner.html">MwSt<span class="nav-lang">-Rechner</span></a>
+        <a href="prozentrechner.html">Prozent<span class="nav-lang">rechner</span></a>
+        <a href="stromkosten-rechner.html" aria-current="page">Strom<span class="nav-lang">kosten</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="inhalt" class="seite">
+    <div class="container">
+      <nav class="brotkrumen" aria-label="Brotkrümelnavigation">
+        <ol><li><a href="index.html">Startseite</a></li><li aria-current="page">Stromkosten-Rechner</li></ol>
+      </nav>
+
+      <header class="seiten-kopf">
+        <h1>Stromkosten-Rechner</h1>
+        <p>Berechne, was ein Gerät im Jahr an Strom kostet – inklusive Standby-Verbrauch.</p>
+      </header>
+
+      <section class="rechner" aria-label="Stromkosten berechnen">
+        <form data-rechner="strom" autocomplete="off" novalidate>
+          <div class="vorlagen" role="group" aria-labelledby="vorlagen-titel">
+            <p id="vorlagen-titel">Beispielgerät wählen (typische Werte):</p>
+            <button type="button" class="vorlage" data-vorlage="80|4|0,5" aria-pressed="true">Fernseher</button>
+            <button type="button" class="vorlage" data-vorlage="350|3|2" aria-pressed="false">Gaming-PC</button>
+            <button type="button" class="vorlage" data-vorlage="45|6|0,5" aria-pressed="false">Laptop</button>
+            <button type="button" class="vorlage" data-vorlage="10|24|0" aria-pressed="false">WLAN-Router</button>
+            <button type="button" class="vorlage" data-vorlage="150|2|1" aria-pressed="false">Spielkonsole</button>
+            <button type="button" class="vorlage" data-vorlage="2000|2|0" aria-pressed="false">Heizlüfter</button>
+          </div>
+
+          <div class="felder-2">
+            <div class="feld">
+              <label for="watt">Leistung des Geräts</label>
+              <div class="eingabe" data-einheit="Watt"><input id="watt" name="watt" type="text" inputmode="decimal" value="80"></div>
+            </div>
+            <div class="feld">
+              <label for="stunden">Nutzung pro Tag</label>
+              <div class="eingabe" data-einheit="Std."><input id="stunden" name="stunden" type="text" inputmode="decimal" value="4"></div>
+            </div>
+            <div class="feld">
+              <label for="tage">Tage pro Woche</label>
+              <div class="eingabe" data-einheit="Tage"><input id="tage" name="tage" type="text" inputmode="decimal" value="7"></div>
+            </div>
+            <div class="feld">
+              <label for="preis">Strompreis</label>
+              <div class="eingabe" data-einheit="ct/kWh"><input id="preis" name="preis" type="text" inputmode="decimal" value="35"></div>
+            </div>
+          </div>
+
+          <div class="feld">
+            <label for="standby">Standby-Leistung (optional)</label>
+            <div class="eingabe" data-einheit="Watt"><input id="standby" name="standby" type="text" inputmode="decimal" value="0,5" placeholder="0" aria-describedby="standby-hilfe"></div>
+            <p class="feld-hilfe" id="standby-hilfe">Verbrauch in den übrigen Stunden, wenn das Gerät nicht ganz ausgeschaltet wird.</p>
+          </div>
+        </form>
+
+        <div class="ergebnis" aria-live="polite">
+          <h2>Ergebnis</h2>
+          <dl class="ergebnis-liste">
+            <div class="ziel"><dt>Kosten pro Jahr</dt><dd data-aus="kosten-jahr">–</dd></div>
+            <div><dt>pro Monat</dt><dd data-aus="kosten-monat">–</dd></div>
+            <div><dt>pro Tag (Durchschnitt)</dt><dd data-aus="kosten-tag">–</dd></div>
+            <div><dt>Verbrauch pro Jahr</dt><dd data-aus="kwh-jahr">–</dd></div>
+            <div><dt>1 Stunde Betrieb kostet</dt><dd data-aus="cent-stunde">–</dd></div>
+            <div><dt>davon Standby pro Jahr</dt><dd data-aus="kosten-standby">–</dd></div>
+          </dl>
+          <p class="fehler" data-aus="fehler" hidden></p>
+        </div>
+      </section>
+
+      <article class="inhalt">
+        <h2>So berechnest du die Stromkosten</h2>
+        <p>Die Leistung eines Geräts wird in Watt (W) angegeben, abgerechnet wird der Strom in Kilowattstunden (kWh). 1 kWh entspricht 1.000 Watt, die eine Stunde lang laufen.</p>
+        <p class="formel">Verbrauch (kWh) = Leistung (W) × Stunden ÷ 1.000<span>Fernseher mit 100 W, 4 Stunden am Tag: 100 × 4 ÷ 1.000 = 0,4 kWh pro Tag</span></p>
+        <p class="formel">Kosten (€) = Verbrauch (kWh) × Strompreis (ct/kWh) ÷ 100<span>0,4 kWh × 365 Tage = 146 kWh → 146 × 35 ÷ 100 = 51,10 € pro Jahr</span></p>
+
+        <h2>Wo finde ich die Leistung meines Geräts?</h2>
+        <p>Die Watt-Angabe steht auf dem Typenschild (meist auf der Rück- oder Unterseite), in der Bedienungsanleitung oder im Datenblatt. Viele Geräte brauchen im Alltag weniger als die angegebene Maximalleistung. Am genauesten misst du mit einem Strommessgerät für die Steckdose.</p>
+
+        <h2>Tipps zum Stromsparen</h2>
+        <ul>
+          <li><strong>Standby vermeiden:</strong> Eine schaltbare Steckdosenleiste trennt mehrere Geräte auf einmal vom Netz.</li>
+          <li><strong>Energiesparmodus nutzen:</strong> Fernseher, Konsolen und PCs haben oft einen Eco-Modus.</li>
+          <li><strong>Alte Geräte prüfen:</strong> Besonders alte Kühlschränke und Gefriertruhen verbrauchen oft deutlich mehr als neue.</li>
+        </ul>
+
+        <h2>Häufige Fragen</h2>
+        <div class="faq">
+          <details>
+            <summary>Was kostet eine Kilowattstunde?</summary>
+            <p>Das hängt von deinem Tarif ab. Den Arbeitspreis in Cent pro kWh findest du auf deiner Stromrechnung oder im Vertrag. Der monatliche Grundpreis ist im Rechner nicht enthalten.</p>
+          </details>
+          <details>
+            <summary>Wie viel kostet Standby im Jahr?</summary>
+            <p>Ein Gerät, das dauerhaft 5 Watt im Standby verbraucht, kommt auf 43,8 kWh im Jahr – bei 35 ct/kWh sind das rund 15,33 €.</p>
+          </details>
+          <details>
+            <summary>Wie genau ist das Ergebnis?</summary>
+            <p>Der Rechner geht von einer gleichmäßigen Leistung aus. Bei Geräten wie PCs oder Kühlschränken schwankt der Verbrauch im Betrieb – für genaue Werte hilft ein Strommessgerät.</p>
+          </details>
+        </div>
+
+        <h2 class="abschnitt-titel">Weitere Rechner</h2>
+        <div class="karten">
+          <a class="karte-link" href="mwst-rechner.html">
+            <span class="karte-symbol" aria-hidden="true">€</span>
+            <h3>Mehrwertsteuer-Rechner</h3>
+            <p>Netto in Brutto und Brutto in Netto – mit 19 %, 7 % oder eigenem Satz.</p>
+          </a>
+          <a class="karte-link" href="prozentrechner.html">
+            <span class="karte-symbol" aria-hidden="true">%</span>
+            <h3>Prozentrechner</h3>
+            <p>Prozentwert, Prozentsatz, Grundwert und Veränderung – mit Rechenweg.</p>
+          </a>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="fuss">
+    <div class="container fuss-inner">
+      <p>© <span data-jahr>2026</span> Rechenhelfer · Alle Berechnungen ohne Gewähr</p>
+      <nav aria-label="Rechtliches">
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

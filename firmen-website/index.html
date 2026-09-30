@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ANPASSEN: Titel & Beschreibung sind für Google besonders wichtig – immer den Ort nennen! -->
+  <title>Salon Schnittpunkt – Ihr Friseur in Musterstadt</title>
+  <meta name="description" content="Friseur in Musterstadt: Damen- und Herrenschnitte, Farbe, Balayage und Styling. Jetzt Termin vereinbaren – telefonisch oder per WhatsApp.">
+  <meta name="theme-color" content="#1f2e26">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='16' fill='%231f2e26'/%3E%3Cg fill='none' stroke='%23e0bd85' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='3'/%3E%3Ccircle cx='11' cy='21' r='3'/%3E%3Cpath d='M24 9l-10.5 10.5M18.5 18.5 24 23M13.5 13.5 16 16'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+
+  <!-- Strukturierte Daten: helfen Google, Adresse und Öffnungszeiten zu verstehen.
+       ANPASSEN: bei Änderungen auch hier Daten und Öffnungszeiten aktualisieren. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HairSalon",
+    "name": "Salon Schnittpunkt",
+    "telephone": "+49 123 456789",
+    "email": "info@example.com",
+    "priceRange": "€€",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Musterstraße 12",
+      "postalCode": "12345",
+      "addressLocality": "Musterstadt",
+      "addressCountry": "DE"
+    },
+    "openingHoursSpecification": [
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Tuesday", "Wednesday", "Friday"], "opens": "09:00", "closes": "18:00" },
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": "Thursday", "opens": "09:00", "closes": "20:00" },
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "14:00" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+
+  <!-- DEMO-HINWEIS: Für echte Kunden-Websites diesen Block löschen -->
+  <div class="demo-banner">
+    Demo-Website – so könnte auch Ihre Website aussehen. <a href="../portfolio/index.html#kontakt">Jetzt anfragen</a>
+  </div>
+
+  <header class="kopf">
+    <div class="container kopf-inner">
+      <a class="logo" href="#top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg>
+        <span>Salon <strong>Schnittpunkt</strong></span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Hauptnavigation">
+        <a href="#leistungen">Leistungen &amp; Preise</a>
+        <a href="#team">Team</a>
+        <a href="#oeffnungszeiten">Öffnungszeiten</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+      <a class="btn btn-klein kopf-cta" href="tel:+49123456789">Termin buchen</a>
+      <button class="menue-btn" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">
+        <svg class="icon-menue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-schliessen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="inhalt">
+    <!-- ===== Startbereich ===== -->
+    <section class="hero" id="top">
+      <div class="container hero-raster">
+        <div>
+          <!-- Wird automatisch aus den Öffnungszeiten weiter unten berechnet -->
+          <p class="status" data-status hidden><span class="status-punkt" aria-hidden="true"></span><span class="status-text"></span></p>
+          <h1>Ihr Friseur mitten in Musterstadt</h1>
+          <p class="lead">Schnitt, Farbe und Styling mit Liebe zum Detail. Wir nehmen uns Zeit für Sie – für einen Look, der wirklich zu Ihnen passt.</p>
+          <div class="button-reihe">
+            <a class="btn" href="tel:+49123456789">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+              Termin vereinbaren
+            </a>
+            <a class="btn btn-rand" href="#leistungen">Preise ansehen</a>
+          </div>
+          <!-- ANPASSEN: Nur Vorteile nennen, die wirklich zutreffen -->
+          <ul class="vorteile">
+            <li>Termine auch kurzfristig</li>
+            <li>Hochwertige Pflegeprodukte</li>
+            <li>Kartenzahlung möglich</li>
+          </ul>
+        </div>
+
+        <!-- ANPASSEN: Hier ein echtes Foto vom Salon zeigen – siehe Kommentar bei .hero-bild in style.css -->
+        <div class="hero-bild" aria-hidden="true">
+          <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="100" cy="100" r="92" stroke-width="1" opacity=".35"/>
+            <circle cx="62" cy="152" r="22"/>
+            <circle cx="138" cy="152" r="22"/>
+            <path d="M75 134 96 105M125 134 104 105"/>
+            <path d="M94 104 148 30Q130 78 106 110Z" fill="currentColor" fill-opacity=".18"/>
+            <path d="M106 104 52 30Q70 78 94 110Z" fill="currentColor" fill-opacity=".18"/>
+            <circle cx="100" cy="102" r="4" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Leistungen & Preise ===== -->
+    <!-- ANPASSEN: Leistungen und Preise des Kunden eintragen -->
+    <section id="leistungen" class="abschnitt">
+      <div class="container">
+        <header class="abschnitt-kopf">
+          <p class="kicker">Leistungen &amp; Preise</p>
+          <h2>Für jeden Anlass der passende Look</h2>
+          <p>Alle Preise inklusive Beratung. Bei langem oder sehr dichtem Haar kann der Preis abweichen – wir sagen es Ihnen immer vorher.</p>
+        </header>
+        <div class="preis-raster">
+          <div class="preis-gruppe">
+            <h3>Damen</h3>
+            <ul class="preisliste">
+              <li><span>Waschen, Schneiden, Föhnen</span><span class="preis">ab 49 €</span></li>
+              <li><span>Waschen &amp; Föhnen</span><span class="preis">ab 29 €</span></li>
+              <li><span>Pony schneiden</span><span class="preis">10 €</span></li>
+              <li><span>Hochsteckfrisur</span><span class="preis">ab 59 €</span></li>
+            </ul>
+          </div>
+          <div class="preis-gruppe">
+            <h3>Herren</h3>
+            <ul class="preisliste">
+              <li><span>Maschinenschnitt</span><span class="preis">19 €</span></li>
+              <li><span>Waschen, Schneiden, Styling</span><span class="preis">29 €</span></li>
+              <li><span>Bart trimmen &amp; Konturen</span><span class="preis">15 €</span></li>
+            </ul>
+          </div>
+          <div class="preis-gruppe">
+            <h3>Farbe &amp; Pflege</h3>
+            <ul class="preisliste">
+              <li><span>Ansatzfarbe</span><span class="preis">ab 45 €</span></li>
+              <li><span>Strähnen oder Balayage</span><span class="preis">ab 89 €</span></li>
+              <li><span>Intensiv-Pflegekur</span><span class="preis">15 €</span></li>
+            </ul>
+          </div>
+          <div class="preis-gruppe">
+            <h3>Kinder</h3>
+            <ul class="preisliste">
+              <li><span>Bis 6 Jahre</span><span class="preis">14 €</span></li>
+              <li><span>7 bis 12 Jahre</span><span class="preis">19 €</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Team ===== -->
+    <!-- ANPASSEN: Statt der Buchstaben echte Fotos einsetzen, z. B. <img src="bilder/lena.jpg" alt="Lena"> -->
+    <section id="team" class="abschnitt abschnitt-sand">
+      <div class="container">
+        <header class="abschnitt-kopf">
+          <p class="kicker">Team</p>
+          <h2>Die Menschen hinter der Schere</h2>
+          <p>Mit Erfahrung, Leidenschaft und einem offenen Ohr für Ihre Wünsche.</p>
+        </header>
+        <div class="team-raster">
+          <article class="person">
+            <div class="person-bild farbe-1" aria-hidden="true">L</div>
+            <h3>Lena</h3>
+            <p class="rolle">Inhaberin &amp; Friseurmeisterin</p>
+            <p>Liebt Farbe in allen Varianten – von ganz natürlich bis richtig mutig.</p>
+          </article>
+          <article class="person">
+            <div class="person-bild farbe-2" aria-hidden="true">C</div>
+            <h3>Can</h3>
+            <p class="rolle">Friseur</p>
+            <p>Spezialist für präzise Herrenschnitte, Fades und Bartpflege.</p>
+          </article>
+          <article class="person">
+            <div class="person-bild farbe-3" aria-hidden="true">M</div>
+            <h3>Mia</h3>
+            <p class="rolle">Stylistin</p>
+            <p>Zaubert Hochsteckfrisuren für Hochzeiten, Abschlussbälle und besondere Tage.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Bewertungen ===== -->
+    <!-- WICHTIG: Auf echten Websites nur echte Kundenbewertungen verwenden (erfundene Bewertungen sind verboten). -->
+    <section class="abschnitt">
+      <div class="container">
+        <header class="abschnitt-kopf">
+          <p class="kicker">Bewertungen</p>
+          <h2>Das sagen unsere Kundinnen und Kunden</h2>
+        </header>
+        <div class="bewertungs-raster">
+          <figure class="bewertung">
+            <p class="sterne"><span aria-hidden="true">★★★★★</span><span class="sr-only">5 von 5 Sternen</span></p>
+            <blockquote>„Endlich ein Salon, in dem man sich wirklich beraten fühlt. Meine Farbe war noch nie so schön!“</blockquote>
+            <figcaption>Anna M.</figcaption>
+          </figure>
+          <figure class="bewertung">
+            <p class="sterne"><span aria-hidden="true">★★★★★</span><span class="sr-only">5 von 5 Sternen</span></p>
+            <blockquote>„Schneller Termin, super Schnitt und nette Atmosphäre. Komme gerne wieder.“</blockquote>
+            <figcaption>Jonas K.</figcaption>
+          </figure>
+          <figure class="bewertung">
+            <p class="sterne"><span aria-hidden="true">★★★★★</span><span class="sr-only">5 von 5 Sternen</span></p>
+            <blockquote>„Meine Hochzeitsfrisur hat den ganzen Tag gehalten – vielen Dank, Mia!“</blockquote>
+            <figcaption>Sarah L.</figcaption>
+          </figure>
+        </div>
+        <p class="hinweis-klein">Beispielbewertungen für diese Demo-Website.</p>
+      </div>
+    </section>
+
+    <!-- ===== Öffnungszeiten & Anfahrt ===== -->
+    <section id="oeffnungszeiten" class="abschnitt abschnitt-dunkel">
+      <div class="container zeiten-raster">
+        <div>
+          <p class="kicker">Öffnungszeiten</p>
+          <h2>Wann Sie uns finden</h2>
+          <p class="status status-dunkel" data-status hidden><span class="status-punkt" aria-hidden="true"></span><span class="status-text"></span></p>
+          <!-- ANPASSEN: Einfach die Zeiten in der Tabelle ändern – „Jetzt geöffnet“ wird automatisch daraus berechnet.
+               Mehrere Zeiträume mit Komma trennen, z. B. „09:00 – 12:00, 14:00 – 18:00“.
+               data-tag: 1 = Montag … 6 = Samstag, 0 = Sonntag -->
+          <table class="zeiten">
+            <caption class="sr-only">Öffnungszeiten</caption>
+            <tbody>
+              <tr data-tag="1"><th scope="row">Montag</th><td>geschlossen</td></tr>
+              <tr data-tag="2"><th scope="row">Dienstag</th><td>09:00 – 18:00</td></tr>
+              <tr data-tag="3"><th scope="row">Mittwoch</th><td>09:00 – 18:00</td></tr>
+              <tr data-tag="4"><th scope="row">Donnerstag</th><td>09:00 – 20:00</td></tr>
+              <tr data-tag="5"><th scope="row">Freitag</th><td>09:00 – 18:00</td></tr>
+              <tr data-tag="6"><th scope="row">Samstag</th><td>08:00 – 14:00</td></tr>
+              <tr data-tag="0"><th scope="row">Sonntag</th><td>geschlossen</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="anfahrt">
+          <h3>Anfahrt</h3>
+          <address>
+            Salon Schnittpunkt<br>
+            Musterstraße 12<br>
+            12345 Musterstadt
+          </address>
+          <ul class="anfahrt-infos">
+            <li>Bushaltestelle „Marktplatz“ – 2 Minuten zu Fuß</li>
+            <li>Kostenlose Parkplätze im Hof</li>
+            <li>Stufenloser Eingang</li>
+          </ul>
+          <a class="btn btn-hell" href="https://www.google.com/maps/search/?api=1&amp;query=Musterstra%C3%9Fe%2012%2C%2012345%20Musterstadt" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Route planen
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Kontakt ===== -->
+    <!-- ANPASSEN: Telefonnummer, WhatsApp-Nummer (ohne 0 und mit 49 davor) und E-Mail -->
+    <section id="kontakt" class="abschnitt">
+      <div class="container">
+        <div class="kontakt-box">
+          <div>
+            <p class="kicker">Termin &amp; Kontakt</p>
+            <h2>Wir freuen uns auf Sie!</h2>
+            <p>Rufen Sie uns an oder schreiben Sie uns per WhatsApp – wir finden schnell einen passenden Termin.</p>
+          </div>
+          <div class="kontakt-wege">
+            <a class="kontakt-weg" href="tel:+49123456789">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+              <span><strong>Anrufen</strong>0123 456789</span>
+            </a>
+            <a class="kontakt-weg" href="https://wa.me/49123456789" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>
+              <span><strong>WhatsApp</strong>Nachricht schreiben</span>
+            </a>
+            <a class="kontakt-weg" href="mailto:info@example.com">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              <span><strong>E-Mail</strong>info@example.com</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="fuss">
+    <div class="container fuss-raster">
+      <div>
+        <p class="fuss-logo">Salon <strong>Schnittpunkt</strong></p>
+        <p>Musterstraße 12 · 12345 Musterstadt<br>Telefon: <a href="tel:+49123456789">0123 456789</a></p>
+      </div>
+      <nav aria-label="Rechtliches">
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+    <p class="container fuss-copy">© <span data-jahr>2026</span> Salon Schnittpunkt</p>
+  </footer>
+
+  <!-- Schnellkontakt-Leiste: nur auf dem Smartphone sichtbar -->
+  <div class="schnellkontakt">
+    <a href="tel:+49123456789">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+      Anrufen
+    </a>
+    <a href="https://wa.me/49123456789" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>
+      WhatsApp
+    </a>
+  </div>
+</body>
+</html>

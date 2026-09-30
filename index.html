@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web-Projekte – Übersicht</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root {
+      --bg: #f6f7fb; --card: #fff; --text: #14161f; --muted: #5a6072; --border: #e2e5ee; --accent: #4f46e5;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0d0f17; --card: #161a26; --text: #eceef5; --muted: #a0a6b8; --border: #2a3042; --accent: #8b93ff; color-scheme: dark; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; background: var(--bg); color: var(--text); }
+    main { width: min(100% - 32px, 760px); margin: 0 auto; padding: 64px 0; }
+    h1 { margin: 0 0 8px; font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -0.03em; }
+    main > p { margin: 0 0 32px; color: var(--muted); font-size: 1.1rem; }
+    ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+    a { display: block; padding: 22px 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); color: var(--text); text-decoration: none; transition: border-color .15s, transform .15s; }
+    a:hover { border-color: var(--accent); transform: translateY(-2px); }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    strong { display: block; margin-bottom: 4px; font-size: 1.15rem; }
+    strong::after { content: " →"; color: var(--accent); }
+    span { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Meine Web-Projekte</h1>
+    <p>Drei Projekte, die sich lohnen – zum Ansehen, Anpassen und Weiterbauen.</p>
+    <ul>
+      <li>
+        <a href="portfolio/index.html">
+          <strong>1 · Portfolio</strong>
+          <span>Deine Visitenkarte im Netz: Leistungen, Projekte, Preise und Kontakt – für die Kundengewinnung.</span>
+        </a>
+      </li>
+      <li>
+        <a href="firmen-website/index.html">
+          <strong>2 · Firmen-Website (Demo: Friseursalon)</strong>
+          <span>Vorlage, die du lokalen Betrieben zeigen und in kurzer Zeit für sie anpassen kannst.</span>
+        </a>
+      </li>
+      <li>
+        <a href="rechner/index.html">
+          <strong>3 · Rechenhelfer</strong>
+          <span>Online-Rechner-Portal mit MwSt-, Prozent- und Stromkostenrechner – Besucher über Google gewinnen.</span>
+        </a>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>

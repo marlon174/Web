@@ -1,0 +1,276 @@
+/* =========================================================
+   Rechenhelfer – Styles für alle Rechner-Seiten
+   ========================================================= */
+
+:root {
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #4f5d75;
+  --border: #dce3ee;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eaf1fe;
+  --on-accent: #ffffff;
+  --gefahr: #b91c1c;
+  --shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.06);
+  --max: 1040px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1120;
+    --card: #111a2e;
+    --text: #e6ebf5;
+    --muted: #9eabc3;
+    --border: #25314a;
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --accent-soft: #14213b;
+    --on-accent: #0b1120;
+    --gefahr: #f87171;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+/* ---------- Grundlagen ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); }
+svg { display: block; }
+[hidden] { display: none !important; }
+h1, h2, h3 { line-height: 1.2; letter-spacing: -0.02em; overflow-wrap: break-word; hyphens: auto; }
+p { margin: 0 0 1em; }
+
+.container { width: min(100% - 32px, var(--max)); margin-inline: auto; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: 16px; top: -100px; z-index: 100;
+  padding: 10px 16px; border-radius: 10px;
+  background: var(--accent); color: var(--on-accent);
+}
+.skip-link:focus { top: 16px; }
+
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- Kopfbereich ---------- */
+
+.kopf { border-bottom: 1px solid var(--border); background: var(--card); }
+.kopf-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 64px; }
+
+.logo { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 800; color: var(--text); text-decoration: none; }
+.logo-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--on-accent); }
+.logo-icon svg { width: 20px; height: 20px; }
+
+.nav { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; }
+.nav a { padding: 8px 12px; border-radius: 8px; color: var(--muted); font-weight: 500; text-decoration: none; white-space: nowrap; }
+.nav a:hover { background: var(--bg); color: var(--text); }
+.nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+
+@media (max-width: 680px) {
+  .kopf-inner { padding: 12px 0 8px; }
+  .nav { width: 100%; margin: 0 -4px; }
+}
+@media (max-width: 480px) {
+  .nav-lang { display: none; }
+}
+
+/* ---------- Seitenaufbau ---------- */
+
+.seite { padding: 28px 0 80px; }
+
+.brotkrumen { margin-bottom: 20px; font-size: 0.9rem; color: var(--muted); }
+.brotkrumen ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.brotkrumen li + li::before { content: "›"; margin-right: 6px; }
+.brotkrumen a { color: var(--muted); }
+
+.seiten-kopf { max-width: 720px; margin-bottom: 28px; }
+.seiten-kopf h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -0.03em; }
+.seiten-kopf p { margin: 0; font-size: 1.12rem; color: var(--muted); }
+
+/* ---------- Rechner-Karte ---------- */
+
+.rechner {
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(20px, 4vw, 36px);
+  padding: clamp(20px, 4vw, 32px); border: 1px solid var(--border); border-radius: 20px;
+  background: var(--card); box-shadow: var(--shadow);
+}
+@media (max-width: 760px) {
+  .rechner { grid-template-columns: 1fr; }
+}
+
+.feld { min-width: 0; margin: 0 0 20px; padding: 0; border: 0; }
+.feld > label, .feld > legend { display: block; margin-bottom: 8px; padding: 0; font-size: 0.95rem; font-weight: 600; }
+.feld-hilfe { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); }
+.felder-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+@media (max-width: 420px) {
+  .felder-2 { grid-template-columns: 1fr; }
+}
+
+input[type="text"], select {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--bg); color: var(--text);
+  font: inherit; font-size: 1.15rem; font-variant-numeric: tabular-nums;
+}
+input[type="text"]:focus, select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Eingabefeld mit Einheit (z. B. „€“ oder „W“) am rechten Rand */
+.eingabe { position: relative; }
+.eingabe input { padding-right: 64px; }
+.eingabe[data-einheit="ct/kWh"] input { padding-right: 84px; }
+.eingabe::after {
+  content: attr(data-einheit);
+  position: absolute; top: 50%; right: 14px; transform: translateY(-50%);
+  color: var(--muted); font-weight: 600; pointer-events: none;
+}
+
+/* Umschalter (z. B. Netto / Brutto) */
+.segment {
+  position: relative; display: inline-flex; flex-wrap: wrap; gap: 4px;
+  padding: 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg);
+}
+.segment input { position: absolute; opacity: 0; pointer-events: none; }
+.segment label { padding: 8px 16px; border-radius: 9px; color: var(--muted); font-weight: 600; cursor: pointer; }
+.segment label:hover { color: var(--text); }
+.segment input:checked + label { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgb(0 0 0 / 0.14); }
+.segment input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 1px; }
+.feld-eigen { margin-top: 14px; }
+.feld-eigen label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; }
+
+/* Beispielgeräte (Stromrechner) */
+.vorlagen { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+.vorlagen p { width: 100%; margin: 0; font-size: 0.95rem; font-weight: 600; }
+.vorlage {
+  padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 999px;
+  background: var(--bg); color: var(--text); font: inherit; font-size: 0.92rem; font-weight: 600; cursor: pointer;
+}
+.vorlage:hover { border-color: var(--accent); }
+.vorlage[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+
+/* Ergebnis */
+.ergebnis { align-self: start; padding: 20px 22px; border-radius: 16px; background: var(--accent-soft); }
+.ergebnis h2 { margin: 0 0 6px; font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ergebnis-liste { margin: 0; transition: opacity 0.15s; }
+.ergebnis-liste.veraltet { opacity: 0.35; }
+.ergebnis-liste > div {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px;
+  padding: 11px 0; border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.ergebnis-liste > div:last-child { border-bottom: 0; }
+.ergebnis-liste dt { color: var(--muted); }
+.ergebnis-liste dd { margin: 0 0 0 auto; font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ergebnis-liste .ziel dt { color: var(--text); font-weight: 700; }
+.ergebnis-liste .ziel dd { font-size: 1.7rem; color: var(--accent); letter-spacing: -0.02em; }
+.fehler { margin: 12px 0 0; font-weight: 600; color: var(--gefahr); }
+
+/* ---------- Prozentrechner: mehrere kleine Aufgaben ---------- */
+
+.aufgaben { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
+.aufgabe {
+  padding: 22px 24px; border: 1px solid var(--border); border-radius: 18px;
+  background: var(--card); box-shadow: var(--shadow);
+}
+.aufgabe h2 { margin: 0 0 14px; font-size: 1.1rem; }
+.satzzeile { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 1.05rem; }
+.satzzeile input[type="text"] { width: 7em; }
+.satzzeile select { width: auto; }
+.aufgabe-ergebnis {
+  margin: 16px 0 2px; padding-top: 14px; border-top: 1px dashed var(--border);
+  font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--accent);
+}
+.rechenweg { margin: 0; font-size: 0.95rem; color: var(--muted); overflow-wrap: anywhere; }
+
+/* ---------- Erklärungen, FAQ, weitere Rechner ---------- */
+
+.inhalt { max-width: 760px; margin-top: 56px; }
+.inhalt h2 { margin: 44px 0 12px; font-size: 1.6rem; }
+.inhalt h2:first-child { margin-top: 0; }
+.inhalt ul { padding-left: 1.2em; }
+.inhalt li { margin-bottom: 6px; }
+
+.formel {
+  margin: 0 0 12px; padding: 14px 18px;
+  border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 10px;
+  background: var(--card); font-weight: 600;
+}
+.formel span { display: block; font-weight: 400; font-size: 0.92rem; color: var(--muted); }
+
+.tipp { padding: 16px 20px; border-radius: 12px; background: var(--accent-soft); }
+
+.faq details { margin-bottom: 10px; padding: 0 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.faq summary {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 15px 0; font-weight: 600; cursor: pointer; list-style: none;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; flex: none; font-size: 1.4rem; line-height: 1; color: var(--accent); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { margin: 0 0 16px; color: var(--muted); }
+
+.karten { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.karte-link {
+  display: block; padding: 22px; border: 1px solid var(--border); border-radius: 16px;
+  background: var(--card); color: var(--text); text-decoration: none; box-shadow: var(--shadow);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.karte-link:hover { border-color: var(--accent); transform: translateY(-2px); }
+.karte-link h3 { margin: 14px 0 6px; font-size: 1.15rem; }
+.karte-link p { margin: 0; font-size: 0.95rem; color: var(--muted); }
+.karte-symbol {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px;
+  background: var(--accent-soft); color: var(--accent); font-size: 1.3rem; font-weight: 800;
+}
+.karte-symbol svg { width: 22px; height: 22px; }
+
+.abschnitt-titel { margin: 56px 0 16px; font-size: 1.4rem; }
+
+/* ---------- Startseite ---------- */
+
+.start-hero { padding: clamp(40px, 8vw, 88px) 0 clamp(28px, 5vw, 48px); text-align: center; }
+.start-hero h1 { margin: 0 auto 16px; max-width: 760px; font-size: clamp(2.2rem, 6vw, 3.6rem); letter-spacing: -0.035em; }
+.start-hero p { max-width: 600px; margin: 0 auto; font-size: 1.15rem; color: var(--muted); }
+.vorteile { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; margin: 28px 0 0; padding: 0; list-style: none; color: var(--muted); }
+.vorteile li::before { content: "✓ "; font-weight: 800; color: var(--accent); }
+.bald { margin-top: 32px; padding: 20px 24px; border: 1.5px dashed var(--border); border-radius: 16px; color: var(--muted); text-align: center; }
+
+/* ---------- Fußbereich ---------- */
+
+.fuss { padding: 28px 0; border-top: 1px solid var(--border); background: var(--card); font-size: 0.9rem; color: var(--muted); }
+.fuss-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.fuss p { margin: 0; }
+.fuss nav { display: flex; flex-wrap: wrap; gap: 18px; }
+.fuss a { color: var(--muted); }
+.fuss a:hover { color: var(--text); }
+
+/* ---------- Rechtliche Seiten ---------- */
+
+.rechtliches { max-width: 760px; }
+.rechtliches h1 { font-size: clamp(1.8rem, 7vw, 2.6rem); }
+.rechtliches h2 { margin-top: 1.6em; font-size: 1.25rem; }
+.platzhalter-hinweis { margin-bottom: 28px; padding: 16px 20px; border: 1px solid var(--accent); border-radius: 12px; background: var(--accent-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .karte-link, .ergebnis-liste { transition: none; }
+}

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prozentrechner: Prozente online berechnen – mit Rechenweg | Rechenhelfer</title>
+  <meta name="description" content="Prozentwert, Prozentsatz, Grundwert und prozentuale Veränderung sofort berechnen – mit Rechenweg und einfachen Erklärungen. Kostenlos und ohne Anmeldung.">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 10h14M9 16h.01M16 16h.01M23 16h.01M9 22h.01M16 22h.01M23 22h.01' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="rechner.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Rechner springen</a>
+
+  <header class="kopf">
+    <div class="container kopf-inner">
+      <a class="logo" href="index.html">
+        <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 7h12M6 12h.01M12 12h.01M18 12h.01M6 17h.01M12 17h.01M18 17h.01"/></svg></span>
+        Rechenhelfer
+      </a>
+      <nav class="nav" aria-label="Rechner">
+        <a href="mwst-rechner.html">MwSt<span class="nav-lang">-Rechner</span></a>
+        <a href="prozentrechner.html" aria-current="page">Prozent<span class="nav-lang">rechner</span></a>
+        <a href="stromkosten-rechner.html">Strom<span class="nav-lang">kosten</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="inhalt" class="seite">
+    <div class="container">
+      <nav class="brotkrumen" aria-label="Brotkrümelnavigation">
+        <ol><li><a href="index.html">Startseite</a></li><li aria-current="page">Prozentrechner</li></ol>
+      </nav>
+
+      <header class="seiten-kopf">
+        <h1>Prozentrechner</h1>
+        <p>Prozente schnell ausrechnen: Prozentwert, Prozentsatz, Grundwert und prozentuale Veränderung – jeweils mit Rechenweg.</p>
+      </header>
+
+      <div class="aufgaben">
+        <form class="aufgabe" data-aufgabe="anteil" autocomplete="off" novalidate>
+          <h2>Wie viel sind x % von y?</h2>
+          <div class="satzzeile">
+            <label class="sr-only" for="anteil-a">Prozentsatz</label>
+            <input id="anteil-a" name="a" type="text" inputmode="decimal" value="15">
+            <span>% von</span>
+            <label class="sr-only" for="anteil-b">Grundwert</label>
+            <input id="anteil-b" name="b" type="text" inputmode="decimal" value="200">
+          </div>
+          <p class="aufgabe-ergebnis" data-aus="ergebnis" aria-live="polite">30</p>
+          <p class="rechenweg" data-aus="rechenweg"></p>
+        </form>
+
+        <form class="aufgabe" data-aufgabe="satz" autocomplete="off" novalidate>
+          <h2>x ist wie viel Prozent von y?</h2>
+          <div class="satzzeile">
+            <label class="sr-only" for="satz-a">Prozentwert</label>
+            <input id="satz-a" name="a" type="text" inputmode="decimal" value="30">
+            <span>ist wie viel % von</span>
+            <label class="sr-only" for="satz-b">Grundwert</label>
+            <input id="satz-b" name="b" type="text" inputmode="decimal" value="200">
+          </div>
+          <p class="aufgabe-ergebnis" data-aus="ergebnis" aria-live="polite">15 %</p>
+          <p class="rechenweg" data-aus="rechenweg"></p>
+        </form>
+
+        <form class="aufgabe" data-aufgabe="grundwert" autocomplete="off" novalidate>
+          <h2>x sind y % von wie viel?</h2>
+          <div class="satzzeile">
+            <label class="sr-only" for="grundwert-a">Prozentwert</label>
+            <input id="grundwert-a" name="a" type="text" inputmode="decimal" value="30">
+            <span>sind</span>
+            <label class="sr-only" for="grundwert-b">Prozentsatz</label>
+            <input id="grundwert-b" name="b" type="text" inputmode="decimal" value="15">
+            <span>% von …</span>
+          </div>
+          <p class="aufgabe-ergebnis" data-aus="ergebnis" aria-live="polite">200</p>
+          <p class="rechenweg" data-aus="rechenweg"></p>
+        </form>
+
+        <form class="aufgabe" data-aufgabe="veraenderung" autocomplete="off" novalidate>
+          <h2>Prozentuale Veränderung</h2>
+          <div class="satzzeile">
+            <span>von</span>
+            <label class="sr-only" for="veraenderung-a">Alter Wert</label>
+            <input id="veraenderung-a" name="a" type="text" inputmode="decimal" value="200">
+            <span>auf</span>
+            <label class="sr-only" for="veraenderung-b">Neuer Wert</label>
+            <input id="veraenderung-b" name="b" type="text" inputmode="decimal" value="250">
+          </div>
+          <p class="aufgabe-ergebnis" data-aus="ergebnis" aria-live="polite">+25 % (Anstieg)</p>
+          <p class="rechenweg" data-aus="rechenweg"></p>
+        </form>
+
+        <form class="aufgabe" data-aufgabe="aendern" autocomplete="off" novalidate>
+          <h2>Wert um x % erhöhen oder verringern</h2>
+          <div class="satzzeile">
+            <label class="sr-only" for="aendern-a">Ausgangswert</label>
+            <input id="aendern-a" name="a" type="text" inputmode="decimal" value="80">
+            <span>um</span>
+            <label class="sr-only" for="aendern-b">Prozentsatz</label>
+            <input id="aendern-b" name="b" type="text" inputmode="decimal" value="25">
+            <span>%</span>
+            <label class="sr-only" for="aendern-richtung">Richtung</label>
+            <select id="aendern-richtung" name="richtung">
+              <option value="minus">verringern</option>
+              <option value="plus">erhöhen</option>
+            </select>
+          </div>
+          <p class="aufgabe-ergebnis" data-aus="ergebnis" aria-live="polite">60</p>
+          <p class="rechenweg" data-aus="rechenweg"></p>
+        </form>
+      </div>
+
+      <article class="inhalt">
+        <h2>Die drei Grundbegriffe</h2>
+        <ul>
+          <li><strong>Grundwert (G):</strong> das Ganze, also 100 %. Beispiel: der ursprüngliche Preis.</li>
+          <li><strong>Prozentsatz (p):</strong> der Anteil in Prozent. Beispiel: 25 % Rabatt.</li>
+          <li><strong>Prozentwert (W):</strong> der Anteil als Zahl. Beispiel: 20 € Ersparnis.</li>
+        </ul>
+
+        <h2>Die wichtigsten Formeln</h2>
+        <p class="formel">Prozentwert: W = G × p ÷ 100<span>15 % von 200: 200 × 15 ÷ 100 = 30</span></p>
+        <p class="formel">Prozentsatz: p = W ÷ G × 100<span>30 von 200 in Prozent: 30 ÷ 200 × 100 = 15 %</span></p>
+        <p class="formel">Grundwert: G = W × 100 ÷ p<span>30 sind 15 % von: 30 × 100 ÷ 15 = 200</span></p>
+        <p class="formel">Veränderung in % = (neu − alt) ÷ alt × 100<span>Von 200 auf 250: (250 − 200) ÷ 200 × 100 = +25 %</span></p>
+
+        <h2>Häufige Fragen</h2>
+        <div class="faq">
+          <details>
+            <summary>Wie rechne ich 20 Prozent von einer Zahl aus?</summary>
+            <p>Multipliziere die Zahl mit 0,2. Beispiel: 20 % von 80 sind 80 × 0,2 = 16.</p>
+          </details>
+          <details>
+            <summary>Wie berechne ich einen Rabatt?</summary>
+            <p>Neuer Preis = Preis × (1 − Rabatt ÷ 100). Beispiel: 80 € mit 25 % Rabatt kosten 80 × 0,75 = 60 €. Nutze dafür oben „Wert um x % verringern“.</p>
+          </details>
+          <details>
+            <summary>Warum ergeben +10 % und danach −10 % nicht wieder den Ausgangswert?</summary>
+            <p>Weil sich die zweite Rechnung auf den neuen, größeren Wert bezieht: 100 plus 10 % sind 110 – und 110 minus 10 % sind 99.</p>
+          </details>
+          <details>
+            <summary>Was ist der Unterschied zwischen Prozent und Prozentpunkten?</summary>
+            <p>Steigt ein Zinssatz von 2 % auf 3 %, ist das ein Plus von 1 Prozentpunkt – aber ein Anstieg um 50 Prozent.</p>
+          </details>
+        </div>
+
+        <h2 class="abschnitt-titel">Weitere Rechner</h2>
+        <div class="karten">
+          <a class="karte-link" href="mwst-rechner.html">
+            <span class="karte-symbol" aria-hidden="true">€</span>
+            <h3>Mehrwertsteuer-Rechner</h3>
+            <p>Netto in Brutto und Brutto in Netto – mit 19 %, 7 % oder eigenem Satz.</p>
+          </a>
+          <a class="karte-link" href="stromkosten-rechner.html">
+            <span class="karte-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M13 2 4 14h8l-1 8 9-12h-8l1-8z"/></svg></span>
+            <h3>Stromkosten-Rechner</h3>
+            <p>Was kostet dein Fernseher, PC oder Router im Jahr?</p>
+          </a>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="fuss">
+    <div class="container fuss-inner">
+      <p>© <span data-jahr>2026</span> Rechenhelfer · Alle Berechnungen ohne Gewähr</p>
+      <nav aria-label="Rechtliches">
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

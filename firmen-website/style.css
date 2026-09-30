@@ -1,0 +1,334 @@
+/* =========================================================
+   Salon-Website – Styles
+   TIPP: Für einen neuen Kunden reicht es oft, die Farben
+   in :root anzupassen – der Rest zieht automatisch mit.
+   ========================================================= */
+
+:root {
+  --creme: #faf6ef;
+  --sand: #f1e8d9;
+  --tanne: #1f2e26;       /* Hauptfarbe (dunkel) */
+  --gruen: #2f4a3a;       /* Hauptfarbe (hell) */
+  --gold-text: #8a6428;   /* Akzent für Text auf hellem Grund */
+  --gold-hell: #e0bd85;   /* Akzent auf dunklem Grund */
+  --text: #2a2723;
+  --muted: #6d655b;
+  --linie: #dccfb9;
+  --weiss: #ffffff;
+  --schrift-titel: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --schrift: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius: 14px;
+  --max: 1140px;
+}
+
+/* ---------- Grundlagen ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+
+body {
+  margin: 0;
+  font-family: var(--schrift);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--creme);
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg { display: block; max-width: 100%; }
+a { color: var(--gruen); }
+[hidden] { display: none !important; }
+
+h1, h2, h3 { margin: 0 0 0.5em; line-height: 1.1; color: var(--tanne); overflow-wrap: break-word; hyphens: auto; }
+h1, h2 { font-family: var(--schrift-titel); font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.5rem, 5.6vw, 4.3rem); }
+h2 { font-size: clamp(2rem, 4vw, 2.9rem); }
+h3 { font-size: 1.25rem; }
+p { margin: 0 0 1em; }
+
+.container { width: min(100% - 32px, var(--max)); margin-inline: auto; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: 16px; top: -100px; z-index: 100;
+  padding: 10px 16px; border-radius: 10px;
+  background: var(--tanne); color: #fff;
+}
+.skip-link:focus { top: 16px; }
+
+:focus-visible { outline: 3px solid var(--gold-text); outline-offset: 3px; border-radius: 6px; }
+
+.kicker {
+  margin-bottom: 12px;
+  font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gold-text);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 14px 26px; border: 2px solid var(--tanne); border-radius: 999px;
+  background: var(--tanne); color: #fff;
+  font-weight: 600; text-decoration: none; white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn:hover { background: var(--gruen); border-color: var(--gruen); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn-klein { padding: 9px 20px; font-size: 0.95rem; }
+.btn-rand { background: transparent; color: var(--tanne); }
+.btn-rand:hover { background: var(--tanne); color: #fff; }
+.btn-hell { background: #fff; border-color: #fff; color: var(--tanne); }
+.btn-hell:hover { background: var(--sand); border-color: var(--sand); }
+.button-reihe { display: flex; flex-wrap: wrap; gap: 12px; margin: 32px 0; }
+
+/* ---------- Demo-Hinweis ---------- */
+
+.demo-banner {
+  padding: 8px 16px;
+  background: var(--gold-text); color: #fff;
+  font-size: 0.9rem; text-align: center;
+}
+.demo-banner a { color: #fff; font-weight: 700; }
+
+/* ---------- Kopfbereich ---------- */
+
+.kopf {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--creme);
+  background: color-mix(in srgb, var(--creme) 88%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--linie);
+}
+.kopf-inner { display: flex; align-items: center; gap: 28px; height: 72px; }
+
+.logo {
+  display: flex; align-items: center; gap: 10px; margin-right: auto;
+  font-family: var(--schrift-titel); font-size: 1.35rem;
+  color: var(--tanne); text-decoration: none; white-space: nowrap;
+}
+.logo svg { width: 26px; height: 26px; color: var(--gold-text); }
+.logo strong { font-weight: 700; }
+
+.nav { display: flex; gap: 26px; }
+.nav a { color: var(--text); font-weight: 500; font-size: 0.98rem; text-decoration: none; }
+.nav a:hover { color: var(--gold-text); }
+
+.menue-btn {
+  display: none; place-items: center;
+  width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--linie); border-radius: 12px;
+  background: #fff; color: var(--tanne); cursor: pointer;
+}
+.menue-btn svg { width: 22px; height: 22px; }
+.menue-btn .icon-schliessen { display: none; }
+.nav-offen .menue-btn .icon-menue { display: none; }
+.nav-offen .menue-btn .icon-schliessen { display: block; }
+
+@media (max-width: 920px) {
+  .menue-btn { display: grid; }
+  .nav {
+    display: none;
+    position: absolute; top: 72px; left: 0; right: 0;
+    flex-direction: column; gap: 0;
+    padding: 8px 16px 16px;
+    background: var(--creme); border-bottom: 1px solid var(--linie);
+    box-shadow: 0 12px 24px rgb(31 46 38 / 0.12);
+  }
+  .nav a { padding: 14px 4px; border-bottom: 1px solid var(--linie); font-size: 1.05rem; }
+  .nav a:last-child { border-bottom: 0; }
+  .kopf.nav-offen .nav { display: flex; }
+}
+@media (max-width: 560px) {
+  .logo { font-size: 1.15rem; }
+  .kopf-inner { gap: 16px; }
+  .kopf-cta { display: none; }   /* auf dem Smartphone gibt es die Schnellkontakt-Leiste */
+}
+
+/* ---------- Startbereich ---------- */
+
+.hero { padding: clamp(48px, 8vw, 96px) 0 clamp(56px, 8vw, 104px); background: linear-gradient(180deg, var(--creme), var(--sand)); }
+.hero-raster {
+  display: grid; grid-template-columns: 1.15fr 0.85fr; align-items: center;
+  gap: clamp(32px, 6vw, 80px);
+}
+.lead { max-width: 560px; font-size: clamp(1.1rem, 2vw, 1.25rem); color: var(--muted); }
+
+.vorteile { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.95rem; }
+.vorteile li { display: flex; align-items: center; gap: 8px; }
+.vorteile li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--gold-text); }
+
+/* ANPASSEN: Echtes Foto einsetzen – dafür diese Zeile ergänzen und das SVG im HTML löschen:
+   background: url("bilder/salon.jpg") center / cover;                                   */
+.hero-bild {
+  display: grid; place-items: center; aspect-ratio: 4 / 5; overflow: hidden;
+  border-radius: 999px 999px var(--radius) var(--radius);
+  background:
+    radial-gradient(60% 50% at 30% 20%, rgb(224 189 133 / 0.25), transparent 70%),
+    linear-gradient(160deg, var(--gruen), var(--tanne));
+  color: var(--gold-hell);
+  box-shadow: 0 30px 60px -20px rgb(31 46 38 / 0.45);
+}
+.hero-bild svg { width: 62%; }
+
+@media (max-width: 860px) {
+  .hero-raster { grid-template-columns: 1fr; }
+  .hero-bild { aspect-ratio: 16 / 9; border-radius: var(--radius); }
+  .hero-bild svg { width: auto; height: 80%; }
+}
+
+/* Live-Status „Jetzt geöffnet“ */
+.status {
+  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px;
+  padding: 7px 16px; border: 1px solid var(--linie); border-radius: 999px;
+  background: #fff; font-size: 0.95rem; font-weight: 600;
+}
+.status-punkt { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #9ca3af; }
+.status.offen .status-punkt { background: #1f9d55; box-shadow: 0 0 0 4px rgb(31 157 85 / 0.2); }
+.status.bald .status-punkt { background: #d97706; box-shadow: 0 0 0 4px rgb(217 119 6 / 0.2); }
+.status.zu .status-punkt { background: #c2410c; }
+.status-dunkel { border-color: rgb(255 255 255 / 0.18); background: rgb(255 255 255 / 0.08); color: #fff; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .status.offen .status-punkt { animation: puls 2.4s ease-in-out infinite; }
+}
+@keyframes puls {
+  50% { box-shadow: 0 0 0 7px rgb(31 157 85 / 0); }
+}
+
+/* ---------- Abschnitte ---------- */
+
+.abschnitt { padding: clamp(64px, 10vw, 110px) 0; }
+.abschnitt-sand { background: var(--sand); }
+.abschnitt-kopf { max-width: 640px; margin: 0 auto 48px; text-align: center; }
+.abschnitt-kopf h2 + p { color: var(--muted); font-size: 1.1rem; }
+
+/* Preisliste mit gepunkteter Linie zwischen Leistung und Preis */
+.preis-raster { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.preis-gruppe { padding: 28px 30px 18px; border: 1px solid var(--linie); border-radius: var(--radius); background: #fff; }
+.preis-gruppe h3 { margin-bottom: 8px; font-family: var(--schrift-titel); font-size: 1.6rem; font-weight: 600; }
+.preisliste { margin: 0; padding: 0; list-style: none; }
+.preisliste li { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 10px; padding: 10px 0; }
+.preisliste li > span:first-child { grid-row: 1; grid-column: 1; }
+.preisliste li::before { content: ""; grid-row: 1; grid-column: 2; min-width: 16px; border-bottom: 2px dotted var(--linie); }
+.preis { grid-row: 1; grid-column: 3; font-weight: 700; color: var(--tanne); white-space: nowrap; }
+
+/* Team */
+.team-raster { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.person { padding: 36px 28px 28px; border-radius: var(--radius); background: var(--creme); text-align: center; }
+.person-bild {
+  display: grid; place-items: center; overflow: hidden;
+  width: 120px; height: 120px; margin: 0 auto 20px; border-radius: 50%;
+  font-family: var(--schrift-titel); font-size: 3rem; color: #fff;
+}
+.person-bild img { width: 100%; height: 100%; object-fit: cover; }
+.farbe-1 { background: var(--gruen); }
+.farbe-2 { background: var(--gold-text); }
+.farbe-3 { background: #7a4b5c; }
+.person h3 { margin-bottom: 2px; font-family: var(--schrift-titel); font-size: 1.5rem; font-weight: 600; }
+.rolle { margin-bottom: 12px; font-size: 0.92rem; font-weight: 600; color: var(--gold-text); }
+.person p:last-child { margin: 0; color: var(--muted); }
+
+/* Bewertungen */
+.bewertungs-raster { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.bewertung { display: flex; flex-direction: column; margin: 0; padding: 28px; border: 1px solid var(--linie); border-radius: var(--radius); background: #fff; }
+.sterne { margin-bottom: 12px; color: #c08a2e; letter-spacing: 3px; }
+.bewertung blockquote { flex: 1; margin: 0 0 16px; font-family: var(--schrift-titel); font-size: 1.2rem; line-height: 1.5; color: var(--tanne); }
+.bewertung figcaption { font-weight: 600; color: var(--muted); }
+.hinweis-klein { margin: 24px 0 0; text-align: center; font-size: 0.85rem; color: var(--muted); }
+
+/* Öffnungszeiten & Anfahrt */
+.abschnitt-dunkel { background: var(--tanne); color: #f1ece3; }
+.abschnitt-dunkel h2, .abschnitt-dunkel h3 { color: #fff; }
+.abschnitt-dunkel .kicker { color: var(--gold-hell); }
+.zeiten-raster { display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(32px, 6vw, 88px); align-items: start; }
+.zeiten { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
+.zeiten th, .zeiten td { padding: 12px 0; border-bottom: 1px solid rgb(255 255 255 / 0.12); text-align: left; }
+.zeiten th { font-weight: 500; }
+.zeiten td { text-align: right; font-variant-numeric: tabular-nums; }
+.zeiten tr.heute th, .zeiten tr.heute td { color: var(--gold-hell); font-weight: 700; }
+.zeiten tr.heute th::after { content: " · heute"; font-size: 0.85em; font-weight: 500; }
+
+.anfahrt { padding: 32px; border: 1px solid rgb(255 255 255 / 0.14); border-radius: var(--radius); background: rgb(255 255 255 / 0.06); }
+.anfahrt address { margin-bottom: 20px; font-size: 1.15rem; font-style: normal; line-height: 1.6; }
+.anfahrt-infos { display: grid; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; color: #d6d0c4; }
+.anfahrt-infos li { display: flex; gap: 10px; }
+.anfahrt-infos li::before { content: "✓"; color: var(--gold-hell); font-weight: 700; }
+
+@media (max-width: 860px) {
+  .zeiten-raster { grid-template-columns: 1fr; }
+}
+
+/* Kontakt */
+.kontakt-box {
+  display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+  gap: clamp(28px, 5vw, 64px);
+  padding: clamp(32px, 6vw, 64px); border-radius: 24px; background: var(--sand);
+}
+.kontakt-box p:last-child { margin: 0; color: var(--muted); font-size: 1.1rem; }
+.kontakt-wege { display: grid; gap: 12px; }
+.kontakt-weg {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; border: 1px solid var(--linie); border-radius: var(--radius);
+  background: #fff; color: var(--text); text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.kontakt-weg:hover { border-color: var(--gold-text); transform: translateX(4px); }
+.kontakt-weg svg { flex: none; width: 44px; height: 44px; padding: 11px; border-radius: 50%; background: var(--tanne); color: var(--gold-hell); }
+.kontakt-weg strong { display: block; color: var(--tanne); }
+.kontakt-weg span { overflow-wrap: anywhere; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .kontakt-box { grid-template-columns: 1fr; }
+}
+
+/* ---------- Fußbereich ---------- */
+
+.fuss { padding: 48px 0 24px; background: var(--sand); font-size: 0.95rem; color: var(--muted); }
+.fuss-raster { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; }
+.fuss-logo { margin-bottom: 6px; font-family: var(--schrift-titel); font-size: 1.3rem; color: var(--tanne); }
+.fuss nav { display: flex; gap: 20px; }
+.fuss a { color: var(--muted); }
+.fuss a:hover { color: var(--tanne); }
+.fuss-copy { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--linie); font-size: 0.88rem; }
+
+/* ---------- Schnellkontakt (Smartphone) ---------- */
+
+.schnellkontakt { display: none; }
+@media (max-width: 700px) {
+  body { padding-bottom: 78px; }
+  .schnellkontakt {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--tanne); box-shadow: 0 -6px 20px rgb(0 0 0 / 0.15);
+  }
+  .schnellkontakt a {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px; border-radius: 999px;
+    background: #fff; color: var(--tanne);
+    font-weight: 700; text-decoration: none;
+  }
+  .schnellkontakt a + a { background: #25d366; color: #073b1d; }
+  .schnellkontakt svg { width: 18px; height: 18px; }
+}
+
+/* ---------- Rechtliche Seiten ---------- */
+
+.rechtliches { padding: 56px 0 96px; }
+.rechtliches .container { max-width: 760px; }
+.rechtliches h1 { font-size: clamp(1.8rem, 7vw, 3rem); }
+.rechtliches h2 { margin-top: 1.6em; font-family: var(--schrift); font-size: 1.25rem; font-weight: 700; }
+.platzhalter-hinweis { margin-bottom: 32px; padding: 16px 20px; border: 1px solid var(--gold-text); border-radius: 12px; background: #fff7e8; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn, .kontakt-weg { transition: none; }
+}

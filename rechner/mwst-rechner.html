@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mehrwertsteuer-Rechner: Netto ↔ Brutto mit 19 % und 7 % | Rechenhelfer</title>
+  <meta name="description" content="Mehrwertsteuer online berechnen: Netto in Brutto oder Brutto in Netto umrechnen – mit 19 %, 7 % oder eigenem Steuersatz. Kostenlos, sofort und mit Formel.">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 10h14M9 16h.01M16 16h.01M23 16h.01M9 22h.01M16 22h.01M23 22h.01' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="rechner.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Rechner springen</a>
+
+  <header class="kopf">
+    <div class="container kopf-inner">
+      <a class="logo" href="index.html">
+        <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 7h12M6 12h.01M12 12h.01M18 12h.01M6 17h.01M12 17h.01M18 17h.01"/></svg></span>
+        Rechenhelfer
+      </a>
+      <nav class="nav" aria-label="Rechner">
+        <a href="mwst-rechner.html" aria-current="page">MwSt<span class="nav-lang">-Rechner</span></a>
+        <a href="prozentrechner.html">Prozent<span class="nav-lang">rechner</span></a>
+        <a href="stromkosten-rechner.html">Strom<span class="nav-lang">kosten</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="inhalt" class="seite">
+    <div class="container">
+      <nav class="brotkrumen" aria-label="Brotkrümelnavigation">
+        <ol><li><a href="index.html">Startseite</a></li><li aria-current="page">Mehrwertsteuer-Rechner</li></ol>
+      </nav>
+
+      <header class="seiten-kopf">
+        <h1>Mehrwertsteuer-Rechner</h1>
+        <p>Rechne Netto in Brutto um – oder Brutto in Netto. Mit 19 %, 7 % oder deinem eigenen Steuersatz.</p>
+      </header>
+
+      <section class="rechner" aria-label="Mehrwertsteuer berechnen">
+        <form data-rechner="mwst" autocomplete="off" novalidate>
+          <div class="feld">
+            <label for="betrag">Betrag</label>
+            <div class="eingabe" data-einheit="€"><input id="betrag" name="betrag" type="text" inputmode="decimal" value="100"></div>
+          </div>
+
+          <fieldset class="feld">
+            <legend>Der Betrag ist …</legend>
+            <div class="segment">
+              <input type="radio" id="art-netto" name="art" value="netto" checked><label for="art-netto">Netto (ohne MwSt.)</label>
+              <input type="radio" id="art-brutto" name="art" value="brutto"><label for="art-brutto">Brutto (mit MwSt.)</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="feld">
+            <legend>Steuersatz</legend>
+            <div class="segment">
+              <input type="radio" id="satz-19" name="satz" value="19" checked><label for="satz-19">19 %</label>
+              <input type="radio" id="satz-7" name="satz" value="7"><label for="satz-7">7 %</label>
+              <input type="radio" id="satz-eigen" name="satz" value="eigen"><label for="satz-eigen">Eigener</label>
+            </div>
+            <div class="feld-eigen" hidden>
+              <label for="eigener-satz">Eigener Steuersatz</label>
+              <div class="eingabe" data-einheit="%"><input id="eigener-satz" name="eigenerSatz" type="text" inputmode="decimal" value="16"></div>
+            </div>
+          </fieldset>
+        </form>
+
+        <div class="ergebnis" aria-live="polite">
+          <h2>Ergebnis</h2>
+          <dl class="ergebnis-liste">
+            <div><dt>Nettobetrag</dt><dd data-aus="netto">100,00 €</dd></div>
+            <div><dt>Mehrwertsteuer (<span data-aus="satz">19</span> %)</dt><dd data-aus="steuer">19,00 €</dd></div>
+            <div class="ziel"><dt>Bruttobetrag</dt><dd data-aus="brutto">119,00 €</dd></div>
+          </dl>
+          <p class="fehler" data-aus="fehler" hidden></p>
+        </div>
+      </section>
+
+      <article class="inhalt">
+        <h2>So berechnest du die Mehrwertsteuer</h2>
+        <p>Für die Umrechnung brauchst du nur den Steuersatz. In Deutschland beträgt der reguläre Satz 19 %, der ermäßigte Satz 7 %.</p>
+        <p class="formel">Brutto = Netto × (1 + Steuersatz ÷ 100)<span>Beispiel mit 19 %: 100 € × 1,19 = 119 €</span></p>
+        <p class="formel">Netto = Brutto ÷ (1 + Steuersatz ÷ 100)<span>Beispiel mit 19 %: 119 € ÷ 1,19 = 100 €</span></p>
+        <p class="formel">Mehrwertsteuer = Brutto − Netto<span>Beispiel: 119 € − 100 € = 19 €</span></p>
+        <p class="tipp"><strong>Häufiger Fehler:</strong> Die im Bruttopreis enthaltene Mehrwertsteuer ist <em>nicht</em> Brutto × 0,19. Bei 119 € wären das 22,61 € – richtig sind 19 €. Rechne stattdessen Brutto ÷ 1,19 × 0,19.</p>
+
+        <h2>Wann gilt 19 % und wann 7 %?</h2>
+        <p>Der reguläre Steuersatz von 19 % gilt für die meisten Waren und Dienstleistungen. Der ermäßigte Satz von 7 % gilt zum Beispiel für viele Lebensmittel, Bücher und Zeitungen sowie für Bahnfahrkarten. Die genauen Regeln stehen im Umsatzsteuergesetz – im Zweifel hilft eine Steuerberatung.</p>
+        <p>Kleinunternehmer nach § 19 UStG weisen auf ihren Rechnungen keine Umsatzsteuer aus.</p>
+
+        <h2>Häufige Fragen</h2>
+        <div class="faq">
+          <details>
+            <summary>Wie rechne ich Brutto in Netto um?</summary>
+            <p>Teile den Bruttobetrag durch 1,19 (bei 19 %) oder durch 1,07 (bei 7 %). Aus 59,50 € brutto werden so 50,00 € netto.</p>
+          </details>
+          <details>
+            <summary>Wie viel Mehrwertsteuer steckt in 100 € brutto?</summary>
+            <p>Bei 19 % sind es 15,97 € (netto 84,03 €), bei 7 % sind es 6,54 € (netto 93,46 €).</p>
+          </details>
+          <details>
+            <summary>Ist Mehrwertsteuer das Gleiche wie Umsatzsteuer?</summary>
+            <p>Ja. Im Gesetz heißt sie Umsatzsteuer, im Alltag spricht man meist von Mehrwertsteuer. Gemeint ist dieselbe Steuer.</p>
+          </details>
+          <details>
+            <summary>Wie rundet der Rechner?</summary>
+            <p>Der Rechner rechnet cent-genau und rundet kaufmännisch auf zwei Nachkommastellen. So ergeben Netto und Mehrwertsteuer zusammen immer genau den Bruttobetrag.</p>
+          </details>
+        </div>
+
+        <h2 class="abschnitt-titel">Weitere Rechner</h2>
+        <div class="karten">
+          <a class="karte-link" href="prozentrechner.html">
+            <span class="karte-symbol" aria-hidden="true">%</span>
+            <h3>Prozentrechner</h3>
+            <p>Prozentwert, Prozentsatz, Grundwert und Veränderung – mit Rechenweg.</p>
+          </a>
+          <a class="karte-link" href="stromkosten-rechner.html">
+            <span class="karte-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M13 2 4 14h8l-1 8 9-12h-8l1-8z"/></svg></span>
+            <h3>Stromkosten-Rechner</h3>
+            <p>Was kostet dein Fernseher, PC oder Router im Jahr?</p>
+          </a>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="fuss">
+    <div class="container fuss-inner">
+      <p>© <span data-jahr>2026</span> Rechenhelfer · Alle Berechnungen ohne Gewähr</p>
+      <nav aria-label="Rechtliches">
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

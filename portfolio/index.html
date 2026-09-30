@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- ANPASSEN: Name, Titel und Beschreibung (erscheinen bei Google) -->
+  <title>Marlon – Webentwicklung &amp; Webdesign</title>
+  <meta name="description" content="Moderne, schnelle Websites für kleine Unternehmen, Selbstständige und Vereine. Von der Idee bis zum Livegang – persönlich, verständlich und zum fairen Preis.">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M8 23V9l8 9 8-9v14' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Gespeichertes Farbschema vor dem ersten Zeichnen setzen (verhindert Flackern)
+    document.documentElement.classList.add('js');
+    try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <script src="script.js" defer></script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+
+  <header class="kopf">
+    <div class="container kopf-inner">
+      <a class="logo" href="#top">Marlon<span>.</span></a>
+      <nav class="nav" id="nav" aria-label="Hauptnavigation">
+        <a href="#leistungen">Leistungen</a>
+        <a href="#projekte">Projekte</a>
+        <a href="#preise">Preise</a>
+        <a href="#ueber-mich">Über mich</a>
+        <a class="btn btn-klein" href="#kontakt">Kontakt</a>
+      </nav>
+      <div class="kopf-aktionen">
+        <button class="icon-btn theme-toggle" type="button" aria-label="Hell/Dunkel umschalten">
+          <svg class="mond" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="sonne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+        <button class="icon-btn menue-btn" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">
+          <svg class="icon-menue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <svg class="icon-schliessen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="inhalt">
+    <!-- ===== Startbereich ===== -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="kicker reveal">Webentwicklung &amp; Webdesign</p>
+        <h1 class="reveal">Websites, die <span class="verlauf">Kunden bringen</span> – nicht nur gut aussehen.</h1>
+        <p class="hero-text reveal">Ich entwickle moderne, schnelle Websites für kleine Unternehmen, Selbstständige und Vereine – persönlich, verständlich und zum fairen Preis. Von der Idee bis zum Livegang.</p>
+        <div class="button-reihe reveal">
+          <a class="btn" href="#kontakt">Projekt anfragen</a>
+          <a class="btn btn-sekundaer" href="#projekte">Projekte ansehen</a>
+        </div>
+        <ul class="hero-fakten reveal">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Optimiert für Smartphones</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Schnelle Ladezeiten</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Datensparsam, ohne unnötige Tracker</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== Leistungen ===== -->
+    <section id="leistungen" class="abschnitt">
+      <div class="container">
+        <div class="abschnitt-kopf reveal">
+          <p class="kicker">Leistungen</p>
+          <h2>Was ich für Sie umsetze</h2>
+          <p>Ob erste eigene Website oder Neustart für einen veralteten Auftritt: Sie bekommen eine Lösung, die zu Ihrem Betrieb passt.</p>
+        </div>
+        <div class="raster raster-4">
+          <article class="karte reveal">
+            <div class="karte-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg></div>
+            <h3>Websites für Betriebe</h3>
+            <p>Für Friseure, Handwerker, Restaurants und Praxen – mit Leistungen, Öffnungszeiten und Kontakt auf einen Blick.</p>
+          </article>
+          <article class="karte reveal">
+            <div class="karte-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+            <h3>Landingpages</h3>
+            <p>Eine Seite, ein Ziel: für Aktionen, Produkte oder Veranstaltungen – klar aufgebaut, damit Besucher handeln.</p>
+          </article>
+          <article class="karte reveal">
+            <div class="karte-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg></div>
+            <h3>Web-Tools &amp; Rechner</h3>
+            <p>Interaktive Rechner, Konfiguratoren und kleine Web-Apps, die Ihren Kunden echten Nutzen bieten.</p>
+          </article>
+          <article class="karte reveal">
+            <div class="karte-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></div>
+            <h3>Pflege &amp; Updates</h3>
+            <p>Neue Preise, Fotos oder Öffnungszeiten? Ich halte Ihre Website aktuell – Sie kümmern sich um Ihr Geschäft.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Projekte ===== -->
+    <section id="projekte" class="abschnitt abschnitt-soft">
+      <div class="container">
+        <div class="abschnitt-kopf reveal">
+          <p class="kicker">Projekte</p>
+          <h2>Ausgewählte Arbeiten</h2>
+          <p>Ein Einblick in meine Projekte – klicken Sie sich gerne durch die Live-Demos.</p>
+        </div>
+        <div class="raster raster-3">
+          <article class="projekt reveal">
+            <a class="projekt-vorschau vorschau-salon" href="../firmen-website/index.html" tabindex="-1" aria-hidden="true">
+              <div class="mockup">
+                <div class="mockup-leiste"><span></span><span></span><span></span></div>
+                <div class="mockup-inhalt">
+                  <div class="m-titel"></div>
+                  <div class="m-zeile"></div>
+                  <div class="m-zeile kurz"></div>
+                  <div class="m-knopf"></div>
+                  <div class="m-raster"><div></div><div></div><div></div></div>
+                </div>
+              </div>
+            </a>
+            <div class="projekt-text">
+              <h3>Website für einen Friseursalon</h3>
+              <p>Onepager mit Live-Öffnungsstatus, Preisliste, Team und Kontakt per Anruf oder WhatsApp – optimiert für Smartphones und die lokale Google-Suche.</p>
+              <ul class="tags"><li>HTML</li><li>CSS</li><li>JavaScript</li><li>Lokales SEO</li></ul>
+              <a class="link-pfeil" href="../firmen-website/index.html">Demo ansehen</a>
+            </div>
+          </article>
+          <article class="projekt reveal">
+            <a class="projekt-vorschau vorschau-rechner" href="../rechner/index.html" tabindex="-1" aria-hidden="true">
+              <div class="mockup">
+                <div class="mockup-leiste"><span></span><span></span><span></span></div>
+                <div class="mockup-inhalt">
+                  <div class="m-titel"></div>
+                  <div class="m-zeile kurz"></div>
+                  <div class="m-raster m-raster-2"><div></div><div></div></div>
+                  <div class="m-knopf"></div>
+                </div>
+              </div>
+            </a>
+            <div class="projekt-text">
+              <h3>Rechenhelfer – Online-Rechner</h3>
+              <p>Rechner-Portal mit Mehrwertsteuer-, Prozent- und Stromkostenrechner. Ergebnisse erscheinen sofort – mit Rechenweg und verständlichen Erklärungen.</p>
+              <ul class="tags"><li>JavaScript</li><li>UX</li><li>SEO</li></ul>
+              <a class="link-pfeil" href="../rechner/index.html">Rechner ausprobieren</a>
+            </div>
+          </article>
+          <article class="projekt reveal">
+            <div class="projekt-vorschau vorschau-portfolio" aria-hidden="true">
+              <div class="mockup">
+                <div class="mockup-leiste"><span></span><span></span><span></span></div>
+                <div class="mockup-inhalt">
+                  <div class="m-zeile kurz"></div>
+                  <div class="m-titel"></div>
+                  <div class="m-titel kurz"></div>
+                  <div class="m-knopf"></div>
+                </div>
+              </div>
+            </div>
+            <div class="projekt-text">
+              <h3>Dieses Portfolio</h3>
+              <p>Schlank, schnell und ohne Framework gebaut – mit Dark Mode, Tastaturbedienung und sauberem, leicht wartbarem Code.</p>
+              <ul class="tags"><li>HTML</li><li>CSS</li><li>JavaScript</li><li>Barrierefreiheit</li></ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Ablauf ===== -->
+    <section class="abschnitt">
+      <div class="container">
+        <div class="abschnitt-kopf reveal">
+          <p class="kicker">Ablauf</p>
+          <h2>In vier Schritten zur neuen Website</h2>
+          <p>Transparent und ohne Überraschungen – Sie wissen jederzeit, woran wir gerade arbeiten.</p>
+        </div>
+        <ol class="schritte">
+          <li class="reveal"><h3>Kostenloses Erstgespräch</h3><p>Wir sprechen über Ihre Ziele, Ihre Kunden und Ihr Budget – unverbindlich.</p></li>
+          <li class="reveal"><h3>Entwurf</h3><p>Sie erhalten einen ersten Entwurf und können Wünsche einbringen, bevor es an die Umsetzung geht.</p></li>
+          <li class="reveal"><h3>Umsetzung</h3><p>Ich baue Ihre Website, befülle sie mit Inhalten und teste sie auf allen Geräten.</p></li>
+          <li class="reveal"><h3>Livegang &amp; Betreuung</h3><p>Ihre Website geht online. Auf Wunsch kümmere ich mich auch danach um Änderungen.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ===== Preise ===== -->
+    <!-- ANPASSEN: Preise nach eigener Kalkulation festlegen -->
+    <section id="preise" class="abschnitt abschnitt-soft">
+      <div class="container">
+        <div class="abschnitt-kopf reveal">
+          <p class="kicker">Preise</p>
+          <h2>Faire Pakete, klare Preise</h2>
+          <p>Wählen Sie das Paket, das zu Ihnen passt – oder wir stellen gemeinsam ein individuelles Angebot zusammen.</p>
+        </div>
+        <div class="preise">
+          <article class="paket reveal">
+            <h3>Starter</h3>
+            <p class="paket-info">Ideal für den Einstieg</p>
+            <p class="paket-preis">ab 390 €</p>
+            <ul>
+              <li>Onepage-Website</li>
+              <li>Optimiert für Smartphones</li>
+              <li>Kontakt per Telefon, E-Mail &amp; WhatsApp</li>
+              <li>Öffnungszeiten &amp; Anfahrt</li>
+              <li>Grundlagen der Suchmaschinen&shy;optimierung</li>
+            </ul>
+            <a class="btn btn-sekundaer" href="#kontakt">Anfragen</a>
+          </article>
+          <article class="paket paket-hervorgehoben reveal">
+            <p class="paket-badge">Beliebt</p>
+            <h3>Business</h3>
+            <p class="paket-info">Für mehr Inhalte und Reichweite</p>
+            <p class="paket-preis">ab 890 €</p>
+            <ul>
+              <li>Bis zu 5 Unterseiten</li>
+              <li>Alles aus „Starter“</li>
+              <li>Bildergalerie &amp; Leistungsseiten</li>
+              <li>Einrichtung des Google-Unternehmensprofils</li>
+              <li>30 Tage Support nach dem Livegang</li>
+            </ul>
+            <a class="btn" href="#kontakt">Anfragen</a>
+          </article>
+          <article class="paket reveal">
+            <h3>Wartung</h3>
+            <p class="paket-info">Sorgenfrei online bleiben</p>
+            <p class="paket-preis">ab 29 € <small>/ Monat</small></p>
+            <ul>
+              <li>Kleine Änderungen inklusive</li>
+              <li>Hosting &amp; Domain-Verwaltung</li>
+              <li>Regelmäßige Kontrolle der Website</li>
+              <li>Schnelle Hilfe bei Fragen</li>
+            </ul>
+            <a class="btn btn-sekundaer" href="#kontakt">Anfragen</a>
+          </article>
+        </div>
+        <p class="hinweis">Alle Preise sind Richtwerte. Nach dem Erstgespräch erhalten Sie ein verbindliches Angebot.</p>
+      </div>
+    </section>
+
+    <!-- ===== Über mich ===== -->
+    <!-- ANPASSEN: Eigener Text; statt des Buchstabens ein Foto einsetzen: <img class="avatar" src="ich.jpg" alt="Porträt von Marlon"> -->
+    <section id="ueber-mich" class="abschnitt">
+      <div class="container ueber-raster">
+        <div class="avatar reveal" aria-hidden="true">M</div>
+        <div class="reveal">
+          <p class="kicker">Über mich</p>
+          <h2>Hallo, ich bin Marlon!</h2>
+          <p>Ich entwickle Websites mit HTML, CSS und JavaScript – schlank, schnell und ohne unnötigen Ballast. Mir ist wichtig, dass Ihre Website nicht nur gut aussieht, sondern Ihnen auch neue Kunden bringt.</p>
+          <p>Bei mir haben Sie einen festen Ansprechpartner, bekommen verständliche Erklärungen statt Fachchinesisch und wissen immer, wie es um Ihr Projekt steht.</p>
+          <ul class="skills">
+            <li>HTML5</li><li>CSS3</li><li>JavaScript</li><li>Responsive Design</li><li>SEO-Grundlagen</li><li>Barrierefreiheit</li><li>Git &amp; GitHub</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Kontakt ===== -->
+    <!-- ANPASSEN: Eigene E-Mail-Adresse im mailto-Link unten eintragen -->
+    <section id="kontakt" class="abschnitt abschnitt-kontakt">
+      <div class="container">
+        <div class="kontakt-box reveal">
+          <h2>Bereit für Ihre neue Website?</h2>
+          <p>Schreiben Sie mir kurz, worum es geht – ich melde mich zeitnah mit einer ersten Einschätzung. Das Erstgespräch ist kostenlos und unverbindlich.</p>
+          <div class="button-reihe">
+            <a class="btn btn-hell" href="mailto:hallo@example.com?subject=Anfrage%20Website">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              E-Mail schreiben
+            </a>
+            <a class="btn btn-rand" href="https://github.com/marlon174" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/></svg>
+              Code auf GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="fuss">
+    <div class="container fuss-inner">
+      <p>© <span data-jahr>2026</span> Marlon · Webentwicklung</p>
+      <nav aria-label="Rechtliches">
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
