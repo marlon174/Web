@@ -31,7 +31,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Missiles.** With a silo, press `F` (rocket) or `G` (nuke) and click any target. The blast turns land neutral, destroys buildings and kills troops; bombed ground stays poisoned for 30 seconds. Right-click or `Esc` cancels.
 - **Win.** Quick match: most land after 5 minutes. Classic: hold 70% of the land.
 
-Controls: drag to pan, scroll or pinch to zoom, `C` or the target button to find your capital, `Space` to pause.
+Controls: drag to pan, scroll or pinch to zoom, `C` or the target button to find your capital, `X` or the speed button to run the match at 1×, 2× or 3×, `Space` to pause.
 
 Settings (gear button, in the menu and in a match): UI size from 60% to 140%, and switches to hide the leaderboard, event feed, minimap and key hints. They are kept in this browser.
 

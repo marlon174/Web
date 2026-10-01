@@ -66,6 +66,7 @@ export class Hud {
   private readonly overlayActions = byId('overlay-actions');
   readonly pauseButton = byId<HTMLButtonElement>('pause-button');
   readonly centerButton = byId<HTMLButtonElement>('center-button');
+  readonly speedButton = byId<HTMLButtonElement>('speed-button');
   private toastTimer = 0;
 
   constructor() {
@@ -312,6 +313,13 @@ export class Hud {
 
   hideOverlay(): void {
     this.overlay.hidden = true;
+  }
+
+  /** Shows the game speed on its button; anything above 1× stands out. */
+  set speed(value: number) {
+    this.speedButton.textContent = `${value}×`;
+    this.speedButton.setAttribute('aria-label', `Spieltempo: ${value}-fach`);
+    this.speedButton.classList.toggle('fast', value > 1);
   }
 
   get overlayOpen(): boolean {

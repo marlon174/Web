@@ -172,6 +172,19 @@ input {
   border-color: var(--ink-soft);
 }
 
+.speed-button {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-button.fast {
+  background: var(--signal);
+  border-color: var(--signal-hi);
+  color: var(--on-signal);
+}
+
 .icon-button svg {
   width: 16px;
   height: 16px;

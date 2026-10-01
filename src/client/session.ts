@@ -10,6 +10,8 @@ import { uiScale } from './settings';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
 const TICK_MS = 1000 / CONFIG.ticksPerSecond;
+/** Game speeds the speed button cycles through. */
+const SPEEDS = [1, 2, 3];
 const NO_INSET: Inset = { left: 0, top: 0, right: 0, bottom: 0 };
 const FLIGHT_MS = 500;
 
@@ -43,6 +45,7 @@ export class Session implements InputTarget {
   private last = 0;
   private backlog = 0;
   private paused = false;
+  private speed = 1;
   private hoverTile = -1;
   /** Cursor position (CSS pixels) for the info card, or null when off the map. */
   private tipAt: { x: number; y: number } | null = null;
@@ -78,6 +81,8 @@ export class Session implements InputTarget {
       options.play.hud.setBanner('Klick auf eine beliebige Stelle an Land, um dort zu starten.');
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
       options.play.hud.centerButton.addEventListener('click', this.onCenterButton);
+      options.play.hud.speedButton.addEventListener('click', this.onSpeedButton);
+      options.play.hud.speed = 1;
       window.addEventListener('keydown', this.onKey);
     }
     // Handy in the dev console and for browser tests; stripped from production builds.
@@ -97,6 +102,7 @@ export class Session implements InputTarget {
     window.removeEventListener('keydown', this.onKey);
     this.options.play?.hud.pauseButton.removeEventListener('click', this.onPauseButton);
     this.options.play?.hud.centerButton.removeEventListener('click', this.onCenterButton);
+    this.options.play?.hud.speedButton.removeEventListener('click', this.onSpeedButton);
     this.options.play?.hud.minimap.removeEventListener('pointerdown', this.onMinimap);
     this.options.play?.hud.minimap.removeEventListener('pointermove', this.onMinimap);
     this.options.play?.hud.showTip(null);
@@ -116,14 +122,15 @@ export class Session implements InputTarget {
     this.last = now;
 
     if (this.options.play && !this.paused && this.game.phase !== 'over') {
-      this.backlog += dt;
+      this.backlog += dt * this.speed;
+      const maxSteps = 4 * this.speed;
       let steps = 0;
-      while (this.backlog >= TICK_MS && steps < 4) {
+      while (this.backlog >= TICK_MS && steps < maxSteps) {
         this.game.step();
         this.backlog -= TICK_MS;
         steps++;
       }
-      if (steps === 4) this.backlog = 0;
+      if (steps === maxSteps) this.backlog = 0;
     }
 
     this.renderer.applyChanges(this.game.drainChanges());
@@ -456,6 +463,8 @@ export class Session implements InputTarget {
     if (/^[0-9]$/.test(e.key)) {
       hud.percent = e.key === '0' ? 100 : Number(e.key) * 10;
       e.preventDefault();
+    } else if (e.key === 'x' || e.key === 'X') {
+      this.cycleSpeed();
     } else if (e.key === 'c' || e.key === 'C') {
       this.flyToCapital(2.5);
     } else if (e.key === '+' || e.key === '=') {
@@ -547,6 +556,15 @@ export class Session implements InputTarget {
   }
 
   // Pausing and match results
+
+  private onSpeedButton = (): void => this.cycleSpeed();
+
+  private cycleSpeed(): void {
+    const hud = this.options.play?.hud;
+    if (!hud || this.ended) return;
+    this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length];
+    hud.speed = this.speed;
+  }
 
   private togglePause(): void {
     const play = this.options.play;

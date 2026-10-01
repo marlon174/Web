@@ -95,6 +95,7 @@
               <li>Klick auf freies Land, um dich dorthin auszubreiten. Klick auf das Land eines Nachbarn, um ihn anzugreifen. Je mehr Truppen du im Vergleich zu ihm schickst, desto schneller rückst du vor (⚡ am Angriff).</li>
               <li>Der Regler <strong>Senden</strong> legt fest, wie viele deiner Truppen jeder Klick losschickt. Ein Klick auf einen laufenden Angriff unten ruft die Truppen zurück.</li>
               <li>Fahr mit der Maus über ein Gebiet, um Truppen und Angriffskosten zu sehen. Die Übersichtskarte unten rechts bringt dich per Klick überall hin.</li>
+              <li>Mit dem Knopf <strong>1×</strong> oben rechts (oder <kbd>X</kbd>) läuft das Spiel 2- oder 3-mal so schnell.</li>
               <li>Truppen wachsen am schnellsten, wenn du weit unter deiner Obergrenze bist. Also gib sie aus.</li>
               <li>Jeder hat eine Hauptstadt, markiert mit einem Stern. Verlierst du deine, verlierst du die Hälfte deiner Truppen.</li>
               <li>Schneidest du feindliches Land von seiner Hauptstadt ab oder umschließt freies Land, gehört es dir.</li>
@@ -146,6 +147,7 @@
                 <path d="M8 0.8v3M8 12.2v3M0.8 8h3M12.2 8h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
               </svg>
             </button>
+            <button type="button" class="icon-button speed-button" id="speed-button" aria-label="Spieltempo: 1-fach" title="Spieltempo (X)">1×</button>
             <button type="button" class="icon-button" id="pause-button" aria-label="Pause" title="Pause (Leertaste)">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
@@ -174,7 +176,7 @@
 
         <canvas id="minimap" class="panel minimap" aria-label="Übersichtskarte"></canvas>
         <div class="tip" id="tip" hidden></div>
-        <p class="keys">Q–H Werkzeuge · 1–0 Truppen · C Hauptstadt · Leertaste Pause</p>
+        <p class="keys">Q–H Werkzeuge · 1–0 Truppen · C Hauptstadt · X Tempo · Leertaste Pause</p>
         <div class="toast" id="toast" role="alert" hidden></div>
       </div>
 
