@@ -84,6 +84,11 @@
             </div>
           </form>
 
+          <button type="button" class="button ghost settings-link" data-open-settings>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6.9 1h2.2l.4 1.9c.5.2.9.4 1.3.7l1.8-.6 1.1 1.9-1.4 1.3c.1.5.1 1.1 0 1.6l1.4 1.3-1.1 1.9-1.8-.6c-.4.3-.8.5-1.3.7L9.1 15H6.9l-.4-1.9c-.5-.2-.9-.4-1.3-.7l-1.8.6-1.1-1.9 1.4-1.3a4 4 0 0 1 0-1.6L2.3 6.9l1.1-1.9 1.8.6c.4-.3.8-.5 1.3-.7zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>
+            Einstellungen
+          </button>
+
           <details class="howto">
             <summary>So wird gespielt</summary>
             <ul>
@@ -147,6 +152,9 @@
                 <rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
               </svg>
             </button>
+            <button type="button" class="icon-button" id="settings-button" data-open-settings aria-label="Einstellungen" title="Einstellungen">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6.9 1h2.2l.4 1.9c.5.2.9.4 1.3.7l1.8-.6 1.1 1.9-1.4 1.3c.1.5.1 1.1 0 1.6l1.4 1.3-1.1 1.9-1.8-.6c-.4.3-.8.5-1.3.7L9.1 15H6.9l-.4-1.9c-.5-.2-.9-.4-1.3-.7l-1.8.6-1.1-1.9 1.4-1.3a4 4 0 0 1 0-1.6L2.3 6.9l1.1-1.9 1.8.6c.4-.3.8-.5 1.3-.7zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>
+            </button>
           </div>
           <section class="panel board" aria-label="Rangliste">
             <h2 class="panel-title">Landbesitz</h2>
@@ -177,6 +185,37 @@
           <p class="overlay-text" id="overlay-text"></p>
           <dl class="overlay-stats" id="overlay-stats"></dl>
           <div class="overlay-actions" id="overlay-actions"></div>
+        </div>
+      </section>
+
+      <section id="settings" class="overlay settings" hidden>
+        <div class="overlay-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+          <h2 id="settings-title">Einstellungen</h2>
+
+          <div class="field">
+            <label for="ui-scale">UI-Größe <output id="ui-scale-out" for="ui-scale">100 %</output></label>
+            <input type="range" id="ui-scale" min="60" max="140" step="5" value="100" />
+            <div class="presets">
+              <button type="button" class="button ghost" id="ui-small">Klein</button>
+              <button type="button" class="button ghost" id="ui-normal">Normal</button>
+              <button type="button" class="button ghost" id="ui-large">Groß</button>
+            </div>
+          </div>
+
+          <fieldset class="field">
+            <legend>Anzeigen</legend>
+            <div class="checks">
+              <label class="check"><input type="checkbox" id="set-board" /> Rangliste</label>
+              <label class="check"><input type="checkbox" id="set-feed" /> Ereignisse</label>
+              <label class="check"><input type="checkbox" id="set-minimap" /> Übersichtskarte</label>
+              <label class="check"><input type="checkbox" id="set-keys" /> Tastenkürzel</label>
+            </div>
+          </fieldset>
+
+          <div class="overlay-actions">
+            <button type="button" class="button ghost" id="settings-reset">Zurücksetzen</button>
+            <button type="button" class="button primary" id="settings-done">Fertig</button>
+          </div>
         </div>
       </section>
     </div>

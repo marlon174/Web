@@ -6,6 +6,7 @@ import { fromHex, SWATCHES, toHex } from './colors';
 import { byId, Hud } from './hud';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
 import { Session } from './session';
+import { SettingsPanel } from './settings';
 
 function randomSeed(): number {
   return 10000 + Math.floor(Math.random() * 90000);
@@ -31,6 +32,7 @@ export class App {
   private color: number;
 
   constructor() {
+    new SettingsPanel();
     const prefs = loadPrefs();
     this.color = prefs.color;
     this.initMenu(prefs);

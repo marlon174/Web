@@ -3,9 +3,10 @@ import { NEUTRAL, type BuildingKind, type Game, type GameEvent, type Player } fr
 import { Terrain } from '../core/map';
 import { Camera, type Inset } from './camera';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
-import type { Hud } from './hud';
+import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
+import { uiScale } from './settings';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
 const TICK_MS = 1000 / CONFIG.ticksPerSecond;
@@ -394,13 +395,14 @@ export class Session implements InputTarget {
   private drawMinimap(): void {
     const mini = this.options.play?.hud.minimap;
     if (!mini || mini.offsetWidth === 0) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    // Drawn at the size it appears on screen, so a scaled-up UI stays sharp.
+    const dpr = Math.min(3, (window.devicePixelRatio || 1) * uiScale());
     const w = Math.round(mini.clientWidth * dpr);
     const h = Math.round((w * this.game.height) / this.game.width);
     if (mini.width !== w || mini.height !== h) {
       mini.width = w;
       mini.height = h;
-      mini.style.height = `${h / dpr}px`;
+      mini.style.height = `${(mini.clientWidth * this.game.height) / this.game.width}px`;
     }
     const ctx = mini.getContext('2d')!;
     ctx.imageSmoothingEnabled = true;
@@ -431,7 +433,7 @@ export class Session implements InputTarget {
 
   private onKey = (e: KeyboardEvent): void => {
     const hud = this.options.play?.hud;
-    if (!hud || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!hud || e.ctrlKey || e.metaKey || e.altKey || !byId('settings').hidden) return;
     if (e.target instanceof HTMLInputElement && e.target.type !== 'range') return;
     const w = this.canvas.width;
     const h = this.canvas.height;

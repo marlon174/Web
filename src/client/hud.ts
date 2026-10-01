@@ -1,6 +1,7 @@
 import { CONFIG } from '../core/config';
 import { NEUTRAL, type Game, type Player } from '../core/game';
 import { toHex } from './colors';
+import { uiScale } from './settings';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import { iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -257,7 +258,7 @@ export class Hud {
       }),
     );
     this.tip.hidden = false;
-    const w = this.tip.offsetWidth;
+    const w = this.tip.offsetWidth * uiScale();
     const flip = x + 18 + w > window.innerWidth - 8;
     this.tip.style.left = `${flip ? x - 14 - w : x + 18}px`;
     this.tip.style.top = `${y + 14}px`;

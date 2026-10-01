@@ -33,6 +33,8 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 
 Controls: drag to pan, scroll or pinch to zoom, `C` or the target button to find your capital, `Space` to pause.
 
+Settings (gear button, in the menu and in a match): UI size from 60% to 140%, and switches to hide the leaderboard, event feed, minimap and key hints. They are kept in this browser.
+
 ## Project layout
 
 ```
