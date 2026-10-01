@@ -7,30 +7,22 @@ import { formatTroops } from './format';
 import { LabelLayout } from './labels';
 import { ICONS, isMissile, type ToolKind } from './tools';
 
-/** Land colour by height (0–1): meadow, dry grass, hills, rock, snow. */
-const RAMP: [number, number][] = [
-  [0, 0xc9dba0],
-  [0.45, 0xdcd4a2],
-  [0.7, 0xcbb68e],
-  [0.87, 0xa39687],
-  [0.95, 0xd9d6cf],
-  [1, 0xf4f2ee],
-];
+/**
+ * Land colours by terrain, so what you see is what slows you down: green
+ * plains, olive-brown hills, grey rock mountains with snow on the peaks.
+ * Each entry is [low colour, high colour] across that terrain's heights.
+ */
+const PLAINS: [number, number] = [0x9fc272, 0xc8d891];
+const HILLS: [number, number] = [0xc1ad74, 0x9c8458];
+const ROCK: [number, number] = [0x948b7f, 0x6f685f];
+const SNOW = 0xf3f2ee;
+/** How much of the ground shows through territory colour, by terrain. */
+const GROUND_SHOW = [0, 0.26, 0.4, 0.58];
 const SAND = 0xeadba9;
 const SHALLOW = 0x4b9fc1;
 /** Tiles from shore at which the sea reaches full depth. */
 const DEEP = 16;
 
-function ramp(h: number): number {
-  for (let k = 1; k < RAMP.length; k++) {
-    const [h1, c1] = RAMP[k];
-    if (h <= h1) {
-      const [h0, c0] = RAMP[k - 1];
-      return mix(c0, c1, (h - h0) / (h1 - h0));
-    }
-  }
-  return RAMP[RAMP.length - 1][1];
-}
 export const OPEN_SEA = 0x173d57;
 /** Bombed land, while the fallout lasts. */
 const SCORCHED = 0x4a4636;
@@ -247,7 +239,8 @@ export class Renderer {
       (x < w - 1 && owner[i + 1] !== o) ||
       (i >= w && owner[i - w] !== o) ||
       (i + w < size && owner[i + w] !== o);
-    this.pixels[i] = edge ? this.borders[o] : this.lit(mix(this.playerRgb[o], this.ground[i], 0.3), this.light[i]);
+    const show = GROUND_SHOW[this.game.map.terrain[i]];
+    this.pixels[i] = edge ? this.borders[o] : this.lit(mix(this.playerRgb[o], this.ground[i], show), this.light[i]);
   }
 
   /** A colour brightened or darkened by hill shading, as a pixel. */
@@ -305,18 +298,31 @@ export class Renderer {
       }
       const x = i % w;
       const h = relief[i] / 255;
-      let color = ramp(h);
+      const kind = terrain[i];
+      let color: number;
+      if (kind === Terrain.Plains) color = mix(PLAINS[0], PLAINS[1], Math.min(1, h / 0.64));
+      else if (kind === Terrain.Highlands) color = mix(HILLS[0], HILLS[1], Math.min(1, Math.max(0, (h - 0.64) / 0.24)));
+      else {
+        const t = Math.min(1, Math.max(0, (h - 0.88) / 0.12));
+        color = t > 0.6 ? mix(ROCK[1], SNOW, Math.min(1, (t - 0.6) / 0.25)) : mix(ROCK[0], ROCK[1], t / 0.6);
+      }
       const shore = depth[i] === 0 && (
         (x > 0 && terrain[i - 1] === Terrain.Water) ||
         (x < w - 1 && terrain[i + 1] === Terrain.Water) ||
         (i >= w && terrain[i - w] === Terrain.Water) ||
         (i + w < size && terrain[i + w] === Terrain.Water));
-      if (shore && h < 0.55) color = SAND;
+      if (shore && kind === Terrain.Plains) color = SAND;
+      // A dark rim where the ground steps up into hills or mountains, so ranges read at a glance.
+      const lower = (n: number) => n >= 0 && n < size && terrain[n] !== Terrain.Water && terrain[n] < kind;
+      if (kind !== Terrain.Plains && (lower(x > 0 ? i - 1 : -1) || lower(x < w - 1 ? i + 1 : -1) || lower(i - w) || lower(i + w))) {
+        color = shade(color, kind === Terrain.Mountains ? -0.3 : -0.14);
+      }
       // Slope towards the light (up and to the left) is bright, away from it dark.
       const at = (n: number) => (n >= 0 && n < size && terrain[n] !== Terrain.Water ? relief[n] : relief[i] * 0.6);
       const gx = at(x < w - 1 ? i + 1 : i) - at(x > 0 ? i - 1 : i);
       const gy = at(i + w) - at(i - w);
-      const k = Math.max(0.72, Math.min(1.28, 1 + (gx + gy) * 0.018)) * grain;
+      const relief3d = kind === Terrain.Mountains ? 0.04 : kind === Terrain.Highlands ? 0.026 : 0.014;
+      const k = Math.max(0.62, Math.min(1.35, 1 + (gx + gy) * relief3d)) * grain;
       this.ground[i] = color;
       this.light[i] = k;
       base[i] = this.lit(color, k);

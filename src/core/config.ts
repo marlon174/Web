@@ -27,19 +27,17 @@ export const CONFIG = {
   defenseFactor: 2,
   /** Share of troops a player loses along with their capital. */
   capitalPenalty: 0.5,
-  /** Cost multiplier per terrain: water, plains, highlands, mountains. */
-  terrainCost: [0, 1, 1.2, 1.5],
-  /** On top of that, the higher the ground (0–1), the dearer: up to this many × more at the peaks. */
-  heightCost: 1.5,
-  /** Base ticks for a front to cross one tile of each terrain (height adds more, below). */
-  terrainDelay: [0, 2, 2, 2],
-  /** Extra ticks per tile from height: none on low meadows (below `flatUpTo`), up to this many at the peaks. */
-  heightDelay: 10,
-  flatUpTo: 90,
+  /**
+   * Cost multiplier per terrain: water, plains, hills, mountains. Each tile is
+   * judged on its own, so only the part of a front that is climbing slows down.
+   */
+  terrainCost: [0, 1, 1.6, 2.8],
+  /** Base ticks for a front to cross one tile of each terrain. */
+  terrainDelay: [0, 2, 4, 9],
   /** Extra ticks per tile when the tile belongs to another player. */
   enemyDelay: 2,
   /** Speed multiplier for all fronts (1.1 = 10% faster than the delays above). */
-  troopSpeed: 1.1,
+  troopSpeed: 1.21,
   /** Random extra ticks per tile, so fronts grow unevenly. */
   delayJitter: 2,
 

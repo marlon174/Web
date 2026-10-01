@@ -22,10 +22,10 @@ export interface GameMap {
 export type MapSize = 'small' | 'medium' | 'large' | 'huge';
 
 export const MAP_DIMENSIONS: Record<MapSize, { width: number; height: number }> = {
-  small: { width: 480, height: 300 },
-  medium: { width: 800, height: 500 },
-  large: { width: 1200, height: 750 },
-  huge: { width: 1600, height: 1000 },
+  small: { width: 552, height: 345 },
+  medium: { width: 920, height: 575 },
+  large: { width: 1380, height: 862 },
+  huge: { width: 1840, height: 1150 },
 };
 
 const LAND_SHARE = 0.56;

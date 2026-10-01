@@ -10,7 +10,7 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Troops | Each tick: `troops × interest × (1 − troops/cap) + tiles × landIncome`. Cap = `tiles × 100`. Above the cap, troops slowly desert. | `grow()` in `game.ts` |
 | Expanding | Clicking empty land sends a share of your troops into all neutral land along your border. Each tile costs `2 × terrain` troops. | `launch()`, `advance()` |
 | Attacking | Same, into one neighbour. Each tile costs `(2 + 2 × their troops per tile) × terrain`; they lose one tile's worth of troops. Two players attacking each other clash first and cancel out. | `launch()`, `tileCost()` |
-| Terrain | Low meadows are fast. Above that, every tile's height adds delay (up to +10 ticks per tile at the peaks) and cost (up to 2.5× at the peaks), so mountains are natural fortresses. | `enqueue()`, `tileCost()` |
+| Terrain | Per tile by terrain class: plains 2 ticks / 1×, hills 4 ticks / 1.6×, mountains 9 ticks / 2.8×, all divided by `troopSpeed` (1.21). Tiles an attack can't afford are skipped, not fatal. Maps colour terrain by class (green, brown, grey rock with snow) with a dark rim where ground steps up. | `enqueue()`, `tileCost()` |
 | Fronts | Each attack keeps a priority queue of target tiles keyed by the tick they fall. Terrain slows it, tiles surrounded on more sides fall sooner, and a little seeded randomness keeps fronts organic. | `enqueue()`, `heap.ts` |
 | Capitals | Losing yours halves your troops; a new one is chosen near the middle of your land. | `loseCapital()` |
 | Encirclement | Every second, land cut off by exactly one player changes hands: enemy fragments without their capital, and small neutral pockets. | `sweepEnclosures()` |
@@ -40,7 +40,7 @@ The client (`src/client`) draws the map as one pixel per tile on an offscreen ca
 
 ## Performance
 
-Map sizes: 480×300, 800×500, 1200×750 and 1600×1000 tiles, with 3–100 bots. On 1200×750 with 60 bots a tick averages about 2 ms (10 ticks a second); occasional ticks reach 30–80 ms when the encirclement sweep runs, which is scheduled less often on bigger maps. Moving the simulation into a Web Worker would remove those hitches.
+Map sizes: 552×345, 920×575, 1380×862 and 1840×1150 tiles, with 3–100 bots. On 1200×750 with 60 bots a tick averages about 2 ms (10 ticks a second); occasional ticks reach 30–80 ms when the encirclement sweep runs, which is scheduled less often on bigger maps. Moving the simulation into a Web Worker would remove those hitches.
 
 ## Balance check
 

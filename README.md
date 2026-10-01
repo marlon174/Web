@@ -1,6 +1,6 @@
 # Landgrab
 
-A territory-conquest strategy game for the browser (German interface), in the spirit of territorial.io and frontwars.io. You start on a few tiles of a generated continent (up to 1600×1000 tiles, with up to 100 bots), grow troops and push your borders until the map is yours.
+A territory-conquest strategy game for the browser (German interface), in the spirit of territorial.io and frontwars.io. You start on a few tiles of a generated continent (up to 1840×1150 tiles, with up to 100 bots), grow troops and push your borders until the map is yours.
 
 ## Run it
 
@@ -18,12 +18,12 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Expand.** Click empty land to push into it along your whole border.
 - **Attack.** Click a neighbour's land. Attacking costs more than it costs them to defend, so pick on thin defences.
 - **Send.** The slider (or keys `1`–`0`) sets what share of your troops each click commits. Click one of your attacks under the map to call it off; the survivors come home.
-- **Scout.** Hover over land to see who holds it, their troops and what a tile would cost you. The minimap (bottom right) jumps anywhere on click.
+- **Scout.** Hover over (or tap) land to see who holds it, their troops and what a tile would cost you. The minimap (bottom right) jumps anywhere on click.
 - **Grow.** Troops grow fastest when you are well below your cap, and the cap rises with your land. Sitting at the cap wastes growth.
 - **Capitals.** The star in a ring is a capital. Losing yours costs half your troops, and a new one is picked inside your land.
 - **Encircle.** Enemy land cut off from its capital by you alone becomes yours, and so do small pockets of empty land inside your territory.
 - **Gold and buildings.** Land earns gold. Press `Q` for a city (+20% troop cap), `R` for a bunker (land within 12 tiles costs attackers 3.5×, falls much slower, and you lose half as many troops there; an enemy who overruns it destroys it), `T` for a missile silo, then click your land.
-- **Height.** The higher the ground, the slower and dearer it is to take. Low meadows are quick; mountain peaks are fortresses.
+- **Terrain.** Green plains are quick, brown hills slow, grey mountains (with snow on the peaks) very slow and dear. Each tile counts on its own: only the part of a front that is climbing slows down, and a tile the attack can't afford is skipped rather than ending the attack.
 - **Prices and limits.** Each building of a kind you already own adds a fixed amount to the next one's price, up to a cap. How many you can build grows with your land (for cities: 2 plus 1 per 2,500 tiles). Cities add +20% troop cap each, up to +100%. Silos reload for 10 seconds after each launch.
 - **Factories and trains (`W`).** A factory lays rail to your cities and ports within 60 tiles. Every minute a train runs the line; each city or port it passes pays 10K gold.
 - **Ports and boats (`E`).** Build a port on the coast, then click land across the water: troops sail over and land. Islands can only be reached this way.

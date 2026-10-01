@@ -971,7 +971,7 @@ fieldset:disabled .segmented label {
   margin-top: 4px;
 }
 
-@media (max-width: 1100px), (pointer: coarse) {
+@media (max-width: 960px) {
   .minimap {
     display: none;
   }

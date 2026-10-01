@@ -315,7 +315,9 @@ describe('prices', () => {
 
 describe('factories and trains', () => {
   it('runs a train through your cities and pays gold at each', () => {
-    const game = start(duel(60, 12), [10, 5], [55, 5]);
+    // Water at x = 40 keeps A under the 70% that would win outright.
+    const moat = Array.from({ length: 12 }, (_, y): [number, number] => [40, y]);
+    const game = start(duel(60, 12, moat), [10, 5], [55, 5]);
     const a = game.player(1);
     game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
     run(game, 200);

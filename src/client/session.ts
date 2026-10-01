@@ -45,6 +45,7 @@ export class Session implements InputTarget {
   private hoverTile = -1;
   /** Cursor position (CSS pixels) for the info card, or null when off the map. */
   private tipAt: { x: number; y: number } | null = null;
+  private tipTimer = 0;
   private sinceLabels = Infinity;
   private sinceHud = Infinity;
   private defeatShown = false;
@@ -89,6 +90,7 @@ export class Session implements InputTarget {
 
   dispose(): void {
     cancelAnimationFrame(this.raf);
+    window.clearTimeout(this.tipTimer);
     this.resizeObserver.disconnect();
     this.input?.dispose();
     window.removeEventListener('keydown', this.onKey);
@@ -299,6 +301,10 @@ export class Session implements InputTarget {
   // Input
 
   tap(sx: number, sy: number): void {
+    // On touch screens there is no hover: show the info card for a few seconds where you tapped.
+    this.hover(sx, sy);
+    window.clearTimeout(this.tipTimer);
+    this.tipTimer = window.setTimeout(() => this.leave(), 3000);
     const { game, me } = this;
     const hud = this.options.play?.hud;
     if (!me || !hud || this.paused || hud.overlayOpen) return;
@@ -366,8 +372,8 @@ export class Session implements InputTarget {
       return;
     }
     const o = game.owner[t];
-    const height = game.map.relief[t] / 255;
-    const ground = height > 0.87 ? 'Gebirge' : height > 0.7 ? 'Hügel' : 'Flachland';
+    const kind = game.map.terrain[t];
+    const ground = kind === Terrain.Mountains ? 'Gebirge (sehr langsam)' : kind === Terrain.Highlands ? 'Hügel (langsam)' : 'Flachland';
     const lines: string[] = [];
     if (o === NEUTRAL) {
       lines.push('Freies Land', ground);

@@ -739,12 +739,8 @@ export class Game {
 
   private enqueue(a: Attack, tile: number): void {
     if (this.owner[tile] !== a.target || this.terrain[tile] === Terrain.Water) return;
-    // Higher ground is slower going: up to `heightDelay` extra ticks per tile at the peaks.
-    const height = this.map.relief[tile];
-    let delay =
-      CONFIG.terrainDelay[this.terrain[tile]] +
-      Math.floor((Math.max(0, height - CONFIG.flatUpTo) * CONFIG.heightDelay) / (255 - CONFIG.flatUpTo)) +
-      this.rng.int(CONFIG.delayJitter + 1);
+    // Hills and mountains are slow going; this tile's own ground decides, not the front's.
+    let delay = CONFIG.terrainDelay[this.terrain[tile]] + this.rng.int(CONFIG.delayJitter + 1);
     if (a.target !== NEUTRAL) delay += CONFIG.enemyDelay;
     if (this.defended(tile, a.target)) delay += CONFIG.defenseDelay;
     // Tiles already surrounded on several sides fall sooner, which keeps fronts smooth.
@@ -773,7 +769,6 @@ export class Game {
   private tileCost(tile: number, target: number): number {
     const terrainCost =
       CONFIG.terrainCost[this.terrain[tile]] *
-      (1 + (this.map.relief[tile] * CONFIG.heightCost) / 255) *
       (this.fallout[tile] > this.tick ? CONFIG.falloutCostFactor : 1);
     if (target === NEUTRAL) return CONFIG.neutralCost * terrainCost;
     const d = this.player(target);
@@ -1088,8 +1083,12 @@ export class Game {
       if (owner[t] !== a.target || this.ownedNeighbors(t, a.attacker) === 0) continue;
       const cost = this.tileCost(t, a.target);
       if (a.troops < cost) {
-        this.finish(a);
-        return;
+        // Too dear for what's left (a peak, a bunker): leave that tile and keep pushing elsewhere.
+        if (a.troops < CONFIG.neutralCost) {
+          this.finish(a);
+          return;
+        }
+        continue;
       }
       a.troops -= cost;
       // The troops stationed on the tile die with it; a bunker shelters half of them.
