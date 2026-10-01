@@ -139,6 +139,7 @@ export type GameEvent =
   | { type: 'landed'; owner: number; tile: number; target: number }
   | { type: 'repelled'; owner: number; tile: number; target: number }
   | { type: 'alliance'; from: number; to: number; accepted: boolean }
+  | { type: 'allianceOffer'; from: number; to: number }
   | { type: 'allianceEnded'; a: number; b: number; brokenBy: number }
   | { type: 'gameOver'; winner: number };
 
@@ -200,8 +201,8 @@ export class Game {
   /** Alliance expiry tick, and cool-down end tick, keyed by "low:high" player ids. */
   private readonly alliances = new Map<string, number>();
   private readonly cooldowns = new Map<string, number>();
-  /** Human-to-human alliance offers waiting for an answer: "from:to". */
-  private readonly offers = new Set<string>();
+  /** Alliance offers to humans waiting for an answer, "from:to", with the tick they lapse. */
+  private readonly offers = new Map<string, number>();
   private pending: Intent[] = [];
   private changed: number[] = [];
   private events: GameEvent[] = [];
@@ -925,17 +926,20 @@ export class Game {
       return;
     }
     let accepted: boolean;
-    if (q.bot) {
+    if (this.offers.has(`${target}:${p.id}`)) {
+      // Answering an open offer seals it.
+      accepted = true;
+      this.offers.delete(`${target}:${p.id}`);
+    } else if (q.bot) {
       // Bots side with players who aren't much smaller than they are, most of the time.
       accepted = q.tiles <= p.tiles * 2 && this.rng.next() < 0.75;
     } else {
-      // Between humans both have to ask.
-      accepted = this.offers.has(`${target}:${p.id}`);
-      if (!accepted) {
-        this.offers.add(`${p.id}:${target}`);
-        return;
+      // Humans answer for themselves: leave them an offer.
+      if (!this.offers.has(`${p.id}:${target}`)) {
+        this.offers.set(`${p.id}:${target}`, this.tick + CONFIG.allianceOfferTicks);
+        this.events.push({ type: 'allianceOffer', from: p.id, to: target });
       }
-      this.offers.delete(`${target}:${p.id}`);
+      return;
     }
     if (!accepted) {
       this.cooldowns.set(key, this.tick + CONFIG.allianceCooldown);
@@ -957,7 +961,24 @@ export class Game {
     this.events.push({ type: 'allianceEnded', a, b, brokenBy });
   }
 
+  /** Whether `from` has an open alliance offer out to `to`. */
+  hasOffer(from: number, to: number): boolean {
+    return this.offers.has(`${from}:${to}`);
+  }
+
+  /** Tick an open offer from `from` to `to` lapses, or 0 if there is none. */
+  offerLapses(from: number, to: number): number {
+    return this.offers.get(`${from}:${to}`) ?? 0;
+  }
+
   private updateAlliances(): void {
+    for (const [key, lapses] of this.offers) {
+      if (lapses > this.tick) continue;
+      // Left unanswered: treat it as a no, so the same player doesn't ask again straight away.
+      this.offers.delete(key);
+      const [a, b] = key.split(':').map(Number);
+      this.cooldowns.set(this.pairKey(a, b), this.tick + CONFIG.allianceCooldown);
+    }
     for (const [key, ends] of this.alliances) {
       const [a, b] = key.split(':').map(Number);
       if (ends <= this.tick || !this.player(a).alive || !this.player(b).alive) this.endAlliance(a, b, NEUTRAL);

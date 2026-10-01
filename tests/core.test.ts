@@ -399,6 +399,25 @@ describe('alliances', () => {
     expect(events).toContainEqual({ type: 'allianceEnded', a: 1, b: bot.id, brokenBy: 1 });
     expect(game.allied(1, bot.id)).toBe(false);
   });
+
+  it('lets a human accept an offer from a bot, which lapses if ignored', () => {
+    const game = withBot();
+    const bot = game.players[1];
+    game.queue({ type: 'ally', player: bot.id, target: 1 });
+    expect(run(game, 1)).toContainEqual({ type: 'allianceOffer', from: bot.id, to: 1 });
+    expect(game.allied(1, bot.id)).toBe(false);
+    game.queue({ type: 'ally', player: 1, target: bot.id });
+    expect(run(game, 1)).toContainEqual({ type: 'alliance', from: 1, to: bot.id, accepted: true });
+    expect(game.allied(1, bot.id)).toBe(true);
+
+    const other = withBot();
+    other.queue({ type: 'ally', player: 2, target: 1 });
+    run(other, CONFIG.allianceOfferTicks + 1);
+    expect(other.hasOffer(2, 1)).toBe(false);
+    // Too late: answering now counts as a fresh request, and the bot is still cooling off.
+    other.queue({ type: 'ally', player: 1, target: 2 });
+    expect(run(other, 1)).toContainEqual({ type: 'alliance', from: 1, to: 2, accepted: false });
+  });
 });
 
 describe('bunkers', () => {

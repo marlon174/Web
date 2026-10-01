@@ -1127,6 +1127,41 @@ fieldset:disabled .segmented label {
   color: var(--signal-hi);
 }
 
+/* Alliance offer card under the clock */
+.offer {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-color: var(--signal-hi);
+  text-align: center;
+}
+
+.offer-text {
+  margin: 0;
+  font-weight: 600;
+}
+
+.offer-text .chip {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.offer-text strong {
+  font-weight: 800;
+}
+
+.offer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.offer-actions .button.primary {
+  font-size: 18px;
+  padding: 8px 18px;
+}
+
 /* Land chart on the results screen */
 
 .overlay-extra:empty {

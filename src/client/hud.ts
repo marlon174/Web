@@ -73,8 +73,16 @@ export class Hud {
   readonly centerButton = byId<HTMLButtonElement>('center-button');
   readonly speedButton = byId<HTMLButtonElement>('speed-button');
   private toastTimer = 0;
+  private readonly offerEl = byId('offer');
+  private readonly offerText = byId('offer-text');
+  /** Player whose alliance offer is on screen, or 0. */
+  offerFrom = 0;
+  /** Called with true (accept) or false (decline) when the offer card is answered. */
+  onOffer: (from: number, accept: boolean) => void = () => {};
 
   constructor() {
+    byId('offer-accept').addEventListener('click', () => this.answerOffer(true));
+    byId('offer-decline').addEventListener('click', () => this.answerOffer(false));
     // The chips are rebuilt several times a second, so act on press, not click.
     this.fronts.addEventListener('pointerdown', (e) => {
       const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-target]');
@@ -101,6 +109,7 @@ export class Hud {
     this.meName.textContent = me.name;
     this.feed.replaceChildren();
     this.fronts.replaceChildren();
+    this.hideOffer();
     this.hideOverlay();
   }
 
@@ -316,6 +325,30 @@ export class Hud {
     this.overlayActions.replaceChildren(...buttons);
     this.overlay.hidden = false;
     buttons.find((_, i) => content.actions[i].primary)?.focus();
+  }
+
+  /** A card under the clock: another player offers you an alliance. */
+  showOffer(from: Player, seconds: number): void {
+    this.offerFrom = from.id;
+    this.offerText.replaceChildren();
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.style.setProperty('--c', toHex(from.color));
+    const name = document.createElement('strong');
+    name.textContent = from.name;
+    this.offerText.append(chip, name, ` bietet dir ein Bündnis an (${seconds} s)`);
+    this.offerEl.hidden = false;
+  }
+
+  hideOffer(): void {
+    this.offerFrom = 0;
+    this.offerEl.hidden = true;
+  }
+
+  private answerOffer(accept: boolean): void {
+    const from = this.offerFrom;
+    this.hideOffer();
+    if (from) this.onOffer(from, accept);
   }
 
   hideOverlay(): void {

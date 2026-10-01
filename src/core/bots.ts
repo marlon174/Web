@@ -26,6 +26,8 @@ export interface BotBrain {
   missiles: 0 | 1 | 2;
   /** Chance per decision to fire when a missile is ready. */
   missileChance: number;
+  /** Chance per decision to break off an alliance with a much weaker neighbour. */
+  betrayal: number;
 }
 
 type Range = readonly [number, number];
@@ -39,12 +41,13 @@ interface Profile {
   aggression: number;
   missiles: 0 | 1 | 2;
   missileChance: number;
+  betrayal: number;
 }
 
 const PROFILES: Record<Difficulty, Profile> = {
-  easy: { every: 25, expandAt: [0.1, 0.2], expandSend: [300, 500], attackAt: [0.85, 0.97], attackSend: [200, 350], aggression: 0.25, missiles: 0, missileChance: 0 },
-  normal: { every: 12, expandAt: [0.03, 0.08], expandSend: [500, 750], attackAt: [0.6, 0.85], attackSend: [300, 500], aggression: 0.45, missiles: 1, missileChance: 0.03 },
-  hard: { every: 6, expandAt: [0.01, 0.04], expandSend: [700, 900], attackAt: [0.45, 0.7], attackSend: [400, 650], aggression: 0.7, missiles: 2, missileChance: 0.04 },
+  easy: { every: 25, expandAt: [0.1, 0.2], expandSend: [300, 500], attackAt: [0.85, 0.97], attackSend: [200, 350], aggression: 0.25, missiles: 0, missileChance: 0, betrayal: 0 },
+  normal: { every: 12, expandAt: [0.03, 0.08], expandSend: [500, 750], attackAt: [0.6, 0.85], attackSend: [300, 500], aggression: 0.45, missiles: 1, missileChance: 0.03, betrayal: 0.005 },
+  hard: { every: 6, expandAt: [0.01, 0.04], expandSend: [700, 900], attackAt: [0.45, 0.7], attackSend: [400, 650], aggression: 0.7, missiles: 2, missileChance: 0.04, betrayal: 0.01 },
 };
 
 export function createBrain(rng: Rng, difficulty: Difficulty, index: number): BotBrain {
@@ -62,6 +65,7 @@ export function createBrain(rng: Rng, difficulty: Difficulty, index: number): Bo
     opportunist: difficulty !== 'easy',
     missiles: p.missiles,
     missileChance: p.missileChance,
+    betrayal: p.betrayal,
   };
 }
 
@@ -74,6 +78,8 @@ export function botThink(game: Game, p: Player, rng: Rng): Intent[] {
   if (!brain) return [];
   const out: Intent[] = [];
   const survey = surveyBorder(game, p);
+  const talk = diplomacy(game, p, brain, rng, survey);
+  if (talk) out.push(talk);
   const spend = spendGold(game, p, brain, rng, survey.shared);
   if (spend) out.push(spend);
   const move = sendTroops(game, p, brain, rng, survey);
@@ -108,6 +114,34 @@ function surveyBorder(game: Game, p: Player): Survey {
     if (t + width < size) look(t + width);
   }
   return { neutral, shared };
+}
+
+/**
+ * Alliances: under attack, a bot looks for a friend among its other
+ * neighbours; now and then it offers one anyway. And an ally who has grown
+ * weak next door may get stabbed in the back.
+ */
+function diplomacy(game: Game, p: Player, brain: BotBrain, rng: Rng, survey: Survey): Intent | null {
+  // Betrayal: a much weaker ally on our border is a tempting target.
+  for (const q of game.players) {
+    if (!q.alive || q.id === p.id || !game.allied(p.id, q.id)) continue;
+    if (q.troops * 3 < p.troops && game.sharesBorder(p, q.id) && rng.next() < brain.betrayal) {
+      return { type: 'breakAlly', player: p.id, target: q.id };
+    }
+  }
+  if (survey.shared.size < 2) return null;
+  // One friend at a time, and the leader needs none.
+  if (game.players.some((q) => q.id !== p.id && game.allied(p.id, q.id))) return null;
+  if (!game.players.some((q) => q.alive && q.id !== p.id && q.tiles > p.tiles)) return null;
+  const attackers = new Set(game.attacks.filter((a) => a.target === p.id).map((a) => a.attacker));
+  if (rng.next() > (attackers.size > 0 ? 0.15 : 0.01)) return null;
+  // A neighbour that isn't attacking us, not much bigger or smaller than we are.
+  const candidates = [...survey.shared.keys()].filter((id) => {
+    const q = game.player(id);
+    return !attackers.has(id) && q.tiles * 3 > p.tiles && q.tiles < p.tiles * 3 && !game.hasOffer(p.id, id);
+  });
+  if (candidates.length === 0) return null;
+  return { type: 'ally', player: p.id, target: candidates[rng.int(candidates.length)] };
 }
 
 /** Cities as land grows, a defence post when attacked, then a silo and missiles at the leader. */

@@ -27,7 +27,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Prices and limits.** Each building of a kind you already own adds a fixed amount to the next one's price, up to a cap. How many you can build grows with your land (for cities: 2 plus 1 per 2,500 tiles). Cities add +20% troop cap each, up to +100%. Silos reload for 10 seconds after each launch.
 - **Factories and trains (`W`).** A factory lays rail to your cities and ports within 60 tiles. Every minute a train runs the line; each city or port it passes pays 10K gold.
 - **Ports and boats (`E`).** Build a port on the coast, then click land across the water: troops sail over and land. Islands can only be reached this way.
-- **Alliances (`H`).** Click another player's land to offer a 3-minute alliance; allies can't attack or bomb each other. Use it on an ally to end it early.
+- **Alliances (`H`).** Click another player's land to offer a 3-minute alliance; allies can't attack or bomb each other. Use it on an ally to end it early. Bots also offer you alliances (accept within 20 seconds), ally with each other, and sometimes betray an ally who has grown weak.
 - **Missiles.** With a silo, press `F` (rocket) or `G` (nuke) and click any target. With 3 silos, `B` fires a hydrogen bomb (radius 30, 35K gold). The blast turns land neutral, destroys buildings and kills troops; bombed ground stays poisoned for 30 seconds. Right-click or `Esc` cancels.
 - **Win.** Quick match: most land after 5 minutes. Classic: hold 70% of the land.
 

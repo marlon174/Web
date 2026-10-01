@@ -87,6 +87,11 @@ export class Session implements InputTarget {
         this.game.queue({ type: 'recall', player: this.me.id, target });
         options.play?.hud.toast('Truppen zurückgerufen.');
       };
+      options.play.hud.onOffer = (from, accept) => {
+        if (!this.me || this.replay) return;
+        if (accept) this.game.queue({ type: 'ally', player: this.me.id, target: from });
+        else options.play?.hud.toast(`Du hast ${this.game.player(from).name} abgewiesen.`);
+      };
       options.play.hud.minimap.addEventListener('pointerdown', this.onMinimap);
       options.play.hud.minimap.addEventListener('pointermove', this.onMinimap);
       options.play.hud.show(this.me);
@@ -171,6 +176,7 @@ export class Session implements InputTarget {
       this.sinceHud = 0;
       this.options.play.hud.update(this.game, this.me);
       this.options.play.hud.updateTools(this.game, this.me, this.tool);
+      this.updateOffer();
       this.drawMinimap();
       this.updateTip();
     }
@@ -579,6 +585,15 @@ export class Session implements InputTarget {
 
   // Pausing and match results
 
+  /** Keeps the alliance offer card's countdown current, and removes it once the offer is gone. */
+  private updateOffer(): void {
+    const hud = this.options.play?.hud;
+    if (!hud || !this.me || !hud.offerFrom) return;
+    const lapses = this.game.offerLapses(hud.offerFrom, this.me.id);
+    if (lapses <= this.game.tick || !this.game.player(hud.offerFrom).alive) hud.hideOffer();
+    else hud.showOffer(this.game.player(hud.offerFrom), Math.ceil((lapses - this.game.tick) / CONFIG.ticksPerSecond));
+  }
+
   /** Queues the recorded intents due on the coming tick. */
   private feedReplay(): void {
     const log = this.replay;
@@ -680,6 +695,11 @@ export class Session implements InputTarget {
       } else if (e.type === 'alliance') {
         if (e.from === me.id) hud.post(e.accepted ? `${name(e.to)} ist jetzt dein Verbündeter (3 Minuten).` : `${name(e.to)} lehnt ein Bündnis ab. Versuch es später nochmal.`, e.accepted ? 'good' : 'info');
         else if (e.to === me.id && e.accepted) hud.post(`${name(e.from)} ist jetzt dein Verbündeter.`, 'good');
+      } else if (e.type === 'allianceOffer') {
+        if (e.to === me.id && !this.replay) {
+          hud.showOffer(this.game.player(e.from), Math.round(CONFIG.allianceOfferTicks / CONFIG.ticksPerSecond));
+          sound.play('alliance');
+        }
       } else if (e.type === 'allianceEnded') {
         const other = e.a === me.id ? e.b : e.b === me.id ? e.a : NEUTRAL;
         if (other !== NEUTRAL) {

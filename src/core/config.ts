@@ -134,4 +134,6 @@ export const CONFIG = {
   allianceTicks: 1800,
   /** After an alliance ends or is refused, ticks before the same bot will talk again. */
   allianceCooldown: 600,
+  /** Ticks an alliance offer to a human stays open. */
+  allianceOfferTicks: 200,
 } as const;
