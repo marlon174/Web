@@ -2,6 +2,7 @@ import { CONFIG } from '../core/config';
 import { NEUTRAL, type Game, type Player } from '../core/game';
 import { toHex } from './colors';
 import { uiScale } from './settings';
+import { sound } from './sound';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import { iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -266,6 +267,7 @@ export class Hud {
   }
 
   post(text: string, tone: Tone): void {
+    if (tone !== 'info') sound.play(tone);
     const li = document.createElement('li');
     li.className = tone;
     li.textContent = text;

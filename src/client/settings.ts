@@ -1,9 +1,12 @@
 import { byId } from './hud';
+import { sound } from './sound';
 
 /** Display choices, remembered in this browser. They never touch the simulation. */
 export interface Settings {
   /** Size of every panel and button, as a factor of the default. */
   uiScale: number;
+  /** Sound volume, 0 (off) to 1. */
+  volume: number;
   showBoard: boolean;
   showFeed: boolean;
   showMinimap: boolean;
@@ -16,6 +19,7 @@ export const UI_SCALE_MAX = 1.4;
 
 const DEFAULTS: Settings = {
   uiScale: 1,
+  volume: 0.5,
   showBoard: true,
   showFeed: true,
   showMinimap: true,
@@ -39,6 +43,7 @@ export function loadSettings(): Settings {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>;
     const settings = { ...DEFAULTS };
     if (typeof saved.uiScale === 'number' && Number.isFinite(saved.uiScale)) settings.uiScale = clampScale(saved.uiScale);
+    if (typeof saved.volume === 'number' && Number.isFinite(saved.volume)) settings.volume = Math.min(1, Math.max(0, saved.volume));
     for (const [, key] of TOGGLES) if (typeof saved[key] === 'boolean') settings[key] = saved[key];
     return settings;
   } catch {
@@ -66,6 +71,7 @@ const CRAMPED_WIDTH = 1000;
 function apply(settings: Settings): void {
   const root = document.documentElement;
   root.style.setProperty('--ui', String(settings.uiScale));
+  sound.setVolume(settings.volume);
   root.classList.toggle('ui-cramped', window.innerWidth / settings.uiScale < CRAMPED_WIDTH);
   for (const [, key, hideClass] of TOGGLES) root.classList.toggle(hideClass, !settings[key]);
 }
@@ -75,6 +81,8 @@ export class SettingsPanel {
   private readonly root = byId('settings');
   private readonly scale = byId<HTMLInputElement>('ui-scale');
   private readonly scaleOut = byId<HTMLOutputElement>('ui-scale-out');
+  private readonly volume = byId<HTMLInputElement>('volume');
+  private readonly volumeOut = byId<HTMLOutputElement>('volume-out');
   private settings = loadSettings();
   private returnFocus: HTMLElement | null = null;
 
@@ -84,6 +92,9 @@ export class SettingsPanel {
     window.addEventListener('resize', () => apply(this.settings));
 
     this.scale.addEventListener('input', () => this.update({ uiScale: Number(this.scale.value) / 100 }));
+    this.volume.addEventListener('input', () => this.update({ volume: Number(this.volume.value) / 100 }));
+    // A sample at the new level once the slider is let go.
+    this.volume.addEventListener('change', () => sound.play('good'));
     for (const [id, key] of TOGGLES) {
       byId<HTMLInputElement>(id).addEventListener('change', (e) => this.update({ [key]: (e.target as HTMLInputElement).checked }));
     }
@@ -135,6 +146,9 @@ export class SettingsPanel {
     const percent = Math.round(this.settings.uiScale * 100);
     this.scale.value = String(percent);
     this.scaleOut.textContent = `${percent} %`;
+    const volume = Math.round(this.settings.volume * 100);
+    this.volume.value = String(volume);
+    this.volumeOut.textContent = volume === 0 ? 'Aus' : `${volume} %`;
     for (const [id, key] of TOGGLES) byId<HTMLInputElement>(id).checked = this.settings[key];
     for (const [id, value] of [['ui-small', 0.8], ['ui-normal', 1], ['ui-large', 1.2]] as const) {
       byId(id).setAttribute('aria-pressed', String(Math.abs(this.settings.uiScale - value) < 0.01));

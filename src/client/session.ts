@@ -7,6 +7,7 @@ import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
+import { sound } from './sound';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
 const TICK_MS = 1000 / CONFIG.ticksPerSecond;
@@ -275,7 +276,10 @@ export class Session implements InputTarget {
       if (this.game.allied(me.id, target)) this.game.queue({ type: 'breakAlly', player: me.id, target });
       else this.game.queue({ type: 'ally', player: me.id, target });
     } else if (isMissile(kind)) this.game.queue({ type: 'launch', player: me.id, tile, kind });
-    else this.game.queue({ type: 'build', player: me.id, tile, kind });
+    else {
+      this.game.queue({ type: 'build', player: me.id, tile, kind });
+      sound.play('build');
+    }
     this.cancel();
   }
 
@@ -300,6 +304,7 @@ export class Session implements InputTarget {
       return;
     }
     this.game.queue({ type: 'boat', player: me.id, tile, permille: hud.percent * 10 });
+    sound.play('click');
   }
 
   private canSpawnAt(tile: number): boolean {
@@ -325,6 +330,7 @@ export class Session implements InputTarget {
       else {
         game.queue({ type: 'spawn', player: me.id, tile });
         hud.setBanner('');
+        sound.play('build');
       }
       return;
     }
@@ -353,6 +359,7 @@ export class Session implements InputTarget {
       return;
     }
     game.queue({ type: 'attack', player: me.id, target, permille: hud.percent * 10 });
+    sound.play('click');
   }
 
   hover(sx: number, sy: number): void {
@@ -621,7 +628,10 @@ export class Session implements InputTarget {
         if (e.by === me.id) hud.post(`Du hast einen Bunker von ${name(e.from)} zerstört.`, 'good');
         else if (e.from === me.id) hud.post(`${name(e.by)} hat einen deiner Bunker zerstört.`, 'bad');
       } else if (e.type === 'trainStop') {
-        if (e.owner === me.id) this.renderer.floatText(e.tile, `+${formatTroops(e.gold)}`);
+        if (e.owner === me.id) {
+          this.renderer.floatText(e.tile, `+${formatTroops(e.gold)}`);
+          sound.play('train', 0.5);
+        }
       } else if (e.type === 'landed') {
         if (e.owner === me.id) hud.post(e.target === NEUTRAL ? 'Deine Truppen sind gelandet.' : `Deine Truppen sind bei ${name(e.target)} gelandet.`, 'good');
         else if (e.target === me.id) hud.post(`${name(e.owner)} ist an deiner Küste gelandet!`, 'bad');
@@ -638,6 +648,13 @@ export class Session implements InputTarget {
           else if (e.brokenBy === other) hud.post(`${name(other)} hat das Bündnis gebrochen!`, 'bad');
           else hud.post(`Das Bündnis mit ${name(other)} ist abgelaufen.`, 'info');
         }
+      } else if (e.type === 'launched') {
+        const m = e.missile;
+        sound.play('launch', m.owner === me.id ? 1 : m.victim === me.id ? 0.7 : 0.15);
+      } else if (e.type === 'impact') {
+        const m = e.missile;
+        const mine = m.owner === me.id || e.losses.some((l) => l.player === me.id);
+        sound.play(m.kind === 'rocket' ? 'boom' : 'bigBoom', mine ? 1 : 0.25);
       } else if (e.type === 'gameOver') {
         this.showResult(e.winner);
       }
@@ -661,6 +678,7 @@ export class Session implements InputTarget {
   private showDefeat(by: number): void {
     const play = this.options.play!;
     this.defeatShown = true;
+    sound.play('lose');
     play.hud.showOverlay({
       eyebrow: 'Niederlage',
       title: 'Ausgeschieden',
@@ -684,6 +702,7 @@ export class Session implements InputTarget {
     const lastStanding = this.game.players.filter((p) => p.alive).length === 1;
     this.ended = true;
     play.hud.setBanner('');
+    if (me.alive) sound.play(winnerId === me.id ? 'win' : 'lose');
 
     let eyebrow: string;
     let title: string;
