@@ -26,6 +26,8 @@ export interface OverlayContent {
   text: string;
   stats: [string, string][];
   actions: OverlayAction[];
+  /** Extra content under the stats, such as the land chart. */
+  extra?: HTMLElement | null;
 }
 
 const BOARD_ROWS = 8;
@@ -65,6 +67,7 @@ export class Hud {
   private readonly overlayText = byId('overlay-text');
   private readonly overlayStats = byId('overlay-stats');
   private readonly overlayActions = byId('overlay-actions');
+  private readonly overlayExtra = byId('overlay-extra');
   readonly pauseButton = byId<HTMLButtonElement>('pause-button');
   readonly centerButton = byId<HTMLButtonElement>('center-button');
   readonly speedButton = byId<HTMLButtonElement>('speed-button');
@@ -300,6 +303,7 @@ export class Hud {
       }),
     );
     this.overlayStats.hidden = content.stats.length === 0;
+    this.overlayExtra.replaceChildren(...(content.extra ? [content.extra] : []));
     const buttons = content.actions.map((action) => {
       const button = document.createElement('button');
       button.type = 'button';

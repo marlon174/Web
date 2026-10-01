@@ -2,6 +2,7 @@ import { CONFIG } from '../core/config';
 import { NEUTRAL, type BuildingKind, type Game, type GameEvent, type Player } from '../core/game';
 import { Terrain } from '../core/map';
 import { Camera, type Inset } from './camera';
+import { chartData, LandHistory, landChart } from './chart';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
@@ -60,6 +61,7 @@ export class Session implements InputTarget {
   private flight: Flight | null = null;
   /** Build or missile tool in hand, waiting for a click on the map. */
   private tool: ToolKind | null = null;
+  private readonly history = new LandHistory();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -132,6 +134,7 @@ export class Session implements InputTarget {
         steps++;
       }
       if (steps === maxSteps) this.backlog = 0;
+      if (steps > 0) this.history.record(this.game);
     }
 
     this.renderer.applyChanges(this.game.drainChanges());
@@ -675,6 +678,12 @@ export class Session implements InputTarget {
     ];
   }
 
+  /** The land-over-time chart for the results screen, once there is enough history. */
+  private chart(): HTMLElement | null {
+    const data = chartData(this.game, this.history, this.me?.id ?? null);
+    return data ? landChart(data) : null;
+  }
+
   private showDefeat(by: number): void {
     const play = this.options.play!;
     this.defeatShown = true;
@@ -684,6 +693,7 @@ export class Session implements InputTarget {
       title: 'Ausgeschieden',
       text: `${this.game.player(by).name} hat nach ${this.matchTime()} dein letztes Feld erobert.`,
       stats: this.stats(),
+      extra: this.chart(),
       actions: [
         { label: 'Nochmal spielen', primary: true, run: () => play.hooks.playAgain() },
         { label: 'Weiter zuschauen', run: () => play.hud.hideOverlay() },
@@ -723,6 +733,7 @@ export class Session implements InputTarget {
       title,
       text,
       stats: this.stats(),
+      extra: this.chart(),
       actions: [
         { label: 'Nochmal spielen', primary: true, run: () => play.hooks.playAgain() },
         { label: 'Menü', run: () => play.hooks.menu() },
