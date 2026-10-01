@@ -21,7 +21,12 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Prices and limits | `cost + step × owned`, capped at `max` per kind. Each player may build 2 of a kind plus one per N tiles of land (cities 2,500, bunkers 1,500, ports 4,000, silos 6,000, factories 8,000). Cities add +20% troop cap each, +100% at most. Each city or port pays a train at most once a minute. Silos reload for 10 s after each launch. | `buildCost()`, `buildLimit()` |
 | Trains | A factory's rail runs to up to 6 of its owner's cities and ports within 60 tiles, nearest-neighbour order. One train per factory per minute; +10K gold per city/port passed. | `railRoute()`, `updateTrains()` |
 | Boats | Ports sit on the coast. A boat's route is a breadth-first search over water from the beach back to one of your ports; on arrival the troops take the beach and attack inland from it. Max 3 at sea. The map keeps islands (80+ tiles); bots always start on the continent. | `planBoat()`, `land()` |
-| Alliances | Offer with the alliance tool; bots accept 75% of the time if you're at least half their size. 3 minutes; attacks, missiles and landings between allies are blocked. | `proposeAlliance()` |
+| Alliances | Offer with the alliance tool; bots accept 75% of the time if you're at least half their size. 3 minutes; attacks, missiles and landings between allies are blocked. Bots under attack offer alliances to other neighbours (offers to humans lapse after 20 s), hold one ally at most, and may betray a much weaker ally next door. | `proposeAlliance()`, `diplomacy()` |
+| Hydrogen bomb | Third missile: radius 30, 35K gold, needs 3 silos. | `canLaunch()` |
+| Warships | Bought at a port by clicking water (6K, one per port, four at most); sail there by water search and patrol. Every 10 ticks they hit the nearest enemy ship or sink a boat within 7 tiles; every 25 ticks they shell the nearest enemy land tile no bunker covers (it turns neutral and stays cratered). | `orderWarship()`, `updateWarships()` |
+| Battle royale | After 60 s the sea takes 92% of the land over 8 minutes, outside in along a noise-roughened front; land due within 20 s is marked. The game floods its own copy of the map. | `planFlood()`, `updateFlood()` |
+| Teams | 2 or 4 teams, dealt round-robin, each in shades of one hue; teammates are allied for good, spawn near each other and can donate troops and gold. A team wins with 70% between them. | `teammates()`, `donate()`, `checkTeamEnd()` |
+| Real maps | World, Europe, Germany: Natural Earth coastlines as run-length masks, mountains along traced real ranges. Every continent is starting land; 50% wins. | `realmaps.ts`, `scripts/build-maps.ts` |
 | Bots | Expand while there is empty land; once nearly full, attack the neighbour with the thinnest defences. Difficulty sets reaction time and thresholds. | `bots.ts` |
 
 All numbers live in `src/core/config.ts` and `bots.ts`. `npm run sim` replays a bots-only match in the terminal to check pacing after a change.
@@ -59,23 +64,19 @@ Neutral land runs out after 60 to 120 seconds; classic matches last 7 to 15 minu
 | Phase | Goal | Status |
 |---|---|---|
 | 1. Single-player MVP | Map, spawning, troop growth, attacks, bots, rendering, send slider | **Done**, plus capitals, quick match and the colour picker |
-| 2. Multiplayer | Lobby server, lockstep tick relay, desync checks via `hash()`, reconnection | Next |
-| 3. Frontwars layer | Gold, cities, defence posts, silos, rockets, nukes, factories with trains, ports with boats, alliances **done**. Still to come: real-world maps | Mostly done |
-| 4. Polish | Minimap, sound, replays from `game.log`, tutorial match | Planned |
+| 2. Multiplayer | Lobby server, lockstep tick relay, desync checks via `hash()`, reconnection | Next (needs hosting) |
+| 3. Frontwars layer | Gold, cities, defence posts, silos, rockets, nukes, hydrogen bombs, factories with trains, ports with boats, warships, alliances and bot diplomacy, real-world maps | **Done** |
+| 4. Polish | Minimap, settings (UI size, panels, volume), game speed, sound, replays from `game.log`, results chart, fog of war, battle royale, teams, daily challenge **done**. Still to come: tutorial match | Mostly done |
 
 ## Idea backlog
 
-Done: capital tile, quick match, colour picker.
+Done: capital tile, quick match, colour picker, daily challenge (local best time), replays, teams, fog of war, battle royale.
 
 Still open, roughly in order of cost:
 
 - **Emotes**: a few fixed icons instead of chat, nothing to moderate.
-- **Daily challenge**: same seed and bots for everyone, leaderboard for the fastest win. Seeds already drive everything.
 - **Replay sharing**: a link that replays a whole match from its intent log.
 - **Tutorial bot match**: two guided minutes on expanding, attacking and holding troops back.
-- **Truce button**: a short no-attack pact with a neighbour; breaking it early costs troops.
-- **Teams (2v2, 4v4)**: shared borders, sending troops to allies.
 - **Map events**: gold rush (cheaper land), storms (no boats).
 - **Rebellions**: huge empires occasionally lose a border region to neutral.
-- **Fog of war**: optional mode where you only see near your borders.
-- **Battle royale**: the playable map shrinks over time.
+- **Daily leaderboard**: needs a server, like multiplayer.
