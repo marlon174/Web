@@ -1,5 +1,5 @@
 import { CONFIG } from '../core/config';
-import { NEUTRAL, type BuildingKind, type Game, type GameEvent, type Player } from '../core/game';
+import { NEUTRAL, type BuildingKind, type Game, type GameEvent, type Intent, type Player } from '../core/game';
 import { Terrain } from '../core/map';
 import { Camera, type Inset } from './camera';
 import { chartData, LandHistory, landChart } from './chart';
@@ -12,8 +12,11 @@ import { sound } from './sound';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
 const TICK_MS = 1000 / CONFIG.ticksPerSecond;
-/** Game speeds the speed button cycles through. */
+/** Game speeds the speed button cycles through, while playing and while watching a replay. */
 const SPEEDS = [1, 2, 3];
+const REPLAY_SPEEDS = [1, 2, 4, 8];
+
+export type IntentLog = readonly { tick: number; intent: Intent }[];
 const NO_INSET: Inset = { left: 0, top: 0, right: 0, bottom: 0 };
 const FLIGHT_MS = 500;
 
@@ -27,11 +30,13 @@ interface Flight {
 export interface SessionHooks {
   playAgain(): void;
   menu(): void;
+  /** Watch the match just played again from the start. */
+  replay(log: IntentLog): void;
 }
 
 export interface SessionOptions {
   /** Absent for the menu backdrop, which only shows the map. */
-  play?: { hud: Hud; hooks: SessionHooks };
+  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog };
   /** Screen space (CSS pixels) to keep clear when fitting the map, e.g. behind the menu. */
   inset?: () => Inset;
 }
@@ -62,6 +67,9 @@ export class Session implements InputTarget {
   /** Build or missile tool in hand, waiting for a click on the map. */
   private tool: ToolKind | null = null;
   private readonly history = new LandHistory();
+  /** Intents to feed back in, when this session replays a finished match. */
+  private readonly replay: IntentLog | null;
+  private replayAt = 0;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -69,19 +77,21 @@ export class Session implements InputTarget {
     private readonly options: SessionOptions,
   ) {
     this.me = game.players.find((p) => !p.bot) ?? null;
+    this.replay = options.play?.replay ?? null;
     this.renderer = new Renderer(canvas, game, this.me?.id ?? null);
     if (options.play && this.me) {
       this.input = new Input(canvas, this.camera, this);
       options.play.hud.onTool = (kind) => this.selectTool(kind);
       options.play.hud.onRecall = (target) => {
-        if (!this.me) return;
+        if (!this.me || this.replay) return;
         this.game.queue({ type: 'recall', player: this.me.id, target });
         options.play?.hud.toast('Truppen zurückgerufen.');
       };
       options.play.hud.minimap.addEventListener('pointerdown', this.onMinimap);
       options.play.hud.minimap.addEventListener('pointermove', this.onMinimap);
       options.play.hud.show(this.me);
-      options.play.hud.setBanner('Klick auf eine beliebige Stelle an Land, um dort zu starten.');
+      options.play.hud.root.classList.toggle('replay', this.replay !== null);
+      options.play.hud.setBanner(this.replay ? '' : 'Klick auf eine beliebige Stelle an Land, um dort zu starten.');
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
       options.play.hud.centerButton.addEventListener('click', this.onCenterButton);
       options.play.hud.speedButton.addEventListener('click', this.onSpeedButton);
@@ -129,6 +139,7 @@ export class Session implements InputTarget {
       const maxSteps = 4 * this.speed;
       let steps = 0;
       while (this.backlog >= TICK_MS && steps < maxSteps) {
+        this.feedReplay();
         this.game.step();
         this.backlog -= TICK_MS;
         steps++;
@@ -323,7 +334,7 @@ export class Session implements InputTarget {
     this.tipTimer = window.setTimeout(() => this.leave(), 3000);
     const { game, me } = this;
     const hud = this.options.play?.hud;
-    if (!me || !hud || this.paused || hud.overlayOpen) return;
+    if (!me || !hud || this.paused || hud.overlayOpen || this.replay) return;
     const tile = this.camera.tileAt(sx, sy, game.width, game.height);
     if (tile < 0) return;
 
@@ -459,7 +470,7 @@ export class Session implements InputTarget {
       return;
     }
     const tool = TOOLS.find((t) => t.key === e.key.toLowerCase());
-    if (tool && !hud.overlayOpen) {
+    if (tool && !hud.overlayOpen && !this.replay) {
       this.selectTool(tool.kind);
       return;
     }
@@ -567,12 +578,22 @@ export class Session implements InputTarget {
 
   // Pausing and match results
 
+  /** Queues the recorded intents due on the coming tick. */
+  private feedReplay(): void {
+    const log = this.replay;
+    if (!log) return;
+    while (this.replayAt < log.length && log[this.replayAt].tick <= this.game.tick) {
+      this.game.queue(log[this.replayAt++].intent);
+    }
+  }
+
   private onSpeedButton = (): void => this.cycleSpeed();
 
   private cycleSpeed(): void {
     const hud = this.options.play?.hud;
     if (!hud || this.ended) return;
-    this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length];
+    const speeds = this.replay ? REPLAY_SPEEDS : SPEEDS;
+    this.speed = speeds[(speeds.indexOf(this.speed) + 1) % speeds.length];
     hud.speed = this.speed;
   }
 
@@ -582,6 +603,19 @@ export class Session implements InputTarget {
     this.paused = !this.paused;
     if (!this.paused) {
       play.hud.hideOverlay();
+      return;
+    }
+    if (this.replay) {
+      play.hud.showOverlay({
+        eyebrow: 'Wiederholung',
+        title: 'Angehalten',
+        text: `Bei ${this.matchTime()}.`,
+        stats: [],
+        actions: [
+          { label: 'Weiter', primary: true, run: () => this.togglePause() },
+          { label: 'Zum Menü', run: () => play.hooks.menu() },
+        ],
+      });
       return;
     }
     play.hud.showOverlay({
@@ -619,7 +653,8 @@ export class Session implements InputTarget {
         if (e.player === me.id) hud.post(`${name(e.by)} hat deine Hauptstadt erobert. Du hast die Hälfte deiner Truppen verloren.`, 'bad');
         else if (e.by === me.id) hud.post(`Du hast die Hauptstadt von ${name(e.player)} erobert. Sie verlieren die Hälfte ihrer Truppen.`, 'good');
       } else if (e.type === 'eliminated') {
-        if (e.player === me.id) this.showDefeat(e.by);
+        if (e.player === me.id && this.replay) hud.post(`${name(e.by)} hat dich ausgelöscht.`, 'bad');
+        else if (e.player === me.id) this.showDefeat(e.by);
         else if (e.by === me.id) hud.post(`Du hast ${name(e.player)} ausgelöscht.`, 'good');
         else hud.post(`${name(e.by)} hat ${name(e.player)} ausgelöscht.`, 'info');
       } else if (e.type === 'encircled') {
@@ -697,6 +732,7 @@ export class Session implements InputTarget {
       actions: [
         { label: 'Nochmal spielen', primary: true, run: () => play.hooks.playAgain() },
         { label: 'Weiter zuschauen', run: () => play.hud.hideOverlay() },
+        { label: 'Wiederholung', run: () => play.hooks.replay(this.game.log.slice()) },
         { label: 'Menü', run: () => play.hooks.menu() },
       ],
     });
@@ -728,6 +764,7 @@ export class Session implements InputTarget {
         ? `Die Zeit ist um. ${winner.name} gehören ${share} des Landes.`
         : `${winner.name} hat nach ${this.matchTime()} ${share} des Landes erobert.`;
     }
+    if (this.replay) eyebrow = 'Ende der Wiederholung';
     play.hud.showOverlay({
       eyebrow,
       title,
@@ -736,6 +773,7 @@ export class Session implements InputTarget {
       extra: this.chart(),
       actions: [
         { label: 'Nochmal spielen', primary: true, run: () => play.hooks.playAgain() },
+        { label: this.replay ? 'Nochmal ansehen' : 'Wiederholung', run: () => play.hooks.replay((this.replay ?? this.game.log).slice()) },
         { label: 'Menü', run: () => play.hooks.menu() },
       ],
     });

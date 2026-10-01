@@ -1112,6 +1112,20 @@ fieldset:disabled .segmented label {
   }
 }
 
+/* Watching a replay: no orders, so no build bar or send slider. */
+.hud.replay .tools,
+.hud.replay .send,
+.hud.replay .keys {
+  display: none;
+}
+
+.hud.replay .clock::before {
+  content: "Wiederholung ";
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  color: var(--signal-hi);
+}
+
 /* Land chart on the results screen */
 
 .overlay-extra:empty {

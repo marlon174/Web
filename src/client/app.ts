@@ -1,11 +1,11 @@
 import type { Difficulty } from '../core/bots';
-import { Game } from '../core/game';
+import { Game, type GameSettings } from '../core/game';
 import type { GameMap, MapSize } from '../core/map';
 import { createMap, createSettings, mapSizeFor, type MatchOptions, type Mode } from '../core/setup';
 import { fromHex, SWATCHES, toHex } from './colors';
 import { byId, Hud } from './hud';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
-import { Session } from './session';
+import { Session, type IntentLog } from './session';
 import { SettingsPanel } from './settings';
 
 function randomSeed(): number {
@@ -173,12 +173,18 @@ export class App {
       bots: options.bots,
       difficulty: options.difficulty,
     });
-    const game = new Game(createSettings(options, this.mapFor(options)));
+    this.start(createSettings(options, this.mapFor(options)));
+  }
+
+  /** Runs a match with these settings: a fresh one, or a replay when given the intent log. */
+  private start(settings: GameSettings, replay?: IntentLog): void {
+    const game = new Game(settings);
     this.menu.hidden = true;
     this.session?.dispose();
     this.session = new Session(this.canvas, game, {
       play: {
         hud: this.hud,
+        replay,
         hooks: {
           playAgain: () => {
             this.seed = randomSeed();
@@ -188,6 +194,7 @@ export class App {
             this.seed = randomSeed();
             this.showMenu();
           },
+          replay: (log) => this.start(settings, log),
         },
       },
     });
