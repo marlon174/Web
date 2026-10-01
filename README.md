@@ -16,7 +16,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 
 - **Pick a start.** Click any spot on land (not mountains).
 - **Expand.** Click empty land to push into it along your whole border.
-- **Attack.** Click a neighbour's land. Attacking costs more than it costs them to defend, so pick on thin defences.
+- **Attack.** Click a neighbour's land. Attacking costs more than it costs them to defend, so pick on thin defences. The more you outnumber them, the faster your front moves (√ of the troop ratio, 0.6× to 2.5×; shown as ⚡ on the attack).
 - **Send.** The slider (or keys `1`–`0`) sets what share of your troops each click commits. Click one of your attacks under the map to call it off; the survivors come home.
 - **Scout.** Hover over (or tap) land to see who holds it, their troops and what a tile would cost you. The minimap (bottom right) jumps anywhere on click.
 - **Grow.** Troops grow fastest when you are well below your cap, and the cap rises with your land. Sitting at the cap wastes growth.

@@ -38,6 +38,12 @@ export const CONFIG = {
   enemyDelay: 2,
   /** Speed multiplier for all fronts (1.1 = 10% faster than the delays above). */
   troopSpeed: 1.21,
+  /**
+   * Against a player, a front's speed scales with √(attacking troops ÷ defender's troops),
+   * kept between these bounds: twice their troops ≈ 1.4× faster, three times ≈ 1.7×.
+   */
+  pressureMin: 0.6,
+  pressureMax: 2.5,
   /** Random extra ticks per tile, so fronts grow unevenly. */
   delayJitter: 2,
 

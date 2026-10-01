@@ -221,7 +221,8 @@ export class Hud {
       const outgoing = a.attacker === me.id;
       li.className = outgoing ? 'outgoing' : 'incoming';
       const who = outgoing ? (a.target === NEUTRAL ? 'Freies Land' : game.player(a.target).name) : game.player(a.attacker).name;
-      li.textContent = `${outgoing ? '→' : '←'} ${who} · ${formatTroops(a.troops)}${outgoing ? ' ✕' : ''}`;
+      const pace = a.target !== NEUTRAL ? ` · ⚡${game.pressure(a).toFixed(1).replace('.', ',')}×` : '';
+      li.textContent = `${outgoing ? '→' : '←'} ${who} · ${formatTroops(a.troops)}${pace}${outgoing ? ' ✕' : ''}`;
       li.title = outgoing ? `Deine Truppen rücken vor: ${who}. Klicken ruft sie zurück.` : `${who} greift dich an`;
       if (outgoing) li.dataset.target = String(a.target);
       items.push(li);

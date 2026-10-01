@@ -745,8 +745,16 @@ export class Game {
     if (this.defended(tile, a.target)) delay += CONFIG.defenseDelay;
     // Tiles already surrounded on several sides fall sooner, which keeps fronts smooth.
     delay -= this.ownedNeighbors(tile, a.attacker) - 1;
-    // Keys are in tenths of a tick, so the speed multiplier isn't lost to rounding.
-    a.frontier.push(this.tick * SUBTICKS + Math.max(SUBTICKS, Math.round((delay * SUBTICKS) / CONFIG.troopSpeed)), tile);
+    // Keys are in tenths of a tick, so the speed multipliers aren't lost to rounding.
+    const speed = CONFIG.troopSpeed * this.pressure(a);
+    a.frontier.push(this.tick * SUBTICKS + Math.max(SUBTICKS, Math.round((delay * SUBTICKS) / speed)), tile);
+  }
+
+  /** How much faster (or slower) an attack moves for outnumbering (or not) the defender. */
+  pressure(a: Attack): number {
+    if (a.target === NEUTRAL) return 1;
+    const ratio = a.troops / Math.max(1, this.player(a.target).troops);
+    return Math.min(CONFIG.pressureMax, Math.max(CONFIG.pressureMin, Math.sqrt(ratio)));
   }
 
   private ownedNeighbors(tile: number, id: number): number {

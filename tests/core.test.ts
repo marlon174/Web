@@ -474,3 +474,23 @@ describe('beachheads', () => {
     expect(held).toBeGreaterThan(10);
   });
 });
+
+describe('pressure', () => {
+  it('moves a much bigger army faster through enemy land', () => {
+    const takenIn = (times: number) => {
+      const game = start(duel(60, 7), [10, 3], [50, 3]);
+      game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
+      game.queue({ type: 'attack', player: 2, target: NEUTRAL, permille: 1000 });
+      run(game, 120);
+      const a = game.player(1);
+      a.troops = times * game.player(2).troops;
+      const before = a.tiles;
+      game.queue({ type: 'attack', player: 1, target: 2, permille: 1000 });
+      run(game, 12);
+      return a.tiles - before;
+    };
+    const fast = takenIn(30);
+    const slow = takenIn(2);
+    expect(fast).toBeGreaterThan(slow);
+  });
+});
