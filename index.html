@@ -55,13 +55,23 @@
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-classic" value="classic" />
                   <span class="mode-name">Klassisch</span>
-                  <span class="mode-note">Halte 70 % des Landes, um zu gewinnen.</span>
+                  <span class="mode-note">Halte 70 % des Landes, um zu gewinnen (auf echten Karten 50 %).</span>
                 </label>
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-royale" value="royale" />
                   <span class="mode-name">Battle Royale</span>
                   <span class="mode-note">Nach einer Minute steigt das Meer und frisst die Karte von außen. Rot markiertes Land geht bald unter.</span>
                 </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Karte</legend>
+              <div class="segmented">
+                <input type="radio" name="world" id="world-none" value="" checked /><label for="world-none">Zufall</label>
+                <input type="radio" name="world" id="world-world" value="world" /><label for="world-world">Welt</label>
+                <input type="radio" name="world" id="world-europe" value="europe" /><label for="world-europe">Europa</label>
+                <input type="radio" name="world" id="world-germany" value="germany" /><label for="world-germany">Deutschland</label>
               </div>
             </fieldset>
 

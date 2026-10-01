@@ -36,7 +36,12 @@ const MOUNTAINS_FROM = 0.88;
 /** Islands smaller than this are sunk: too small to be worth a boat. */
 const MIN_ISLAND = 80;
 
-export function mapFromTerrain(width: number, height: number, terrain: Uint8Array, relief?: Uint8Array): GameMap {
+/**
+ * Wraps terrain into a map. Bots start on the "mainland": the largest
+ * landmass, plus any other holding at least `mainlandShare` of all land
+ * (so a world map has several continents to start on).
+ */
+export function mapFromTerrain(width: number, height: number, terrain: Uint8Array, relief?: Uint8Array, mainlandShare = 1): GameMap {
   let landTiles = 0;
   for (let i = 0; i < terrain.length; i++) if (terrain[i] !== Terrain.Water) landTiles++;
   const { label, sizes } = labelLandmasses(terrain, width);
@@ -44,8 +49,9 @@ export function mapFromTerrain(width: number, height: number, terrain: Uint8Arra
   sizes.forEach((n, id) => {
     if (largest < 0 || n > sizes[largest]) largest = id;
   });
+  const starts = sizes.map((n, id) => id === largest || n >= landTiles * mainlandShare);
   const mainland = new Uint8Array(terrain.length);
-  for (let i = 0; i < terrain.length; i++) if (label[i] === largest && largest >= 0) mainland[i] = 1;
+  for (let i = 0; i < terrain.length; i++) if (label[i] >= 0 && starts[label[i]]) mainland[i] = 1;
   if (!relief) {
     relief = new Uint8Array(terrain.length);
     for (let i = 0; i < terrain.length; i++) relief[i] = terrain[i] * 60;
@@ -185,7 +191,7 @@ function labelLandmasses(terrain: Uint8Array, width: number): { label: Int32Arra
   return { label, sizes };
 }
 
-function sinkSmallIslands(terrain: Uint8Array, width: number): void {
+export function sinkSmallIslands(terrain: Uint8Array, width: number): void {
   const { label, sizes } = labelLandmasses(terrain, width);
   for (let i = 0; i < terrain.length; i++) if (label[i] >= 0 && sizes[label[i]] < MIN_ISLAND) terrain[i] = Terrain.Water;
 }

@@ -1,5 +1,6 @@
 import type { Difficulty } from '../core/bots';
 import type { MapSize } from '../core/map';
+import type { RealMapId } from '../core/realmaps';
 import type { Mode } from '../core/setup';
 import { SWATCHES } from './colors';
 
@@ -15,6 +16,8 @@ export interface Prefs {
   fog: boolean;
   /** 0 for free-for-all, else the number of teams. */
   teams: number;
+  /** A real-world map, or null for a generated one. */
+  world: RealMapId | null;
 }
 
 const KEY = 'landgrab.prefs.v1';
@@ -28,6 +31,7 @@ const DEFAULTS: Prefs = {
   difficulty: 'normal',
   fog: false,
   teams: 0,
+  world: null,
 };
 
 export function loadPrefs(): Prefs {
@@ -42,6 +46,7 @@ export function loadPrefs(): Prefs {
       difficulty: saved.difficulty === 'easy' || saved.difficulty === 'hard' ? saved.difficulty : 'normal',
       fog: saved.fog === true,
       teams: saved.teams === 2 || saved.teams === 4 ? saved.teams : 0,
+      world: saved.world === 'world' || saved.world === 'europe' || saved.world === 'germany' ? saved.world : null,
     };
   } catch {
     return { ...DEFAULTS };

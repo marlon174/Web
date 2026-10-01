@@ -3,6 +3,8 @@ import { CONFIG } from '../src/core/config';
 import { Game, NEUTRAL, type GameEvent, type GameSettings } from '../src/core/game';
 import { TileHeap } from '../src/core/heap';
 import { mapFromTerrain, Terrain } from '../src/core/map';
+import { REAL_MASKS } from '../src/core/realmap-data';
+import { buildRealMap, decodeMask } from '../src/core/realmaps';
 import { createMap, createSettings, type MatchOptions } from '../src/core/setup';
 
 /** A plains map with optional water tiles, and two human players we control. */
@@ -464,6 +466,36 @@ describe('warships', () => {
     const events = run(game, 40);
     expect(events).toContainEqual(expect.objectContaining({ type: 'sunk', owner: 2, by: 1 }));
     expect(game.boats).toHaveLength(0);
+  });
+});
+
+describe('real maps', () => {
+  it('decode to the full mask size', () => {
+    for (const mask of Object.values(REAL_MASKS)) {
+      const land = decodeMask(mask);
+      expect(land.length).toBe(mask.width * mask.height);
+      const share = land.reduce((n, v) => n + v, 0) / land.length;
+      expect(share).toBeGreaterThan(0.2);
+      expect(share).toBeLessThan(0.7);
+    }
+  });
+
+  it('build a world with mountains and several continents to start on', () => {
+    const map = buildRealMap('world', 552 * 345, 1);
+    const counts = [0, 0, 0, 0];
+    for (const v of map.terrain) counts[v]++;
+    expect(counts[Terrain.Mountains]).toBeGreaterThan(0);
+    // Start land on both sides of the Atlantic: the Americas and Afro-Eurasia.
+    const x = (lon: number) => Math.floor(((lon + 180) / 360) * map.width);
+    let west = 0;
+    let east = 0;
+    for (let t = 0; t < map.terrain.length; t++) {
+      if (!map.mainland[t]) continue;
+      if (t % map.width < x(-30)) west++;
+      else east++;
+    }
+    expect(west).toBeGreaterThan(map.landTiles * 0.15);
+    expect(east).toBeGreaterThan(map.landTiles * 0.4);
   });
 });
 

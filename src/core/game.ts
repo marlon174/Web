@@ -28,6 +28,8 @@ export interface GameSettings {
   timeLimit: number;
   /** Battle royale: the sea rises and swallows the map from the outside in. */
   royale?: boolean;
+  /** Share of the land that wins outright; defaults to `CONFIG.winShare`. */
+  winShare?: number;
 }
 
 export interface Player {
@@ -1766,7 +1768,7 @@ export class Game {
     if (!leader) return;
     const limit = this.settings.timeLimit;
     const timeUp = limit > 0 && this.tick + 1 >= limit;
-    if (alive > 1 && leader.tiles < this.map.landTiles * CONFIG.winShare && !timeUp) return;
+    if (alive > 1 && leader.tiles < this.map.landTiles * (this.settings.winShare ?? CONFIG.winShare) && !timeUp) return;
 
     this.phase = 'over';
     this.winner = leader.id;
@@ -1788,7 +1790,7 @@ export class Game {
     if (!best) return;
     const limit = this.settings.timeLimit;
     const timeUp = limit > 0 && this.tick + 1 >= limit;
-    if (teamsAlive > 1 && totals[best] < this.map.landTiles * CONFIG.winShare && !timeUp) return;
+    if (teamsAlive > 1 && totals[best] < this.map.landTiles * (this.settings.winShare ?? CONFIG.winShare) && !timeUp) return;
 
     this.phase = 'over';
     // The winning team's biggest member stands for it.

@@ -2,6 +2,7 @@ import type { Difficulty } from './bots';
 import { CONFIG } from './config';
 import type { GameSettings, PlayerSetup } from './game';
 import { generateMap, MAP_DIMENSIONS, type GameMap, type MapSize } from './map';
+import { buildRealMap, type RealMapId } from './realmaps';
 import { Rng } from './rng';
 
 export type Mode = 'quick' | 'classic' | 'royale';
@@ -15,6 +16,8 @@ export interface MatchOptions {
   difficulty: Difficulty;
   /** Number of teams (2 or 4), or 0 for everyone on their own. */
   teams?: number;
+  /** A real-world map instead of a generated one. */
+  world?: RealMapId | null;
   /** The human player, or null for a bots-only match. */
   human: { name: string; color: number } | null;
 }
@@ -35,6 +38,8 @@ export function mapSizeFor(options: MatchOptions): MapSize {
 
 export function createMap(options: MatchOptions): GameMap {
   const { width, height } = MAP_DIMENSIONS[mapSizeFor(options)];
+  // Real maps keep their own shape at about the same number of tiles.
+  if (options.world) return buildRealMap(options.world, width * height, options.seed);
   return generateMap(options.seed, width, height);
 }
 
@@ -60,6 +65,8 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
     difficulty: options.difficulty,
     timeLimit: options.mode === 'quick' ? QUICK_MATCH_SECONDS * CONFIG.ticksPerSecond : 0,
     royale: options.mode === 'royale',
+    // Real maps split the land by oceans, so half of it is enough to win.
+    winShare: options.world ? 0.5 : undefined,
   };
 }
 

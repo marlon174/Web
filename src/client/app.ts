@@ -1,6 +1,7 @@
 import type { Difficulty } from '../core/bots';
 import { Game, type GameSettings } from '../core/game';
 import type { GameMap, MapSize } from '../core/map';
+import type { RealMapId } from '../core/realmaps';
 import { createMap, createSettings, mapSizeFor, type MatchOptions, type Mode } from '../core/setup';
 import { fromHex, SWATCHES, toHex } from './colors';
 import { byId, Hud } from './hud';
@@ -53,6 +54,7 @@ export class App {
     this.check(`size-${prefs.mapSize}`);
     this.check(`diff-${prefs.difficulty}`);
     this.check(`teams-${prefs.teams}`);
+    this.check(`world-${prefs.world ?? 'none'}`);
     this.sizeField.disabled = prefs.mode === 'quick';
     this.buildSwatches();
 
@@ -60,7 +62,7 @@ export class App {
     this.form.addEventListener('change', (e) => {
       const target = e.target as HTMLInputElement;
       if (target.name === 'mode') this.sizeField.disabled = target.value === 'quick';
-      if (target.name === 'mode' || target.name === 'size') this.preview();
+      if (target.name === 'mode' || target.name === 'size' || target.name === 'world') this.preview();
     });
     byId('daily-play').addEventListener('click', () => this.playDaily());
     byId('reroll').addEventListener('click', () => {
@@ -139,13 +141,14 @@ export class App {
       bots: Number(this.botsInput.value),
       difficulty: this.radio('difficulty') as Difficulty,
       teams: Number(this.radio('teams')) || 0,
+      world: (this.radio('world') || null) as RealMapId | null,
       human: { name, color: this.color },
     };
   }
 
   /** The map for these options, generated once per seed and size. */
   private mapFor(options: MatchOptions): GameMap {
-    const key = `${options.seed}:${mapSizeFor(options)}`;
+    const key = `${options.seed}:${mapSizeFor(options)}:${options.world ?? ''}`;
     if (!this.map || key !== this.mapKey) {
       this.map = createMap(options);
       this.mapKey = key;
@@ -202,6 +205,7 @@ export class App {
       difficulty: options.difficulty,
       fog: this.fogInput.checked,
       teams: options.teams ?? 0,
+      world: options.world ?? null,
     });
     this.start(createSettings(options, this.mapFor(options)), { fog: this.fogInput.checked });
   }
