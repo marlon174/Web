@@ -109,6 +109,9 @@ export const CONFIG = {
   falloutTicks: 300,
   falloutCostFactor: 2,
 
+  /** Fog of war: how far (tiles) a player sees past their own land, boats and ships. */
+  fogSight: 24,
+
   // Battle royale
   royale: {
     /** Ticks before the sea starts to rise. */

@@ -197,8 +197,10 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
   // Nukes go for the biggest rival's capital: it costs them half their troops.
   if (brain.missiles === 2) {
     let rival: Player | null = null;
+    // In fog of war only rivals whose capital is in sight are known.
     for (const q of game.players) {
-      if (q.alive && q.id !== p.id && !game.allied(p.id, q.id) && (!rival || q.tiles > rival.tiles)) rival = q;
+      if (!q.alive || q.id === p.id || game.allied(p.id, q.id) || q.capital < 0 || (rival && q.tiles <= rival.tiles)) continue;
+      if (game.canSee(p, q.capital)) rival = q;
     }
     if (rival && rival.capital >= 0) {
       // The hydrogen bomb only for a rival bigger than us: it costs a fortune.
@@ -210,7 +212,7 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
   if (game.canLaunch(p, 'rocket') !== null) return null;
   let target = -1;
   for (const b of game.buildings) {
-    if (b.kind === 'silo' || !neighbours.has(b.owner)) continue;
+    if (b.kind === 'silo' || !neighbours.has(b.owner) || !game.canSee(p, b.tile)) continue;
     target = b.tile;
     if (b.kind === 'defense') break;
   }
@@ -228,6 +230,8 @@ function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng, survey: Su
     for (let attempt = 0; attempt < 80; attempt++) {
       const t = rng.int(game.size);
       if (game.map.terrain[t] === Terrain.Water || game.map.mainland[t] || game.owner[t] !== NEUTRAL) continue;
+      // In fog of war, only islands within sight of its coast or ships (ports see a bit further).
+      if (!game.canSee(p, t, CONFIG.fogSight * 2)) continue;
       if (typeof game.planBoat(p, t) !== 'string') return { type: 'boat', player: p.id, tile: t, permille: 350 };
       break;
     }

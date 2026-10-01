@@ -213,7 +213,8 @@ export class App {
   /** Runs a match with these settings: a fresh one, or a replay when given the intent log. */
   private start(settings: GameSettings, how: { fog: boolean; replay?: IntentLog; daily?: Daily }): void {
     const { replay, daily } = how;
-    const game = new Game(settings);
+    // Fog of war is part of the rules: bots then see only what a human would.
+    const game = new Game({ ...settings, fog: how.fog });
     this.menu.hidden = true;
     this.session?.dispose();
     this.session = new Session(this.canvas, game, {

@@ -469,6 +469,19 @@ describe('warships', () => {
   });
 });
 
+describe('fog of war', () => {
+  it('limits what a player (and so a bot) can see to near their own land', () => {
+    const fogged = start({ ...duel(90, 7), fog: true }, [3, 3], [86, 3]);
+    const clear = start(duel(90, 7), [3, 3], [86, 3]);
+    const far = fogged.player(2).capital;
+    expect(fogged.canSee(fogged.player(1), far)).toBe(false);
+    expect(clear.canSee(clear.player(1), far)).toBe(true);
+    // Their own land is always in sight, and so is anything near the border.
+    expect(fogged.canSee(fogged.player(1), fogged.player(1).capital)).toBe(true);
+    expect(fogged.canSee(fogged.player(1), 3 * 90 + 3 + CONFIG.fogSight)).toBe(true);
+  });
+});
+
 describe('real maps', () => {
   it('decode to the full mask size', () => {
     for (const mask of Object.values(REAL_MASKS)) {

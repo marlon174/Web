@@ -30,6 +30,8 @@ export interface GameSettings {
   royale?: boolean;
   /** Share of the land that wins outright; defaults to `CONFIG.winShare`. */
   winShare?: number;
+  /** Fog of war: bots, like humans, only know what is near their own land. */
+  fog?: boolean;
 }
 
 export interface Player {
@@ -417,6 +419,35 @@ export class Game {
       }
     }
     return -1;
+  }
+
+  /**
+   * Whether `p` can see this tile: always without fog of war; with it, only
+   * within `range` tiles of their land, boats or warships (or an ally's land).
+   * Bots use this so they know no more than a human would.
+   */
+  canSee(p: Player, tile: number, range: number = CONFIG.fogSight): boolean {
+    if (!this.settings.fog || tile < 0 || tile >= this.size) return true;
+    const o = this.owner[tile];
+    if (o === p.id || this.allied(p.id, o)) return true;
+    const w = this.width;
+    const tx = tile % w;
+    const ty = (tile - tx) / w;
+    const r2 = range * range;
+    const near = (t: number) => {
+      const x = t % w;
+      const dx = x - tx;
+      const dy = (t - x) / w - ty;
+      return dx * dx + dy * dy <= r2;
+    };
+    // Land within range of the tile means a border tile within range: check the border only,
+    // thinned on very long borders (neighbouring border tiles are a tile apart anyway).
+    const border = p.border;
+    const step = Math.max(1, Math.floor(border.length / 600));
+    for (let i = 0; i < border.length; i += step) if (near(border[i])) return true;
+    for (const b of this.boatList) if (b.owner === p.id && near(b.path[Math.min(b.path.length - 1, Math.floor(b.pos))])) return true;
+    for (const s of this.shipList) if (s.owner === p.id && near(s.tile)) return true;
+    return false;
   }
 
   isCoast(tile: number): boolean {
