@@ -109,6 +109,25 @@ export const CONFIG = {
   falloutTicks: 300,
   falloutCostFactor: 2,
 
+  // Warships
+  warship: {
+    cost: 6000,
+    /** Hits a ship takes before it sinks. */
+    hp: 5,
+    /** Reach of its guns, in tiles. */
+    range: 7,
+    /** Ticks per tile it sails. */
+    pace: 2,
+    /** Ticks between shots at ships and boats, and between shells at the coast. */
+    fireEvery: 10,
+    shellEvery: 25,
+    /** How far from its station it roams while on patrol. */
+    patrol: 12,
+    /** Ships per port you own, and at most this many in all. */
+    perPort: 1,
+    max: 4,
+  },
+
   // Trains
   /** A factory links by rail to your cities and ports within this many tiles... */
   railRange: 60,

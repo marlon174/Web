@@ -172,6 +172,11 @@ export class Hud {
       let ready = me.alive && game.phase === 'play';
       if (kind === 'ally') {
         button.querySelector('.tool-cost')!.textContent = '3 Min';
+      } else if (kind === 'warship') {
+        const afloat = game.warships.some((s) => s.owner === me.id);
+        const refusal = game.canWarship(me);
+        ready &&= refusal === null || afloat;
+        button.querySelector('.tool-cost')!.textContent = refusal === 'limit' ? 'lenken' : formatTroops(CONFIG.warship.cost);
       } else {
         const missile = isMissile(kind);
         const cost = missile ? game.missileCost(kind) : game.buildCost(me, kind);

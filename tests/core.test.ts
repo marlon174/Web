@@ -420,6 +420,53 @@ describe('alliances', () => {
   });
 });
 
+describe('warships', () => {
+  // Two shores 16 tiles apart: A on the left, B on the right.
+  function sea(): Game {
+    const water: [number, number][] = [];
+    for (let y = 0; y < 15; y++) for (let x = 12; x < 28; x++) water.push([x, y]);
+    const game = start(duel(40, 15, water), [9, 7], [30, 7]);
+    game.player(1).gold = 20000;
+    game.queue({ type: 'build', player: 1, tile: 7 * 40 + 11, kind: 'port' });
+    game.step();
+    return game;
+  }
+
+  it('sail from a port to where they are sent and shell enemy coast in range', () => {
+    const game = sea();
+    expect(game.canWarship(game.player(1))).toBeNull();
+    game.queue({ type: 'warship', player: 1, tile: 7 * 40 + 25 });
+    game.step();
+    expect(game.warships).toHaveLength(1);
+    expect(game.player(1).gold).toBeLessThan(20000 - 3000);
+    run(game, 40);
+    const ship = game.warships[0];
+    expect(Math.abs((ship.tile % 40) - 25)).toBeLessThanOrEqual(CONFIG.warship.patrol);
+    // B's land grows only by expanding; give it none, so any loss is the guns.
+    const before = game.player(2).tiles;
+    const events = run(game, 200);
+    expect(events.some((e) => e.type === 'shelled' && e.owner === 2)).toBe(true);
+    expect(game.player(2).tiles).toBeLessThan(before);
+  });
+
+  it('sink enemy boats in range', () => {
+    const game = sea();
+    game.queue({ type: 'warship', player: 1, tile: 7 * 40 + 14 });
+    run(game, 20);
+    const b = game.player(2);
+    b.gold = 20000;
+    b.troops = 5000;
+    game.queue({ type: 'build', player: 2, tile: 7 * 40 + 28, kind: 'port' });
+    game.step();
+    game.queue({ type: 'boat', player: 2, tile: 7 * 40 + 11, permille: 500 });
+    game.step();
+    expect(game.boats).toHaveLength(1);
+    const events = run(game, 40);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'sunk', owner: 2, by: 1 }));
+    expect(game.boats).toHaveLength(0);
+  });
+});
+
 describe('bunkers', () => {
   it('are destroyed, not captured, when an enemy takes their tile', () => {
     const moat = Array.from({ length: 7 }, (_, y): [number, number] => [20, y]);

@@ -212,6 +212,7 @@ export class Renderer {
     const now = performance.now();
     this.drawRails(camera, dpr, overlay.tick);
     this.drawBoats(camera, dpr);
+    this.drawWarships(camera, dpr);
     this.drawBuildings(camera, dpr);
     this.drawCapitals(camera, dpr);
     this.drawLabels(camera, dpr);
@@ -461,6 +462,56 @@ export class Renderer {
       ctx.fill();
       ctx.stroke();
       ctx.restore();
+    }
+  }
+
+  /** A small flash where a warship's shell lands. */
+  shellHit(tile: number): void {
+    const w = this.game.width;
+    const x = tile % w;
+    this.applyChanges([tile]);
+    this.explosions.push({ x: x + 0.5, y: (tile - x) / w + 0.5, radius: 2.5, start: performance.now() });
+  }
+
+  /** Warships: a grey hull with the owner's colour on deck, gun range for your own, damage as a bar. */
+  private drawWarships(camera: Camera, dpr: number): void {
+    const { ctx } = this;
+    const range = CONFIG.warship.range * camera.scale;
+    for (const s of this.game.warships) {
+      const [x, y] = this.screen(camera, s.tile);
+      if (s.owner === this.me && range > 12 * dpr) {
+        ctx.beginPath();
+        ctx.arc(x, y, range, 0, Math.PI * 2);
+        ctx.setLineDash([3 * dpr, 5 * dpr]);
+        ctx.lineWidth = dpr;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      const r = Math.max(9 * dpr, camera.scale * 2.2);
+      ctx.beginPath();
+      ctx.moveTo(x - r * 1.3, y - r * 0.15);
+      ctx.lineTo(x + r * 1.5, y - r * 0.15);
+      ctx.lineTo(x + r * 0.9, y + r * 0.45);
+      ctx.lineTo(x - r * 1.1, y + r * 0.45);
+      ctx.closePath();
+      ctx.fillStyle = '#4a5560';
+      ctx.fill();
+      ctx.lineWidth = 1.2 * dpr;
+      ctx.strokeStyle = s.owner === this.me ? '#ffffff' : 'rgba(0, 0, 0, 0.6)';
+      ctx.stroke();
+      // Deck house in the owner's colour, and the gun.
+      ctx.fillStyle = this.capitalInk[s.owner];
+      ctx.fillRect(x - r * 0.6, y - r * 0.6, r * 0.9, r * 0.45);
+      ctx.fillStyle = '#2b333b';
+      ctx.fillRect(x + r * 0.3, y - r * 0.4, r * 0.8, r * 0.14);
+      if (s.hp < CONFIG.warship.hp) {
+        const bw = r * 2.4;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(x - bw / 2, y + r * 0.7, bw, 3 * dpr);
+        ctx.fillStyle = s.hp > 2 ? '#62d394' : '#ff7d7d';
+        ctx.fillRect(x - bw / 2, y + r * 0.7, (bw * s.hp) / CONFIG.warship.hp, 3 * dpr);
+      }
     }
   }
 

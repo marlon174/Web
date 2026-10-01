@@ -160,6 +160,11 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
       const tile = game.findSpot(p, 'port');
       if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'port' };
     }
+    // A warship to guard the coast, once the gold allows.
+    if (p.owned.port > 0 && game.canWarship(p) === null && p.gold >= CONFIG.warship.cost + 4000 && rng.next() < 0.2) {
+      const tile = game.portWater(p);
+      if (tile >= 0) return { type: 'warship', player: p.id, tile };
+    }
     const underAttack = game.attacks.some((a) => a.target === p.id);
     if (underAttack && p.owned.defense < 1 + Math.floor(p.tiles / 2500) && p.gold >= game.buildCost(p, 'defense')) {
       const tile = game.findSpot(p, 'defense', true);

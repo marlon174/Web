@@ -117,6 +117,19 @@ export interface Boat {
   pos: number;
 }
 
+/** A warship: sinks enemy boats and ships in range, and shells enemy coast. */
+export interface Warship {
+  readonly id: number;
+  readonly owner: number;
+  /** Water tile it is on. */
+  tile: number;
+  hp: number;
+  /** Water tiles still to sail, next first. */
+  route: number[];
+  /** Where it was sent: it patrols around here once it arrives. */
+  station: number;
+}
+
 export type Intent =
   | { type: 'spawn'; player: number; tile: number }
   | { type: 'attack'; player: number; target: number; permille: number }
@@ -125,7 +138,8 @@ export type Intent =
   | { type: 'boat'; player: number; tile: number; permille: number }
   | { type: 'ally'; player: number; target: number }
   | { type: 'breakAlly'; player: number; target: number }
-  | { type: 'recall'; player: number; target: number };
+  | { type: 'recall'; player: number; target: number }
+  | { type: 'warship'; player: number; tile: number };
 
 export type GameEvent =
   | { type: 'capitalLost'; player: number; by: number }
@@ -141,6 +155,9 @@ export type GameEvent =
   | { type: 'alliance'; from: number; to: number; accepted: boolean }
   | { type: 'allianceOffer'; from: number; to: number }
   | { type: 'allianceEnded'; a: number; b: number; brokenBy: number }
+  | { type: 'sunk'; owner: number; by: number; troops: number }
+  | { type: 'shipSunk'; owner: number; by: number; tile: number }
+  | { type: 'shelled'; tile: number; owner: number; by: number }
   | { type: 'gameOver'; winner: number };
 
 export interface Attack {
@@ -198,6 +215,7 @@ export class Game {
   private nextId = 1;
   private trainList: Train[] = [];
   private boatList: Boat[] = [];
+  private shipList: Warship[] = [];
   /** Alliance expiry tick, and cool-down end tick, keyed by "low:high" player ids. */
   private readonly alliances = new Map<string, number>();
   private readonly cooldowns = new Map<string, number>();
@@ -299,6 +317,85 @@ export class Game {
 
   get boats(): readonly Boat[] {
     return this.boatList;
+  }
+
+  get warships(): readonly Warship[] {
+    return this.shipList;
+  }
+
+  /** How many warships `p` may have afloat. */
+  warshipLimit(p: Player): number {
+    return Math.min(CONFIG.warship.max, p.owned.port * CONFIG.warship.perPort);
+  }
+
+  /** Null if `p` can launch another warship now, else why not. */
+  canWarship(p: Player): Refusal | null {
+    if (!p.alive) return 'notYours';
+    if (p.owned.port === 0) return 'noPort';
+    if (this.shipList.filter((s) => s.owner === p.id).length >= this.warshipLimit(p)) return 'limit';
+    if (p.gold < CONFIG.warship.cost) return 'gold';
+    return null;
+  }
+
+  isWater(tile: number): boolean {
+    return tile >= 0 && tile < this.size && this.terrain[tile] === Terrain.Water;
+  }
+
+  /**
+   * Breadth-first search over water from `start` until `goal` accepts a tile.
+   * Returns the tiles from start to that tile, or null. `limit` caps the
+   * tiles explored, to keep short hops cheap.
+   */
+  private waterRoute(start: number, goal: (tile: number) => boolean, limit = Infinity): number[] | null {
+    if (!this.isWater(start)) return null;
+    const { width: w, size, terrain, waterParent: parent, waterSeen: seenAt, waterQueue: queue } = this;
+    const stamp = ++this.waterStamp;
+    seenAt[start] = stamp;
+    parent[start] = -1;
+    queue[0] = start;
+    let tail = 1;
+    for (let head = 0; head < tail && head < limit; head++) {
+      const t = queue[head];
+      if (goal(t)) {
+        const path: number[] = [];
+        for (let c = t; c !== -1; c = parent[c]) path.push(c);
+        return path.reverse();
+      }
+      const x = t % w;
+      for (let k = 0; k < 4; k++) {
+        const n = k === 0 ? (x > 0 ? t - 1 : -1) : k === 1 ? (x < w - 1 ? t + 1 : -1) : k === 2 ? t - w : t + w;
+        if (n < 0 || n >= size || terrain[n] !== Terrain.Water || seenAt[n] === stamp) continue;
+        seenAt[n] = stamp;
+        parent[n] = t;
+        queue[tail++] = n;
+      }
+    }
+    return null;
+  }
+
+  /** Whether a water tile touches one of `owner`'s ports. */
+  private besidePort(tile: number, owner: number): boolean {
+    const w = this.width;
+    const x = tile % w;
+    for (const n of [x > 0 ? tile - 1 : -1, x < w - 1 ? tile + 1 : -1, tile - w, tile + w]) {
+      if (n < 0 || n >= this.size) continue;
+      const b = this.buildingsByTile.get(n);
+      if (b && b.kind === 'port' && b.owner === owner) return true;
+    }
+    return false;
+  }
+
+  /** A water tile next to one of `p`'s ports, or -1: where bots station their ships. */
+  portWater(p: Player): number {
+    const w = this.width;
+    for (const b of this.buildingsByTile.values()) {
+      if (b.kind !== 'port' || b.owner !== p.id) continue;
+      const x = b.tile % w;
+      for (const n of [x > 0 ? b.tile - 1 : -1, x < w - 1 ? b.tile + 1 : -1, b.tile - w, b.tile + w]) {
+        if (this.isWater(n)) return n;
+      }
+    }
+    return -1;
   }
 
   isCoast(tile: number): boolean {
@@ -541,6 +638,7 @@ export class Game {
     this.updateMissiles();
     this.updateTrains();
     this.updateBoats();
+    this.updateWarships();
     this.updateAlliances();
     this.grow();
     if (this.tick % this.sweepInterval === 0) this.sweepEnclosures();
@@ -563,6 +661,7 @@ export class Game {
     for (const m of this.missileList) h = Math.imul(h ^ m.to, 16777619);
     for (const t of this.trainList) h = Math.imul(h ^ (t.leg * 1000 + Math.floor(t.progress)), 16777619);
     for (const b of this.boatList) h = Math.imul(h ^ Math.floor(b.pos * 10 + b.troops), 16777619);
+    for (const s of this.shipList) h = Math.imul(h ^ (s.tile * 8 + s.hp), 16777619);
     for (const [key, ends] of this.alliances) h = Math.imul(h ^ (ends + key.length), 16777619);
     return h >>> 0;
   }
@@ -597,6 +696,8 @@ export class Game {
       if (a) this.finish(a);
     } else if (intent.type === 'boat') {
       this.sendBoat(p, intent.tile, intent.permille);
+    } else if (intent.type === 'warship') {
+      this.orderWarship(p, intent.tile);
     } else if (intent.type === 'ally') {
       this.proposeAlliance(p, intent.target);
     } else if (intent.type === 'breakAlly') {
@@ -912,6 +1013,126 @@ export class Game {
     // A little goes into holding the beach; the rest marches on.
     troops = Math.max(0, troops);
     this.deploy(p, target, troops);
+  }
+
+  // Warships
+
+  /**
+   * Sends a warship to a water tile: a new one from the nearest port if
+   * `p` may have another, otherwise the nearest ship already afloat.
+   */
+  private orderWarship(p: Player, tile: number): void {
+    if (!this.isWater(tile)) return;
+    const mine = this.shipList.filter((s) => s.owner === p.id);
+    if (this.canWarship(p) === null) {
+      const route = this.waterRoute(tile, (t) => this.besidePort(t, p.id));
+      if (!route) return;
+      route.reverse();
+      p.gold -= CONFIG.warship.cost;
+      this.shipList.push({ id: this.nextId++, owner: p.id, tile: route[0], hp: CONFIG.warship.hp, route: route.slice(1), station: tile });
+      return;
+    }
+    if (mine.length === 0) return;
+    const ids = new Set(mine.map((s) => s.tile));
+    const route = this.waterRoute(tile, (t) => ids.has(t));
+    if (!route) return;
+    route.reverse();
+    const ship = mine.find((s) => s.tile === route[0])!;
+    ship.route = route.slice(1);
+    ship.station = tile;
+  }
+
+  private updateWarships(): void {
+    if (this.shipList.length === 0) return;
+    const ws = CONFIG.warship;
+    const w = this.width;
+    const dist2 = (a: number, b: number) => {
+      const dx = (a % w) - (b % w);
+      const dy = Math.floor(a / w) - Math.floor(b / w);
+      return dx * dx + dy * dy;
+    };
+    const range2 = ws.range * ws.range;
+    this.shipList = this.shipList.filter((s) => this.player(s.owner).alive);
+
+    for (const s of this.shipList) {
+      // Sailing, or roaming about its station.
+      if ((this.tick + s.id) % ws.pace === 0) {
+        if (s.route.length > 0) s.tile = s.route.shift()!;
+        else if (this.rng.next() < 0.1) {
+          const sx = s.station % w;
+          const sy = Math.floor(s.station / w);
+          const tx = sx + this.rng.int(2 * ws.patrol + 1) - ws.patrol;
+          const ty = sy + this.rng.int(2 * ws.patrol + 1) - ws.patrol;
+          const target = ty * w + tx;
+          if (tx >= 0 && ty >= 0 && tx < w && ty < this.height && this.isWater(target)) {
+            s.route = (this.waterRoute(s.tile, (t) => t === target, 4000) ?? [s.tile]).slice(1);
+          }
+        }
+      }
+      if ((this.tick + s.id) % ws.fireEvery !== 0) continue;
+      // Guns: the nearest enemy ship first, then boats.
+      let enemy: Warship | null = null;
+      let best = Infinity;
+      for (const o of this.shipList) {
+        if (o.owner === s.owner || o.hp <= 0 || this.allied(o.owner, s.owner)) continue;
+        const d = dist2(s.tile, o.tile);
+        if (d <= range2 && d < best) {
+          best = d;
+          enemy = o;
+        }
+      }
+      if (enemy) {
+        enemy.hp--;
+        if (enemy.hp <= 0) this.events.push({ type: 'shipSunk', owner: enemy.owner, by: s.owner, tile: enemy.tile });
+        continue;
+      }
+      const boat = this.boatList.find((b) => {
+        if (b.owner === s.owner || this.allied(b.owner, s.owner)) return false;
+        const at = b.path[Math.min(b.path.length - 1, Math.floor(b.pos))];
+        return dist2(s.tile, at) <= range2;
+      });
+      if (boat) {
+        this.boatList = this.boatList.filter((b) => b !== boat);
+        this.events.push({ type: 'sunk', owner: boat.owner, by: s.owner, troops: boat.troops });
+      }
+    }
+    this.shipList = this.shipList.filter((s) => s.hp > 0);
+
+    // Shore bombardment: the nearest enemy land tile in range, unless a bunker covers it.
+    for (const s of this.shipList) {
+      if ((this.tick + s.id * 7) % ws.shellEvery !== 0) continue;
+      const sx = s.tile % w;
+      const sy = Math.floor(s.tile / w);
+      let target = -1;
+      let best = Infinity;
+      for (let dy = -ws.range; dy <= ws.range; dy++) {
+        for (let dx = -ws.range; dx <= ws.range; dx++) {
+          const x = sx + dx;
+          const y = sy + dy;
+          const d = dx * dx + dy * dy;
+          if (d > range2 || d >= best || x < 0 || y < 0 || x >= w || y >= this.height) continue;
+          const t = y * w + x;
+          const o = this.owner[t];
+          if (o === NEUTRAL || o === s.owner || this.allied(o, s.owner) || this.defended(t, o)) continue;
+          best = d;
+          target = t;
+        }
+      }
+      if (target < 0) continue;
+      const victim = this.player(this.owner[target]);
+      victim.troops -= victim.troops / victim.tiles;
+      const b = this.buildingsByTile.get(target);
+      if (b) {
+        this.buildingsByTile.delete(target);
+        victim.owned[b.kind]--;
+      }
+      this.release(target);
+      // Cratered: it stays neutral for a while rather than being swept back in as a pocket.
+      this.fallout[target] = this.tick + CONFIG.falloutTicks;
+      this.events.push({ type: 'shelled', tile: target, owner: victim.id, by: s.owner });
+      if (victim.tiles === 0) this.eliminate(victim, s.owner);
+      else if (this.owner[victim.capital] !== victim.id) this.loseCapital(victim, s.owner);
+    }
   }
 
   // Alliances

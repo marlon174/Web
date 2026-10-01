@@ -70,6 +70,7 @@ export class Session implements InputTarget {
   /** Intents to feed back in, when this session replays a finished match. */
   private readonly replay: IntentLog | null;
   private replayAt = 0;
+  private lastShellNote = -Infinity;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -206,6 +207,14 @@ export class Session implements InputTarget {
       if (o === NEUTRAL || o === me.id) return 'Klick auf das Land eines anderen Spielers.';
       return null;
     }
+    if (kind === 'warship') {
+      const refusal = game.canWarship(me);
+      const afloat = game.warships.some((s) => s.owner === me.id);
+      if (refusal === 'noPort' && !afloat) return 'Bau zuerst einen Hafen. Kriegsschiffe laufen von dort aus.';
+      if (refusal === 'gold' && !afloat) return `Ein Kriegsschiff kostet ${formatTroops(CONFIG.warship.cost)} Gold.`;
+      if (tile >= 0 && !game.isWater(tile)) return 'Klick aufs Wasser: dorthin fährt dein Kriegsschiff.';
+      return null;
+    }
     if (isMissile(kind)) {
       const refusal = game.canLaunch(me, kind);
       if (refusal === 'noSilo') return 'Bau zuerst ein Raketensilo.';
@@ -265,7 +274,9 @@ export class Session implements InputTarget {
     };
     const cancel = 'Rechtsklick oder Esc bricht ab.';
     hud.setBanner(
-      kind === 'ally'
+      kind === 'warship'
+        ? `Klick aufs Wasser: ${this.game.canWarship(this.me) === null ? 'Ein neues Kriegsschiff läuft dorthin aus.' : 'Dein nächstes Kriegsschiff fährt dorthin.'} ${cancel}`
+        : kind === 'ally'
         ? `Klick auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`
         : isMissile(kind)
           ? `Klick auf ein Ziel für deine ${name}. ${cancel}`
@@ -290,6 +301,12 @@ export class Session implements InputTarget {
     const refusal = this.toolRefusal(kind, tile);
     if (refusal) {
       hud.toast(refusal);
+      return;
+    }
+    if (kind === 'warship') {
+      this.game.queue({ type: 'warship', player: me.id, tile });
+      sound.play('click');
+      this.cancel();
       return;
     }
     if (kind === 'ally') {
@@ -714,6 +731,21 @@ export class Session implements InputTarget {
         const m = e.missile;
         const mine = m.owner === me.id || e.losses.some((l) => l.player === me.id);
         sound.play(m.kind === 'rocket' ? 'boom' : 'bigBoom', mine ? 1 : 0.25);
+      } else if (e.type === 'sunk') {
+        if (e.by === me.id) hud.post(`Dein Kriegsschiff hat ein Boot von ${name(e.owner)} versenkt (${formatTroops(e.troops)} Truppen).`, 'good');
+        else if (e.owner === me.id) hud.post(`${name(e.by)} hat dein Boot versenkt!`, 'bad');
+      } else if (e.type === 'shipSunk') {
+        if (e.by === me.id) hud.post(`Du hast ein Kriegsschiff von ${name(e.owner)} versenkt.`, 'good');
+        else if (e.owner === me.id) hud.post(`${name(e.by)} hat dein Kriegsschiff versenkt!`, 'bad');
+        this.renderer.shellHit(e.tile);
+      } else if (e.type === 'shelled') {
+        this.renderer.shellHit(e.tile);
+        if (e.by === me.id || e.owner === me.id) sound.play('boom', 0.35);
+        // Once in a while, not for every shell.
+        if (e.owner === me.id && performance.now() - this.lastShellNote > 15000) {
+          this.lastShellNote = performance.now();
+          hud.post(`Ein Kriegsschiff von ${name(e.by)} beschießt deine Küste!`, 'bad');
+        }
       } else if (e.type === 'gameOver') {
         this.showResult(e.winner);
       }

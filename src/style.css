@@ -735,7 +735,7 @@ fieldset:disabled .segmented label {
   display: grid;
   gap: 8px;
   justify-items: center;
-  width: min(700px, calc((100% - 2 * var(--gutter)) / var(--ui)));
+  width: min(760px, calc((100% - 2 * var(--gutter)) / var(--ui)));
 }
 
 .fronts {
@@ -774,7 +774,8 @@ fieldset:disabled .segmented label {
 
 .tools {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 6px;
   width: 100%;
   box-sizing: border-box;
@@ -806,6 +807,9 @@ fieldset:disabled .segmented label {
 }
 
 .tool-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
@@ -1013,7 +1017,7 @@ fieldset:disabled .segmented label {
 /* Keep the bottom bar clear of the minimap, however big the UI is. */
 @media (min-width: 961px) {
   :root:not(.hide-minimap) .bottom-center {
-    width: min(700px, calc((100% - 2 * (var(--gutter) + 8px)) / var(--ui) - 2 * 200px));
+    width: min(760px, calc((100% - 2 * (var(--gutter) + 8px)) / var(--ui) - 2 * 200px));
   }
 }
 
