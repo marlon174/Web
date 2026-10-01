@@ -7,6 +7,8 @@ import { byId, Hud } from './hud';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
 import { Session, type IntentLog } from './session';
 import { SettingsPanel } from './settings';
+import { formatClock } from './format';
+import { progress, recordResult, today, type Daily } from './daily';
 
 function randomSeed(): number {
   return 10000 + Math.floor(Math.random() * 90000);
@@ -25,6 +27,8 @@ export class App {
   private readonly sizeField = byId<HTMLFieldSetElement>('size-field');
   private readonly swatches = byId('swatches');
   private readonly chartNo = byId('chart-no');
+  private readonly dailyDesc = byId('daily-desc');
+  private readonly dailyBest = byId('daily-best');
   private readonly hud = new Hud();
   private session: Session | null = null;
   private seed = randomSeed();
@@ -58,6 +62,7 @@ export class App {
       if (target.name === 'mode') this.sizeField.disabled = target.value === 'quick';
       if (target.name === 'mode' || target.name === 'size') this.preview();
     });
+    byId('daily-play').addEventListener('click', () => this.playDaily());
     byId('reroll').addEventListener('click', () => {
       this.seed = randomSeed();
       this.preview();
@@ -164,7 +169,26 @@ export class App {
   private showMenu(): void {
     this.hud.hide();
     this.menu.hidden = false;
+    this.showDaily();
     this.preview();
+  }
+
+  private showDaily(): void {
+    const daily = today();
+    const { best, tries } = progress(daily);
+    this.dailyDesc.textContent = daily.title;
+    this.dailyBest.textContent = best
+      ? `Deine Bestzeit heute: ${formatClock(best)}`
+      : tries
+        ? `Noch nicht geschafft (${tries} ${tries === 1 ? 'Versuch' : 'Versuche'}). Gewinne so schnell du kannst.`
+        : 'Gewinne so schnell du kannst. Alle spielen heute dieselbe Karte.';
+  }
+
+  /** Today's challenge, with the name and colour from the menu. */
+  private playDaily(): void {
+    const daily = today();
+    const options: MatchOptions = { ...daily.options, human: this.options().human };
+    this.start(createSettings(options, this.mapFor(options)), { fog: daily.fog, daily });
   }
 
   private play(): void {
@@ -179,11 +203,12 @@ export class App {
       fog: this.fogInput.checked,
       teams: options.teams ?? 0,
     });
-    this.start(createSettings(options, this.mapFor(options)));
+    this.start(createSettings(options, this.mapFor(options)), { fog: this.fogInput.checked });
   }
 
   /** Runs a match with these settings: a fresh one, or a replay when given the intent log. */
-  private start(settings: GameSettings, replay?: IntentLog): void {
+  private start(settings: GameSettings, how: { fog: boolean; replay?: IntentLog; daily?: Daily }): void {
+    const { replay, daily } = how;
     const game = new Game(settings);
     this.menu.hidden = true;
     this.session?.dispose();
@@ -191,9 +216,13 @@ export class App {
       play: {
         hud: this.hud,
         replay,
-        fog: this.fogInput.checked,
+        fog: how.fog,
         hooks: {
           playAgain: () => {
+            if (daily) {
+              this.playDaily();
+              return;
+            }
             this.seed = randomSeed();
             this.play();
           },
@@ -201,7 +230,14 @@ export class App {
             this.seed = randomSeed();
             this.showMenu();
           },
-          replay: (log) => this.start(settings, log),
+          replay: (log) => this.start(settings, { ...how, replay: log }),
+          result: (won, seconds) => {
+            if (!daily) return null;
+            const best = recordResult(daily, won, seconds);
+            if (best) return `Neue Tagesbestzeit: ${formatClock(seconds)}!`;
+            const { best: time } = progress(daily);
+            return time ? `Deine Tagesbestzeit: ${formatClock(time)}.` : null;
+          },
         },
       },
     });

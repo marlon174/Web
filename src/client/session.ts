@@ -33,6 +33,8 @@ export interface SessionHooks {
   menu(): void;
   /** Watch the match just played again from the start. */
   replay(log: IntentLog): void;
+  /** Told how a match ended for you (not for replays); may return a line to add to the results. */
+  result?(won: boolean, seconds: number): string | null;
 }
 
 export interface SessionOptions {
@@ -73,6 +75,8 @@ export class Session implements InputTarget {
   private replayAt = 0;
   private lastShellNote = -Infinity;
   private floodAnnounced = false;
+  /** The result goes to the hooks once per match: on defeat, or at the end if still in. */
+  private resultReported = false;
   private readonly fog: Fog | null = null;
 
   constructor(
@@ -815,6 +819,10 @@ export class Session implements InputTarget {
     const play = this.options.play!;
     this.defeatShown = true;
     sound.play('lose');
+    if (!this.replay && !this.resultReported) {
+      this.resultReported = true;
+      play.hooks.result?.(false, this.game.tick / CONFIG.ticksPerSecond);
+    }
     play.hud.showOverlay({
       eyebrow: 'Niederlage',
       title: 'Ausgeschieden',
@@ -863,6 +871,12 @@ export class Session implements InputTarget {
         : `${winner.name} hat nach ${this.matchTime()} ${share} des Landes erobert.`;
     }
     if (this.replay) eyebrow = 'Ende der Wiederholung';
+    else if (!this.resultReported) {
+      this.resultReported = true;
+      const won = winnerId === me.id || (this.game.teamGame && winner.team === me.team);
+      const note = play.hooks.result?.(won, this.game.tick / CONFIG.ticksPerSecond);
+      if (note) text = `${text} ${note}`;
+    }
     play.hud.showOverlay({
       eyebrow,
       title,
