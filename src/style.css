@@ -699,6 +699,45 @@ fieldset:disabled .segmented label {
   font-variant-numeric: tabular-nums;
 }
 
+.team-totals {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  list-style: none;
+  border-bottom: 1px solid var(--panel-edge);
+}
+
+.team-totals li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-totals .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.team-totals .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-totals li.me {
+  color: var(--ink);
+}
+
+.team-totals li:not(.me) {
+  color: var(--ink-soft);
+}
+
 .board li.ally .name {
   color: var(--good);
 }

@@ -78,7 +78,7 @@ export function botThink(game: Game, p: Player, rng: Rng): Intent[] {
   if (!brain) return [];
   const out: Intent[] = [];
   const survey = surveyBorder(game, p);
-  const talk = diplomacy(game, p, brain, rng, survey);
+  const talk = game.teamGame ? helpTeammate(game, p, rng) : diplomacy(game, p, brain, rng, survey);
   if (talk) out.push(talk);
   const spend = spendGold(game, p, brain, rng, survey.shared);
   if (spend) out.push(spend);
@@ -114,6 +114,18 @@ function surveyBorder(game: Game, p: Player): Survey {
     if (t + width < size) look(t + width);
   }
   return { neutral, shared };
+}
+
+/** In teams: a well-stocked bot sends troops to a teammate who is under attack and short of them. */
+function helpTeammate(game: Game, p: Player, rng: Rng): Intent | null {
+  const max = game.maxTroops(p);
+  if (max <= 0 || p.troops / max < 0.5 || rng.next() > 0.1) return null;
+  for (const q of game.players) {
+    if (!q.alive || !game.teammates(p.id, q.id) || q.troops * 2 > p.troops) continue;
+    if (!game.attacks.some((a) => a.target === q.id)) continue;
+    return { type: 'donate', player: p.id, target: q.id, troops: 250, gold: 0 };
+  }
+  return null;
 }
 
 /**

@@ -13,6 +13,8 @@ export interface Prefs {
   difficulty: Difficulty;
   /** Fog of war: see only near your own land. */
   fog: boolean;
+  /** 0 for free-for-all, else the number of teams. */
+  teams: number;
 }
 
 const KEY = 'landgrab.prefs.v1';
@@ -25,6 +27,7 @@ const DEFAULTS: Prefs = {
   bots: 15,
   difficulty: 'normal',
   fog: false,
+  teams: 0,
 };
 
 export function loadPrefs(): Prefs {
@@ -38,6 +41,7 @@ export function loadPrefs(): Prefs {
       bots: typeof saved.bots === 'number' ? Math.min(100, Math.max(3, Math.round(saved.bots))) : DEFAULTS.bots,
       difficulty: saved.difficulty === 'easy' || saved.difficulty === 'hard' ? saved.difficulty : 'normal',
       fog: saved.fog === true,
+      teams: saved.teams === 2 || saved.teams === 4 ? saved.teams : 0,
     };
   } catch {
     return { ...DEFAULTS };

@@ -467,6 +467,45 @@ describe('warships', () => {
   });
 });
 
+describe('teams', () => {
+  it('deals players into teams that are allied for good and can share troops and gold', () => {
+    const options: MatchOptions = { ...botMatch, bots: 7, teams: 2 };
+    const game = new Game(createSettings(options, createMap(options)));
+    expect(game.players.map((p) => p.team)).toEqual([1, 2, 1, 2, 1, 2, 1, 2]);
+    expect(game.teammates(1, 3)).toBe(true);
+    expect(game.allied(1, 3)).toBe(true);
+    expect(game.allied(1, 2)).toBe(false);
+    // An alliance can't be broken between teammates.
+    game.queue({ type: 'breakAlly', player: 1, target: 3 });
+    game.step();
+    expect(game.allied(1, 3)).toBe(true);
+  });
+
+  it('moves troops and gold to a teammate, never to an opponent', () => {
+    const settings = duel(30, 5);
+    settings.players.push({ name: 'C', color: 0x00ff00, bot: false });
+    settings.players[0].team = 1;
+    settings.players[1].team = 2;
+    settings.players[2].team = 1;
+    const game = new Game(settings);
+    game.queue({ type: 'spawn', player: 1, tile: 2 * 30 + 3 });
+    game.queue({ type: 'spawn', player: 2, tile: 2 * 30 + 15 });
+    game.queue({ type: 'spawn', player: 3, tile: 2 * 30 + 26 });
+    game.step();
+    const [a, b, c] = game.players;
+    a.gold = 900;
+    const troops = a.troops;
+    const before = c.troops;
+    game.queue({ type: 'donate', player: 1, target: 3, troops: 500, gold: 300 });
+    game.queue({ type: 'donate', player: 1, target: 2, troops: 500, gold: 300 });
+    const events = run(game, 1);
+    expect(events.filter((e) => e.type === 'donated')).toHaveLength(1);
+    expect(c.troops).toBeGreaterThan(before + troops * 0.4);
+    expect(c.gold).toBeGreaterThanOrEqual(300);
+    expect(b.gold).toBeLessThan(300);
+  });
+});
+
 describe('battle royale', () => {
   it('floods the land from the outside in, warning first, and keeps the map consistent', () => {
     const options: MatchOptions = { ...botMatch, mode: 'royale', mapSize: 'small', human: null };

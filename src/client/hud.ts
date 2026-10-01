@@ -59,6 +59,7 @@ export class Hud {
   private readonly clock = byId('clock');
   private readonly banner = byId('banner');
   private readonly board = byId<HTMLOListElement>('board');
+  private readonly teamTotals = byId<HTMLUListElement>('team-totals');
   private readonly fronts = byId<HTMLUListElement>('fronts');
   private readonly feed = byId<HTMLUListElement>('feed');
   private readonly toastEl = byId('toast');
@@ -210,8 +211,13 @@ export class Hud {
       const name = document.createElement('span');
       name.className = 'name';
       const ends = game.allianceEnds(me.id, p.id);
-      name.textContent = ends ? `🤝 ${p.name} · ${formatClock((ends - game.tick) / CONFIG.ticksPerSecond)}` : p.name;
-      if (ends) li.classList.add('ally');
+      if (game.teammates(me.id, p.id)) {
+        name.textContent = `👥 ${p.name}`;
+        li.classList.add('ally');
+      } else {
+        name.textContent = ends ? `🤝 ${p.name} · ${formatClock((ends - game.tick) / CONFIG.ticksPerSecond)}` : p.name;
+        if (ends) li.classList.add('ally');
+      }
       const share = document.createElement('span');
       share.className = 'share';
       share.textContent = formatShare(p.tiles / game.map.landTiles);
@@ -222,6 +228,35 @@ export class Hud {
     const myRank = ranked.indexOf(me);
     if (myRank >= BOARD_ROWS) rows.push(row(me, myRank + 1));
     this.board.replaceChildren(...rows);
+    this.updateTeams(game, me);
+  }
+
+  /** In team games, each team's share of the land, yours first. */
+  private updateTeams(game: Game, me: Player): void {
+    this.teamTotals.hidden = !game.teamGame;
+    if (!game.teamGame) return;
+    const totals = game.teamTiles();
+    const items: HTMLLIElement[] = [];
+    totals.forEach((tiles, team) => {
+      if (tiles === undefined) return;
+      const lead = game.players.filter((p) => p.team === team && p.alive).sort((a, b) => b.tiles - a.tiles)[0];
+      if (!lead) return;
+      const li = document.createElement('li');
+      if (team === me.team) li.className = 'me';
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.setProperty('--c', toHex(lead.color));
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = team === me.team ? 'Dein Team' : `Team ${lead.name}`;
+      const share = document.createElement('span');
+      share.className = 'share';
+      share.textContent = formatShare(tiles / game.map.landTiles);
+      li.append(dot, name, share);
+      items.push(li);
+    });
+    items.sort((a, b) => Number(b.classList.contains('me')) - Number(a.classList.contains('me')));
+    this.teamTotals.replaceChildren(...items);
   }
 
   private updateFronts(game: Game, me: Player): void {

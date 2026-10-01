@@ -317,6 +317,12 @@ export class Session implements InputTarget {
       this.cancel();
       return;
     }
+    if (kind === 'ally' && this.game.teammates(me.id, this.game.owner[tile])) {
+      this.game.queue({ type: 'donate', player: me.id, target: this.game.owner[tile], troops: 0, gold: Math.floor(me.gold / 3) });
+      sound.play('click');
+      this.cancel();
+      return;
+    }
     if (kind === 'ally') {
       const target = this.game.owner[tile];
       if (this.game.allied(me.id, target)) this.game.queue({ type: 'breakAlly', player: me.id, target });
@@ -391,6 +397,15 @@ export class Session implements InputTarget {
     }
     const target = game.owner[tile];
     if (target === me.id) return;
+    if (game.teammates(me.id, target)) {
+      if (me.troops < 2) {
+        hud.toast('Du hast noch keine Truppen zum Verschicken.');
+        return;
+      }
+      game.queue({ type: 'donate', player: me.id, target, troops: hud.percent * 10, gold: 0 });
+      sound.play('click');
+      return;
+    }
     if (game.allied(me.id, target)) {
       hud.toast(`${game.player(target).name} ist dein Verbündeter.`);
       return;
@@ -446,7 +461,8 @@ export class Session implements InputTarget {
       const p = game.player(o);
       lines.push(o === me.id ? `${p.name} (du)` : p.name);
       lines.push(`${formatTroops(p.troops)} Truppen · ${formatShare(p.tiles / game.map.landTiles)} Land`);
-      if (game.allied(me.id, o)) lines.push(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`);
+      if (game.teammates(me.id, o)) lines.push('Dein Team: Klick schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds');
+      else if (game.allied(me.id, o)) lines.push(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`);
       lines.push(ground);
     }
     if (o !== me.id && !game.allied(me.id, o) && me.alive) {
@@ -759,6 +775,10 @@ export class Session implements InputTarget {
           this.lastShellNote = performance.now();
           hud.post(`Ein Kriegsschiff von ${name(e.by)} beschießt deine Küste!`, 'bad');
         }
+      } else if (e.type === 'donated') {
+        const what = [e.troops > 0 ? `${formatTroops(e.troops)} Truppen` : '', e.gold > 0 ? `${formatTroops(e.gold)} Gold` : ''].filter(Boolean).join(' und ');
+        if (e.to === me.id) hud.post(`${name(e.from)} schickt dir ${what}.`, 'good');
+        else if (e.from === me.id) hud.toast(`Du hast ${name(e.to)} ${what} geschickt.`);
       } else if (e.type === 'flooded') {
         this.renderer.flood(e.tiles);
         if (!this.floodAnnounced) {
@@ -820,12 +840,18 @@ export class Session implements InputTarget {
     const lastStanding = this.game.players.filter((p) => p.alive).length === 1;
     this.ended = true;
     play.hud.setBanner('');
-    if (me.alive) sound.play(winnerId === me.id ? 'win' : 'lose');
+    if (me.alive) sound.play(winnerId === me.id || (this.game.teamGame && winner.team === me.team) ? 'win' : 'lose');
 
     let eyebrow: string;
     let title: string;
     let text: string;
-    if (winnerId === me.id) {
+    if (this.game.teamGame) {
+      const won = winner.team === me.team;
+      const teamShare = formatShare((this.game.teamTiles()[winner.team] ?? 0) / this.game.map.landTiles);
+      eyebrow = won ? 'Sieg' : me.alive ? 'Niederlage' : 'Partie vorbei';
+      title = won ? 'Dein Team gewinnt' : `Team ${winner.name} gewinnt`;
+      text = `${won ? 'Deinem Team' : `Team ${winner.name}`} gehören ${timed ? 'zum Schluss ' : `nach ${this.matchTime()} `}${teamShare} des Landes.`;
+    } else if (winnerId === me.id) {
       eyebrow = 'Sieg';
       title = lastStanding ? 'Als Letzter übrig' : timed ? 'Das meiste Land zum Schluss' : 'Die Karte gehört dir';
       text = timed ? `Die Zeit ist um. Dir gehören ${share} des Landes.` : `Nach ${this.matchTime()} gehören dir ${share} des Landes.`;

@@ -13,6 +13,8 @@ export interface MatchOptions {
   mapSize: MapSize;
   bots: number;
   difficulty: Difficulty;
+  /** Number of teams (2 or 4), or 0 for everyone on their own. */
+  teams?: number;
   /** The human player, or null for a bots-only match. */
   human: { name: string; color: number } | null;
 }
@@ -43,11 +45,13 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
   if (options.human) players.push({ name: options.human.name, color: options.human.color, bot: false });
 
   const names = botNames(options.bots + 1, rng).filter((n) => n !== options.human?.name);
-  const colors = botColors(options.bots, options.human?.color ?? null, rng);
+  const teams = options.teams && options.teams >= 2 ? options.teams : 0;
+  const colors = teams ? [] : botColors(options.bots, options.human?.color ?? null, rng);
   for (let i = 0; i < options.bots; i++) {
     const name = i < names.length ? names[i] : `${names[i % names.length]} ${Math.floor(i / names.length) + 1}`;
-    players.push({ name, color: colors[i], bot: true });
+    players.push({ name, color: colors[i] ?? 0, bot: true });
   }
+  if (teams) assignTeams(players, teams, options.human?.color ?? null);
 
   return {
     seed: options.seed,
@@ -57,6 +61,35 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
     timeLimit: options.mode === 'quick' ? QUICK_MATCH_SECONDS * CONFIG.ticksPerSecond : 0,
     royale: options.mode === 'royale',
   };
+}
+
+/** Hues for teams after the first; the first team takes its hue from the human's colour. */
+const TEAM_HUES = [215, 0, 130, 45];
+
+/**
+ * Deals players round the teams (the human, player 1, lands in team 1) and
+ * colours each team in shades of one hue, so sides read at a glance.
+ */
+function assignTeams(players: PlayerSetup[], teams: number, humanColor: number | null): void {
+  const hues: number[] = [];
+  const first = humanColor !== null ? hueOf(humanColor) : TEAM_HUES[0];
+  hues.push(first);
+  for (const h of TEAM_HUES) {
+    if (hues.length >= teams) break;
+    if (hues.every((u) => Math.min(Math.abs(u - h), 360 - Math.abs(u - h)) > 40)) hues.push(h);
+  }
+  while (hues.length < teams) hues.push((hues[hues.length - 1] + 90) % 360);
+  const seen = new Array<number>(teams + 1).fill(0);
+  players.forEach((p, i) => {
+    const team = (i % teams) + 1;
+    p.team = team;
+    const k = seen[team]++;
+    if (p.bot || humanColor === null) {
+      // Same hue for the whole team; members differ in lightness and saturation.
+      const hue = (hues[team - 1] + ((k % 3) - 1) * 3 + 360) % 360;
+      p.color = hslToRgb(hue, [0.55, 0.45, 0.65, 0.4, 0.6][k % 5], [0.62, 0.48, 0.7, 0.4, 0.55][k % 5]);
+    }
+  });
 }
 
 const PREFIXES = ['Ash', 'Black', 'Bright', 'Cold', 'Dun', 'East', 'Ember', 'Fen', 'Frost', 'Glass', 'Gold', 'Harrow', 'High', 'Iron', 'North', 'Oak', 'Pine', 'Raven', 'Red', 'Salt', 'Silver', 'South', 'Stone', 'Storm', 'Thorn', 'Vale', 'West', 'Wolf', 'Elder', 'Moss'];

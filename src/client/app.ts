@@ -48,6 +48,7 @@ export class App {
     this.check(`mode-${prefs.mode}`);
     this.check(`size-${prefs.mapSize}`);
     this.check(`diff-${prefs.difficulty}`);
+    this.check(`teams-${prefs.teams}`);
     this.sizeField.disabled = prefs.mode === 'quick';
     this.buildSwatches();
 
@@ -132,6 +133,7 @@ export class App {
       mapSize: this.radio('size') as MapSize,
       bots: Number(this.botsInput.value),
       difficulty: this.radio('difficulty') as Difficulty,
+      teams: Number(this.radio('teams')) || 0,
       human: { name, color: this.color },
     };
   }
@@ -175,6 +177,7 @@ export class App {
       bots: options.bots,
       difficulty: options.difficulty,
       fog: this.fogInput.checked,
+      teams: options.teams ?? 0,
     });
     this.start(createSettings(options, this.mapFor(options)));
   }

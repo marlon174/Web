@@ -66,6 +66,15 @@
               </div>
             </fieldset>
 
+            <fieldset class="field">
+              <legend>Teams</legend>
+              <div class="segmented">
+                <input type="radio" name="teams" id="teams-0" value="0" checked /><label for="teams-0">Jeder für sich</label>
+                <input type="radio" name="teams" id="teams-2" value="2" /><label for="teams-2">2 Teams</label>
+                <input type="radio" name="teams" id="teams-4" value="4" /><label for="teams-4">4 Teams</label>
+              </div>
+            </fieldset>
+
             <div class="field-row">
               <div class="field">
                 <label for="bots">Bots <output id="bots-out" for="bots">15</output></label>
@@ -115,6 +124,7 @@
               <li>Mit einem <strong>Hafen</strong> klickst du auf Land jenseits des Wassers, und deine Truppen setzen per Boot über. So erreichst du die Inseln.</li>
               <li>Mit dem Werkzeug <strong>Bündnis</strong> klickst du auf einen Bot. Nimmt er an, greift ihr euch 3 Minuten lang nicht an. Bots bieten dir auch selbst Bündnisse an, aber Vorsicht: Wer schwach wird, wird manchmal verraten.</li>
               <li>Ein <strong>Kriegsschiff</strong> (V) läuft aus deinem Hafen aus, versenkt feindliche Boote und Schiffe und beschießt Küsten, die kein Bunker schützt.</li>
+              <li>Im <strong>Team</strong>-Modus klickst du auf das Land eines Teammitglieds, um ihm Truppen zu schicken. Mit dem Bündnis-Werkzeug schenkst du ihm ein Drittel deines Golds.</li>
               <li>Mit einem Silo feuerst du <strong>Raketen</strong> und <strong>Atombomben</strong> auf jedes Ziel, mit 3 Silos auch die riesige <strong>H-Bombe</strong>. Getroffenes Land wird neutral und bleibt 30 Sekunden verseucht.</li>
             </ul>
           </details>
@@ -178,6 +188,7 @@
           </div>
           <section class="panel board" aria-label="Rangliste">
             <h2 class="panel-title">Landbesitz</h2>
+            <ul class="team-totals" id="team-totals" hidden></ul>
             <ol id="board"></ol>
           </section>
         </div>

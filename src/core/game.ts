@@ -15,6 +15,8 @@ export interface PlayerSetup {
   /** 0xRRGGBB */
   color: number;
   bot: boolean;
+  /** Team number from 1, or 0/absent to play alone. Teammates are allied for good. */
+  team?: number;
 }
 
 export interface GameSettings {
@@ -33,6 +35,8 @@ export interface Player {
   readonly name: string;
   readonly color: number;
   readonly bot: boolean;
+  /** Team number from 1, or 0 when playing alone. */
+  readonly team: number;
   alive: boolean;
   spawned: boolean;
   troops: number;
@@ -141,7 +145,8 @@ export type Intent =
   | { type: 'ally'; player: number; target: number }
   | { type: 'breakAlly'; player: number; target: number }
   | { type: 'recall'; player: number; target: number }
-  | { type: 'warship'; player: number; tile: number };
+  | { type: 'warship'; player: number; tile: number }
+  | { type: 'donate'; player: number; target: number; troops: number; gold: number };
 
 export type GameEvent =
   | { type: 'capitalLost'; player: number; by: number }
@@ -161,6 +166,7 @@ export type GameEvent =
   | { type: 'shipSunk'; owner: number; by: number; tile: number }
   | { type: 'shelled'; tile: number; owner: number; by: number }
   | { type: 'flooded'; tiles: number[] }
+  | { type: 'donated'; from: number; to: number; troops: number; gold: number }
   | { type: 'gameOver'; winner: number };
 
 export interface Attack {
@@ -266,6 +272,7 @@ export class Game {
       name: setup.name,
       color: setup.color,
       bot: setup.bot,
+      team: setup.team ?? 0,
       alive: true,
       spawned: false,
       troops: 0,
@@ -429,7 +436,20 @@ export class Game {
   }
 
   allied(a: number, b: number): boolean {
-    return a !== b && a !== NEUTRAL && b !== NEUTRAL && this.alliances.has(this.pairKey(a, b));
+    if (a === b || a === NEUTRAL || b === NEUTRAL) return false;
+    return this.teammates(a, b) || this.alliances.has(this.pairKey(a, b));
+  }
+
+  /** Whether two players are on the same team (always allied). */
+  teammates(a: number, b: number): boolean {
+    if (a === b || a === NEUTRAL || b === NEUTRAL) return false;
+    const ta = this.player(a).team;
+    return ta !== 0 && ta === this.player(b).team;
+  }
+
+  /** Whether this match is played in teams. */
+  get teamGame(): boolean {
+    return this.players.some((p) => p.team !== 0);
   }
 
   /** Tick an alliance ends, or 0 if the two aren't allied. */
@@ -711,10 +731,12 @@ export class Game {
       this.sendBoat(p, intent.tile, intent.permille);
     } else if (intent.type === 'warship') {
       this.orderWarship(p, intent.tile);
+    } else if (intent.type === 'donate') {
+      this.donate(p, intent.target, intent.troops, intent.gold);
     } else if (intent.type === 'ally') {
       this.proposeAlliance(p, intent.target);
     } else if (intent.type === 'breakAlly') {
-      if (this.isPlayerId(intent.target) && this.allied(p.id, intent.target)) this.endAlliance(p.id, intent.target, p.id);
+      if (this.isPlayerId(intent.target) && this.allied(p.id, intent.target) && !this.teammates(p.id, intent.target)) this.endAlliance(p.id, intent.target, p.id);
     } else if (intent.type === 'launch') {
       if (!(intent.kind in CONFIG.missiles) || intent.tile < 0 || intent.tile >= this.size) return;
       if (this.allied(p.id, this.owner[intent.tile])) return;
@@ -768,6 +790,22 @@ export class Game {
     for (const p of this.players) {
       if (p.spawned) continue;
       let placed = false;
+      // In teams, try to start near a teammate first.
+      const mate = p.team ? this.players.find((q) => q !== p && q.team === p.team && q.capital >= 0) : undefined;
+      if (mate) {
+        const reach = Math.max(10, Math.round(spacing * 2.5));
+        const mx = mate.capital % this.width;
+        const my = (mate.capital - mx) / this.width;
+        for (let attempt = 0; attempt < 300 && !placed; attempt++) {
+          const x = mx + this.rng.int(2 * reach + 1) - reach;
+          const y = my + this.rng.int(2 * reach + 1) - reach;
+          if (x < 0 || y < 0 || x >= this.width || y >= this.height) continue;
+          const t = y * this.width + x;
+          if (!this.isSpawnable(t, true) || this.nearCapital(t, spacing)) continue;
+          this.spawnAt(p, t);
+          placed = true;
+        }
+      }
       while (!placed && spacing >= 0.5) {
         for (let attempt = 0; attempt < 400 && !placed; attempt++) {
           const t = this.rng.int(this.size);
@@ -1239,8 +1277,23 @@ export class Game {
 
   // Alliances
 
+  /** Hands troops (‰ of yours) and gold to a teammate. */
+  private donate(p: Player, target: number, permille: number, gold: number): void {
+    if (!this.isPlayerId(target) || !this.teammates(p.id, target)) return;
+    const q = this.player(target);
+    if (!q.alive) return;
+    const troops = Math.floor((p.troops * Math.max(0, Math.min(1000, Math.floor(permille)))) / 1000);
+    const coins = Math.max(0, Math.min(Math.floor(p.gold), Math.floor(gold)));
+    if (troops < 1 && coins < 1) return;
+    p.troops -= troops;
+    q.troops += troops;
+    p.gold -= coins;
+    q.gold += coins;
+    this.events.push({ type: 'donated', from: p.id, to: target, troops, gold: coins });
+  }
+
   private proposeAlliance(p: Player, target: number): void {
-    if (!this.isPlayerId(target) || target === p.id) return;
+    if (!this.isPlayerId(target) || target === p.id || this.teammates(p.id, target)) return;
     const q = this.player(target);
     const key = this.pairKey(p.id, target);
     if (!q.alive || this.alliances.has(key)) return;
@@ -1691,7 +1744,18 @@ export class Game {
     }
   }
 
+  /** Land held by each team (index = team number), for team games. */
+  teamTiles(): number[] {
+    const totals: number[] = [];
+    for (const p of this.players) if (p.team && p.alive) totals[p.team] = (totals[p.team] ?? 0) + p.tiles;
+    return totals;
+  }
+
   private checkEnd(): void {
+    if (this.teamGame) {
+      this.checkTeamEnd();
+      return;
+    }
     let alive = 0;
     let leader: Player | null = null;
     for (const p of this.players) {
@@ -1709,5 +1773,31 @@ export class Game {
     const standing = this.players.filter((p) => p.alive).sort((a, b) => b.tiles - a.tiles || a.id - b.id);
     standing.forEach((p, i) => (p.place = i + 1));
     this.events.push({ type: 'gameOver', winner: leader.id });
+  }
+
+  /** Teams win together: by holding the share of land between them, by outlasting the others, or on time. */
+  private checkTeamEnd(): void {
+    const totals = this.teamTiles();
+    let best = 0;
+    let teamsAlive = 0;
+    totals.forEach((n, team) => {
+      if (n === undefined) return;
+      teamsAlive++;
+      if (!best || n > totals[best]) best = team;
+    });
+    if (!best) return;
+    const limit = this.settings.timeLimit;
+    const timeUp = limit > 0 && this.tick + 1 >= limit;
+    if (teamsAlive > 1 && totals[best] < this.map.landTiles * CONFIG.winShare && !timeUp) return;
+
+    this.phase = 'over';
+    // The winning team's biggest member stands for it.
+    const team = this.players.filter((p) => p.team === best && p.alive).sort((a, b) => b.tiles - a.tiles || a.id - b.id);
+    this.winner = team[0].id;
+    const standing = this.players
+      .filter((p) => p.alive)
+      .sort((a, b) => (totals[b.team] ?? 0) - (totals[a.team] ?? 0) || b.tiles - a.tiles || a.id - b.id);
+    standing.forEach((p, i) => (p.place = i + 1));
+    this.events.push({ type: 'gameOver', winner: this.winner });
   }
 }
