@@ -109,6 +109,17 @@ export const CONFIG = {
   falloutTicks: 300,
   falloutCostFactor: 2,
 
+  // Battle royale
+  royale: {
+    /** Ticks before the sea starts to rise. */
+    grace: 600,
+    /** Ticks over which it swallows `share` of the land, outside in. */
+    duration: 4800,
+    share: 0.92,
+    /** Land about to flood is marked this many ticks ahead. */
+    warning: 200,
+  },
+
   // Warships
   warship: {
     cost: 6000,

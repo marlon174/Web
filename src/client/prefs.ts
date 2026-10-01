@@ -33,7 +33,7 @@ export function loadPrefs(): Prefs {
     return {
       name: typeof saved.name === 'string' ? saved.name.slice(0, 16) : DEFAULTS.name,
       color: typeof saved.color === 'number' ? saved.color & 0xffffff : DEFAULTS.color,
-      mode: saved.mode === 'classic' ? 'classic' : 'quick',
+      mode: saved.mode === 'classic' || saved.mode === 'royale' ? saved.mode : 'quick',
       mapSize: saved.mapSize === 'small' || saved.mapSize === 'large' || saved.mapSize === 'huge' ? saved.mapSize : 'medium',
       bots: typeof saved.bots === 'number' ? Math.min(100, Math.max(3, Math.round(saved.bots))) : DEFAULTS.bots,
       difficulty: saved.difficulty === 'easy' || saved.difficulty === 'hard' ? saved.difficulty : 'normal',

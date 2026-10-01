@@ -72,6 +72,7 @@ export class Session implements InputTarget {
   private readonly replay: IntentLog | null;
   private replayAt = 0;
   private lastShellNote = -Infinity;
+  private floodAnnounced = false;
   private readonly fog: Fog | null = null;
 
   constructor(
@@ -679,7 +680,7 @@ export class Session implements InputTarget {
   private handleEvents(events: GameEvent[]): void {
     const hud = this.options.play!.hud;
     const me = this.me!;
-    const name = (id: number) => (id === me.id ? 'du' : this.game.player(id).name);
+    const name = (id: number) => (id === me.id ? 'du' : id === NEUTRAL ? 'die Flut' : this.game.player(id).name);
     // Many buildings can change hands at once: report them together.
     const captures = new Map<string, number>();
     for (const e of events) {
@@ -757,6 +758,12 @@ export class Session implements InputTarget {
         if (e.owner === me.id && performance.now() - this.lastShellNote > 15000) {
           this.lastShellNote = performance.now();
           hud.post(`Ein Kriegsschiff von ${name(e.by)} beschießt deine Küste!`, 'bad');
+        }
+      } else if (e.type === 'flooded') {
+        this.renderer.flood(e.tiles);
+        if (!this.floodAnnounced) {
+          this.floodAnnounced = true;
+          hud.post('Das Meer steigt! Rot markiertes Land geht in 20 Sekunden unter.', 'bad');
         }
       } else if (e.type === 'gameOver') {
         this.showResult(e.winner);

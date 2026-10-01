@@ -4,7 +4,7 @@ import type { GameSettings, PlayerSetup } from './game';
 import { generateMap, MAP_DIMENSIONS, type GameMap, type MapSize } from './map';
 import { Rng } from './rng';
 
-export type Mode = 'quick' | 'classic';
+export type Mode = 'quick' | 'classic' | 'royale';
 
 export interface MatchOptions {
   seed: number;
@@ -55,6 +55,7 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
     players,
     difficulty: options.difficulty,
     timeLimit: options.mode === 'quick' ? QUICK_MATCH_SECONDS * CONFIG.ticksPerSecond : 0,
+    royale: options.mode === 'royale',
   };
 }
 

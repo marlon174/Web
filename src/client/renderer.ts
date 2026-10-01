@@ -31,6 +31,8 @@ const INK = '#0f1c27';
 const DANGER = '#ff5a5a';
 const ICON_PATHS = Object.fromEntries(Object.entries(ICONS).map(([k, d]) => [k, new Path2D(d)])) as Record<ToolKind, Path2D>;
 const EXPLOSION_MS = 1100;
+/** Land the sea is about to take (battle royale). */
+const DOOMED = 0xd8323c;
 
 const NAME_FONT = '"Big Shoulders Display", "Arial Narrow", sans-serif';
 const NUMBER_FONT = '"Public Sans", system-ui, sans-serif';
@@ -228,14 +230,31 @@ export class Renderer {
     this.drawToolPreview(camera, overlay, dpr);
   }
 
+  /** The sea took these tiles: repaint them as fresh shallows. */
+  flood(tiles: number[]): void {
+    const w = this.game.width;
+    for (const t of tiles) {
+      const color = mix(SHALLOW, 0xffffff, 0.12);
+      this.ground[t] = color;
+      this.light[t] = 1;
+      this.base[t] = this.lit(color, 1);
+    }
+    this.applyChanges(tiles);
+    // Neighbours may have become beach.
+    for (const t of tiles) this.markDirty(t % w, Math.floor(t / w), 1);
+  }
+
   private paint(i: number): void {
     const { owner, width: w, size } = this.game;
     const o = owner[i];
+    const doomed = this.game.doomed.length > 0 && this.game.doomed[i] === 1;
     if (o === NEUTRAL) {
       this.pixels[i] =
         this.game.fallout[i] > this.game.tick && this.game.map.terrain[i] !== Terrain.Water
           ? this.scorchedPixel(i)
-          : this.base[i];
+          : doomed
+            ? this.lit(mix(this.ground[i], DOOMED, 0.5), this.light[i])
+            : this.base[i];
       return;
     }
     const x = i % w;
@@ -245,7 +264,8 @@ export class Renderer {
       (i >= w && owner[i - w] !== o) ||
       (i + w < size && owner[i + w] !== o);
     const show = GROUND_SHOW[this.game.map.terrain[i]];
-    this.pixels[i] = edge ? this.borders[o] : this.lit(mix(this.playerRgb[o], this.ground[i], show), this.light[i]);
+    const color = mix(this.playerRgb[o], this.ground[i], show);
+    this.pixels[i] = edge ? this.borders[o] : this.lit(doomed ? mix(color, DOOMED, 0.45) : color, this.light[i]);
   }
 
   /** A colour brightened or darkened by hill shading, as a pixel. */

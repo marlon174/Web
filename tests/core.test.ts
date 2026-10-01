@@ -467,6 +467,30 @@ describe('warships', () => {
   });
 });
 
+describe('battle royale', () => {
+  it('floods the land from the outside in, warning first, and keeps the map consistent', () => {
+    const options: MatchOptions = { ...botMatch, mode: 'royale', mapSize: 'small', human: null };
+    const map = createMap(options);
+    const landBefore = map.landTiles;
+    const game = new Game(createSettings(options, map));
+    run(game, CONFIG.royale.grace - CONFIG.royale.warning + 50);
+    // Warned, not yet flooded.
+    expect(game.doomed.some((d) => d === 1)).toBe(true);
+    expect(game.map.landTiles).toBe(landBefore);
+    run(game, 1500);
+    expect(game.map.landTiles).toBeLessThan(landBefore);
+    // The shared map is untouched; only this game's copy floods.
+    expect(map.landTiles).toBe(landBefore);
+    let land = 0;
+    for (let t = 0; t < game.size; t++) {
+      if (game.map.terrain[t] !== Terrain.Water) land++;
+      else expect(game.owner[t]).toBe(NEUTRAL);
+    }
+    expect(land).toBe(game.map.landTiles);
+    expect(game.players.reduce((n, p) => n + p.tiles, 0)).toBeLessThanOrEqual(land);
+  });
+});
+
 describe('bunkers', () => {
   it('are destroyed, not captured, when an enemy takes their tile', () => {
     const moat = Array.from({ length: 7 }, (_, y): [number, number] => [20, y]);

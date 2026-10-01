@@ -31,7 +31,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Warships (`V`).** With a port, click open water: a warship sails there from your nearest port (6K gold, one per port, four at most). It sinks enemy boats and ships in range and shells enemy coast that no bunker covers. Once you're at the limit, the same tool steers your nearest ship.
 - **Missiles.** With a silo, press `F` (rocket) or `G` (nuke) and click any target. With 3 silos, `B` fires a hydrogen bomb (radius 30, 35K gold). The blast turns land neutral, destroys buildings and kills troops; bombed ground stays poisoned for 30 seconds. Right-click or `Esc` cancels.
 - **Fog of war** (menu option). You see only your land, your allies', and a band around them and your boats and ships. The rest of the map is dark; names and the info card stay hidden there.
-- **Win.** Quick match: most land after 5 minutes. Classic: hold 70% of the land.
+- **Win.** Quick match: most land after 5 minutes. Classic: hold 70% of the land. Battle royale: after a minute the sea rises and swallows the map from the outside in over 8 minutes (land tinted red goes under within 20 seconds); hold 70% of what's left, or be the last one standing.
 
 Controls: drag to pan, scroll or pinch to zoom, `C` or the target button to find your capital, `X` or the speed button to run the match at 1×, 2× or 3×, `Space` to pause.
 

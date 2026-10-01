@@ -158,8 +158,13 @@ export class Hud {
       const left = (limit - game.tick) / CONFIG.ticksPerSecond;
       this.clock.textContent = formatClock(Math.ceil(left));
       this.clock.classList.toggle('urgent', left <= 30);
+    } else if (game.settings.royale && game.floodStartsIn() > 0) {
+      const left = game.floodStartsIn() / CONFIG.ticksPerSecond;
+      this.clock.textContent = `🌊 ${formatClock(Math.ceil(left))}`;
+      this.clock.classList.toggle('urgent', left <= 10);
     } else {
-      this.clock.textContent = formatClock(seconds);
+      this.clock.textContent = game.settings.royale ? `🌊 ${formatClock(seconds)}` : formatClock(seconds);
+      this.clock.classList.remove('urgent');
     }
 
     this.updateBoard(game, me);
@@ -285,6 +290,7 @@ export class Hud {
   }
 
   post(text: string, tone: Tone): void {
+    text = text.charAt(0).toUpperCase() + text.slice(1);
     if (tone !== 'info') sound.play(tone);
     const li = document.createElement('li');
     li.className = tone;

@@ -137,7 +137,7 @@ function valueNoise(seed: number, x: number, y: number): number {
 }
 
 /** Fractal noise in [0, 1): several octaves of value noise, each finer and fainter. */
-function fbm(seed: number, x: number, y: number, octaves: number): number {
+export function fbm(seed: number, x: number, y: number, octaves: number): number {
   let sum = 0;
   let norm = 0;
   let amp = 1;

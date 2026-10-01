@@ -1,7 +1,7 @@
 import { botThink, createBrain, type BotBrain, type Difficulty } from './bots';
 import { CONFIG } from './config';
 import { TileHeap } from './heap';
-import { Terrain, type GameMap } from './map';
+import { fbm, Terrain, type GameMap } from './map';
 import { Rng } from './rng';
 
 /** Owner id of land nobody holds. Players are numbered from 1. */
@@ -24,6 +24,8 @@ export interface GameSettings {
   difficulty: Difficulty;
   /** Match length in ticks. 0 plays until someone holds `CONFIG.winShare` of the land. */
   timeLimit: number;
+  /** Battle royale: the sea rises and swallows the map from the outside in. */
+  royale?: boolean;
 }
 
 export interface Player {
@@ -158,6 +160,7 @@ export type GameEvent =
   | { type: 'sunk'; owner: number; by: number; troops: number }
   | { type: 'shipSunk'; owner: number; by: number; tile: number }
   | { type: 'shelled'; tile: number; owner: number; by: number }
+  | { type: 'flooded'; tiles: number[] }
   | { type: 'gameOver'; winner: number };
 
 export interface Attack {
@@ -199,6 +202,12 @@ export class Game {
 
   private readonly rng: Rng;
   private readonly terrain: Uint8Array;
+  /** Battle royale: land tiles in the order the sea takes them, and how many it has. */
+  private readonly floodOrder: Int32Array | null = null;
+  private floodedCount = 0;
+  private doomedCount = 0;
+  /** 1 for land the sea will take within the warning time (battle royale). */
+  readonly doomed: Uint8Array;
   /** Position of each tile in its owner's border list, or -1. */
   private readonly borderPos: Int32Array;
   private attackList: Attack[] = [];
@@ -232,11 +241,14 @@ export class Game {
 
   constructor(settings: GameSettings) {
     this.settings = settings;
-    this.map = settings.map;
+    // The sea changes the land in battle royale, so that game gets its own copy of the map.
+    this.map = settings.royale ? { ...settings.map, terrain: settings.map.terrain.slice() } : settings.map;
     this.width = this.map.width;
     this.height = this.map.height;
     this.size = this.width * this.height;
     this.terrain = this.map.terrain;
+    this.doomed = new Uint8Array(settings.royale ? this.size : 0);
+    if (settings.royale) this.floodOrder = this.planFlood(settings.seed);
     this.owner = new Uint16Array(this.size);
     this.fallout = new Int32Array(this.size);
     this.borderPos = new Int32Array(this.size).fill(-1);
@@ -639,6 +651,7 @@ export class Game {
     this.updateTrains();
     this.updateBoats();
     this.updateWarships();
+    this.updateFlood();
     this.updateAlliances();
     this.grow();
     if (this.tick % this.sweepInterval === 0) this.sweepEnclosures();
@@ -990,6 +1003,11 @@ export class Game {
     const beach = b.path[b.path.length - 1];
     const target = this.owner[beach];
     if (!p.alive) return;
+    if (this.terrain[beach] === Terrain.Water) {
+      // The beach went under while they sailed: back to the reserves.
+      p.troops += b.troops;
+      return;
+    }
     if (target === p.id || this.allied(p.id, target)) {
       p.troops += b.troops;
       return;
@@ -1133,6 +1151,90 @@ export class Game {
       if (victim.tiles === 0) this.eliminate(victim, s.owner);
       else if (this.owner[victim.capital] !== victim.id) this.loseCapital(victim, s.owner);
     }
+  }
+
+  // Battle royale
+
+  /** Land tiles from the outside in: distance from the middle, roughened so the coast stays ragged. */
+  private planFlood(seed: number): Int32Array {
+    const { width: w, height: h, size, terrain } = this;
+    const tiles: number[] = [];
+    const score = new Float64Array(size);
+    for (let t = 0; t < size; t++) {
+      if (terrain[t] === Terrain.Water) continue;
+      const x = t % w;
+      const y = (t - x) / w;
+      const dx = (x - w / 2) / (w / 2);
+      const dy = (y - h / 2) / (h / 2);
+      const rough = fbm(seed + 77, x / 70, y / 70, 3) * 0.35;
+      score[t] = Math.sqrt(dx * dx + dy * dy) + rough;
+      tiles.push(t);
+    }
+    tiles.sort((a, b) => score[b] - score[a] || a - b);
+    return Int32Array.from(tiles);
+  }
+
+  /** How many land tiles the sea has taken by this tick. */
+  private floodTarget(tick: number): number {
+    const order = this.floodOrder!;
+    const { grace, duration, share } = CONFIG.royale;
+    const progress = Math.min(1, Math.max(0, (tick - grace) / duration));
+    return Math.floor(order.length * share * progress);
+  }
+
+  /** Ticks until the sea starts rising, 0 once it has (battle royale only). */
+  floodStartsIn(): number {
+    return this.floodOrder ? Math.max(0, CONFIG.royale.grace - this.tick) : 0;
+  }
+
+  private updateFlood(): void {
+    const order = this.floodOrder;
+    if (!order) return;
+    // Mark what's coming, so it can be seen in time.
+    const warn = this.floodTarget(this.tick + CONFIG.royale.warning);
+    while (this.doomedCount < warn) {
+      const t = order[this.doomedCount++];
+      this.doomed[t] = 1;
+      this.changed.push(t);
+    }
+    const target = this.floodTarget(this.tick);
+    if (this.floodedCount >= target) return;
+    const tiles: number[] = [];
+    const hit = new Set<number>();
+    while (this.floodedCount < target) {
+      const t = order[this.floodedCount++];
+      const o = this.owner[t];
+      if (o !== NEUTRAL) {
+        const v = this.player(o);
+        v.troops -= v.troops / v.tiles;
+        this.release(t);
+        hit.add(o);
+      }
+      const b = this.buildingsByTile.get(t);
+      if (b) {
+        this.buildingsByTile.delete(t);
+        this.player(b.owner).owned[b.kind]--;
+        if (b.kind === 'defense') this.dropPost(b.owner, t);
+      }
+      this.terrain[t] = Terrain.Water;
+      this.doomed[t] = 0;
+      this.fallout[t] = 0;
+      (this.map as { landTiles: number }).landTiles--;
+      const x = t % this.width;
+      if (x > 0) this.refreshBorder(t - 1);
+      if (x < this.width - 1) this.refreshBorder(t + 1);
+      if (t >= this.width) this.refreshBorder(t - this.width);
+      if (t + this.width < this.size) this.refreshBorder(t + this.width);
+      this.changed.push(t);
+      tiles.push(t);
+    }
+    for (const id of hit) {
+      const v = this.player(id);
+      if (!v.alive) continue;
+      if (v.tiles === 0) this.eliminate(v, NEUTRAL);
+      else if (this.owner[v.capital] !== v.id) this.loseCapital(v, NEUTRAL);
+    }
+    this.events.push({ type: 'flooded', tiles });
   }
 
   // Alliances
@@ -1331,8 +1433,8 @@ export class Game {
 
     while (heap.size > 0 && heap.peekKey() <= this.tick * SUBTICKS) {
       const t = heap.pop();
-      // Skip tiles someone else took, or that lost contact with our front.
-      if (owner[t] !== a.target || this.ownedNeighbors(t, a.attacker) === 0) continue;
+      // Skip tiles someone else took, the sea swallowed, or that lost contact with our front.
+      if (owner[t] !== a.target || this.terrain[t] === Terrain.Water || this.ownedNeighbors(t, a.attacker) === 0) continue;
       const cost = this.tileCost(t, a.target);
       if (a.troops < cost) {
         // Too dear for what's left (a peak, a bunker): leave that tile and keep pushing elsewhere.
