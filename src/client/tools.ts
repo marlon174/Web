@@ -19,11 +19,12 @@ export const TOOLS: Tool[] = [
   { kind: 'silo', action: 'build', key: 't', name: 'Silo', hint: 'Nötig, um Raketen und Atombomben abzufeuern.' },
   { kind: 'rocket', action: 'launch', key: 'f', name: 'Rakete', hint: 'Zerstört Land und Gebäude in einem kleinen Umkreis.' },
   { kind: 'nuke', action: 'launch', key: 'g', name: 'Atombombe', hint: 'Zerstört einen großen Umkreis und verseucht ihn 30 Sekunden lang.' },
+  { kind: 'hbomb', action: 'launch', key: 'b', name: 'H-Bombe', hint: 'Wasserstoffbombe: fast doppelter Radius der Atombombe. Teuer, und du brauchst 3 Silos.' },
   { kind: 'ally', action: 'ally', key: 'h', name: 'Bündnis', hint: 'Klick auf das Land eines Spielers, um ein Bündnis für 3 Minuten anzubieten. Bei einem Verbündeten beendest du es damit.' },
 ];
 
 export function isMissile(kind: ToolKind): kind is MissileKind {
-  return kind === 'rocket' || kind === 'nuke';
+  return kind === 'rocket' || kind === 'nuke' || kind === 'hbomb';
 }
 
 /** Radiation trefoil: three blades around a dot. */
@@ -49,6 +50,7 @@ export const ICONS: Record<ToolKind, string> = {
   silo: 'M2 15h12v-2H2zM8 1c1.7 1.7 2.5 3.9 2.5 6.4V12h-5V7.4C5.5 4.9 6.3 2.7 8 1z',
   rocket: 'M8 1c1.8 1.8 2.6 4 2.6 6.6V10l2 3.5H3.4l2-3.5V7.6C5.4 5 6.2 2.8 8 1zM6.6 14h2.8L8 15.6z',
   nuke: trefoil(),
+  hbomb: 'M8 1.5c3.6 0 6 2 6 4.6 0 2-1.7 3.3-3.6 3.7V12h1.3v1.6H4.3V12h1.3V9.8C3.7 9.4 2 8.1 2 6.1 2 3.5 4.4 1.5 8 1.5zM6.4 5.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm3.2 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM5 14.4h6V15H5z',
 };
 
 export function iconSvg(kind: ToolKind): string {

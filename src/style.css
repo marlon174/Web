@@ -735,7 +735,7 @@ fieldset:disabled .segmented label {
   display: grid;
   gap: 8px;
   justify-items: center;
-  width: min(640px, calc((100% - 2 * var(--gutter)) / var(--ui)));
+  width: min(700px, calc((100% - 2 * var(--gutter)) / var(--ui)));
 }
 
 .fronts {
@@ -774,7 +774,7 @@ fieldset:disabled .segmented label {
 
 .tools {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 6px;
   width: 100%;
   box-sizing: border-box;
@@ -808,6 +808,7 @@ fieldset:disabled .segmented label {
 .tool-name {
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .tool-cost {
@@ -1012,11 +1013,11 @@ fieldset:disabled .segmented label {
 /* Keep the bottom bar clear of the minimap, however big the UI is. */
 @media (min-width: 961px) {
   :root:not(.hide-minimap) .bottom-center {
-    width: min(640px, calc((100% - 2 * (var(--gutter) + 8px)) / var(--ui) - 2 * 200px));
+    width: min(700px, calc((100% - 2 * (var(--gutter) + 8px)) / var(--ui) - 2 * 200px));
   }
 }
 
-@media (max-width: 1240px), (pointer: coarse) {
+@media (max-width: 1500px), (pointer: coarse) {
   .keys {
     display: none;
   }

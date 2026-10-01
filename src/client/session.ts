@@ -204,7 +204,8 @@ export class Session implements InputTarget {
       const refusal = game.canLaunch(me, kind);
       if (refusal === 'noSilo') return 'Bau zuerst ein Raketensilo.';
       if (refusal === 'reloading') return 'Deine Silos laden nach. Jedes Silo kann alle 10 Sekunden feuern.';
-      if (refusal === 'gold') return `${kind === 'nuke' ? 'Eine Atombombe' : 'Eine Rakete'} kostet ${formatTroops(game.missileCost(kind))} Gold.`;
+      if (refusal === 'silos') return `Für eine H-Bombe brauchst du ${CONFIG.hbombSilos} Raketensilos.`;
+      if (refusal === 'gold') return `${{ rocket: 'Eine Rakete', nuke: 'Eine Atombombe', hbomb: 'Eine H-Bombe' }[kind]} kostet ${formatTroops(game.missileCost(kind))} Gold.`;
       if (tile >= 0 && game.allied(me.id, game.owner[tile])) return 'Du kannst nicht auf Verbündete schießen.';
       return null;
     }

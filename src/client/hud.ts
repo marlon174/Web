@@ -31,6 +31,7 @@ export interface OverlayContent {
 }
 
 const BOARD_ROWS = 8;
+const MISSILE_NAMES = { rocket: 'Rakete', nuke: 'Atombombe', hbomb: 'H-Bombe' } as const;
 const FEED_LIMIT = 4;
 const FEED_MS = 7000;
 
@@ -218,7 +219,7 @@ export class Hud {
       const li = document.createElement('li');
       li.className = 'incoming';
       const seconds = Math.max(0, Math.ceil((m.arrives - game.tick) / CONFIG.ticksPerSecond));
-      li.textContent = `${m.kind === 'nuke' ? 'Atombombe' : 'Rakete'} von ${game.player(m.owner).name} · ${seconds} s`;
+      li.textContent = `${MISSILE_NAMES[m.kind]} von ${game.player(m.owner).name} · ${seconds} s`;
       items.push(li);
     }
     for (const a of game.attacks) {

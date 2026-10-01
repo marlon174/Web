@@ -94,7 +94,10 @@ export const CONFIG = {
   missiles: {
     rocket: { cost: 3000, radius: 5 },
     nuke: { cost: 10000, radius: 16 },
+    hbomb: { cost: 35000, radius: 30 },
   },
+  /** Silos you must own before you can fire a hydrogen bomb. */
+  hbombSilos: 3,
   /** Ticks a silo needs to reload after each launch. */
   siloReload: 100,
   /** Tiles a missile covers per tick, and its shortest flight. */

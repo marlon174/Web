@@ -678,7 +678,7 @@ export class Renderer {
 
       const [hx, hy] = at(t);
       ctx.beginPath();
-      ctx.arc(hx, hy, (m.kind === 'nuke' ? 5 : 3.5) * dpr, 0, Math.PI * 2);
+      ctx.arc(hx, hy, (m.kind === 'hbomb' ? 6.5 : m.kind === 'nuke' ? 5 : 3.5) * dpr, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.shadowColor = color;
       ctx.shadowBlur = 12 * dpr;

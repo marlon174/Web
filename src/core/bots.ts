@@ -22,7 +22,7 @@ export interface BotBrain {
   builds: boolean;
   /** Attacks much weaker neighbours even before its troops fill up. */
   opportunist: boolean;
-  /** 0: never fires, 1: rockets, 2: rockets and nukes. */
+  /** 0: never fires, 1: rockets, 2: rockets, nukes and (with enough silos) hydrogen bombs. */
   missiles: 0 | 1 | 2;
   /** Chance per decision to fire when a missile is ready. */
   missileChance: number;
@@ -133,20 +133,27 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
     }
   }
   if (brain.missiles === 0 || p.tiles < 1500) return null;
-  if (p.owned.silo === 0) {
+  // Big nuclear bots work towards the silos a hydrogen bomb needs.
+  const silosWanted = brain.missiles === 2 && p.tiles > 8000 ? CONFIG.hbombSilos : 1;
+  if (p.owned.silo < silosWanted && p.owned.silo < game.buildLimit(p, 'silo')) {
     if (p.gold < game.buildCost(p, 'silo')) return null;
     const tile = game.findSpot(p, 'silo');
-    return tile >= 0 ? { type: 'build', player: p.id, tile, kind: 'silo' } : null;
+    if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'silo' };
+    if (p.owned.silo === 0) return null;
   }
   // Keep a reserve, so gold also goes to cities and defence.
   if (p.gold < 2 * game.missileCost('rocket') || rng.next() > brain.missileChance) return null;
   // Nukes go for the biggest rival's capital: it costs them half their troops.
-  if (brain.missiles === 2 && game.canLaunch(p, 'nuke') === null) {
+  if (brain.missiles === 2) {
     let rival: Player | null = null;
     for (const q of game.players) {
       if (q.alive && q.id !== p.id && !game.allied(p.id, q.id) && (!rival || q.tiles > rival.tiles)) rival = q;
     }
-    if (rival && rival.capital >= 0) return { type: 'launch', player: p.id, tile: rival.capital, kind: 'nuke' };
+    if (rival && rival.capital >= 0) {
+      // The hydrogen bomb only for a rival bigger than us: it costs a fortune.
+      if (rival.tiles > p.tiles && game.canLaunch(p, 'hbomb') === null) return { type: 'launch', player: p.id, tile: rival.capital, kind: 'hbomb' };
+      if (game.canLaunch(p, 'nuke') === null) return { type: 'launch', player: p.id, tile: rival.capital, kind: 'nuke' };
+    }
   }
   // Rockets clear the way: an enemy defence post or city owned by a neighbour.
   if (game.canLaunch(p, 'rocket') !== null) return null;

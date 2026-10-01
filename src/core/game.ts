@@ -52,7 +52,7 @@ export interface Player {
 }
 
 export type BuildingKind = 'city' | 'defense' | 'silo' | 'port' | 'factory';
-export type MissileKind = 'rocket' | 'nuke';
+export type MissileKind = 'rocket' | 'nuke' | 'hbomb';
 export const BUILDING_KINDS: readonly BuildingKind[] = ['city', 'defense', 'silo', 'port', 'factory'];
 
 export interface Building {
@@ -92,7 +92,8 @@ export type Refusal =
   | 'boats'
   | 'ally'
   | 'limit'
-  | 'reloading';
+  | 'reloading'
+  | 'silos';
 
 /** A train running from a factory through your cities and ports, and back. */
 export interface Train {
@@ -457,6 +458,7 @@ export class Game {
   /** Null if `p` can fire this missile now, else the reason not. */
   canLaunch(p: Player, kind: MissileKind): Refusal | null {
     if (p.owned.silo === 0 || !p.alive) return 'noSilo';
+    if (kind === 'hbomb' && p.owned.silo < CONFIG.hbombSilos) return 'silos';
     if (p.gold < this.missileCost(kind)) return 'gold';
     if (this.readySilos(p) === 0) return 'reloading';
     return null;
