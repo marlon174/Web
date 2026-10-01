@@ -42,7 +42,7 @@ export const CONFIG = {
    * Against a player, a front's speed scales with √(attacking troops ÷ defender's troops),
    * kept between these bounds: twice their troops ≈ 1.4× faster, three times ≈ 1.7×.
    */
-  pressureMin: 0.6,
+  pressureMin: 0.8,
   pressureMax: 2.5,
   /** Random extra ticks per tile, so fronts grow unevenly. */
   delayJitter: 2,
