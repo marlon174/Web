@@ -24,6 +24,8 @@ export class Fog {
   private readonly image: ImageData;
   /** False before you have a start and after you're out: then nothing is hidden. */
   active = false;
+  /** Players with any land in sight right now (by id). */
+  private seen = new Uint8Array(0);
 
   constructor(private readonly game: Game, private readonly me: number) {
     this.cols = Math.ceil(game.width / CELL);
@@ -95,9 +97,27 @@ export class Fog {
       data[k] = FOG_RGB[0];
       data[k + 1] = FOG_RGB[1];
       data[k + 2] = FOG_RGB[2];
-      data[k + 3] = Math.round(fade * 240);
+      // Fully opaque beyond the soft edge: nothing shows through.
+      data[k + 3] = Math.round(fade * 255);
     }
     this.ctx.putImageData(this.image, 0, 0);
+
+    // Who is in sight: the board hides everyone else's numbers.
+    const seen = new Uint8Array(game.players.length + 1);
+    for (let t = 0; t < size; t++) {
+      const o = owner[t];
+      if (o === NEUTRAL || seen[o]) continue;
+      const x = t % game.width;
+      const c = Math.floor((t - x) / game.width / CELL) * cols + Math.floor(x / CELL);
+      if (dist[c] <= SIGHT) seen[o] = 1;
+    }
+    for (let id = 1; id < friends.length; id++) if (friends[id]) seen[id] = 1;
+    this.seen = seen;
+  }
+
+  /** Whether a player is out of sight entirely (none of their land is visible). */
+  unseen(id: number): boolean {
+    return this.active && this.seen[id] !== 1;
   }
 
   /** Whether a tile is out of sight. */

@@ -87,9 +87,13 @@ export class Session implements InputTarget {
     this.me = game.players.find((p) => !p.bot) ?? null;
     this.replay = options.play?.replay ?? null;
     this.renderer = new Renderer(canvas, game, this.me?.id ?? null);
+    // The HUD outlives sessions: forget the last match's fog.
+    if (options.play) options.play.hud.unseen = () => false;
     if (options.play?.fog && this.me && !options.play.replay) {
-      this.fog = new Fog(game, this.me.id);
-      this.renderer.fog = this.fog;
+      const fog = new Fog(game, this.me.id);
+      this.fog = fog;
+      this.renderer.fog = fog;
+      options.play.hud.unseen = (id) => fog.unseen(id);
     }
     if (options.play && this.me) {
       this.input = new Input(canvas, this.camera, this);
@@ -456,7 +460,7 @@ export class Session implements InputTarget {
     const ground = kind === Terrain.Mountains ? 'Gebirge (sehr langsam)' : kind === Terrain.Highlands ? 'Hügel (langsam)' : 'Flachland';
     const lines: string[] = [];
     if (this.fog?.hidden(t)) {
-      hud.showTip(['Im Nebel', ground], this.tipAt.x, this.tipAt.y);
+      hud.showTip(['Im Nebel', 'Unbekanntes Gebiet'], this.tipAt.x, this.tipAt.y);
       return;
     }
     if (o === NEUTRAL) {

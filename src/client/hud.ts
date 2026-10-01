@@ -60,6 +60,8 @@ export class Hud {
   private readonly banner = byId('banner');
   private readonly board = byId<HTMLOListElement>('board');
   private readonly teamTotals = byId<HTMLUListElement>('team-totals');
+  /** In fog of war: players whose numbers are hidden right now. */
+  unseen: (id: number) => boolean = () => false;
   private readonly fronts = byId<HTMLUListElement>('fronts');
   private readonly feed = byId<HTMLUListElement>('feed');
   private readonly toastEl = byId('toast');
@@ -220,7 +222,7 @@ export class Hud {
       }
       const share = document.createElement('span');
       share.className = 'share';
-      share.textContent = formatShare(p.tiles / game.map.landTiles);
+      share.textContent = this.unseen(p.id) ? '?' : formatShare(p.tiles / game.map.landTiles);
       li.append(r, dot, name, share);
       return li;
     };

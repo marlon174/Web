@@ -722,6 +722,8 @@ export class Renderer {
   private drawMissiles(camera: Camera, dpr: number, now: number, tick: number): void {
     const { ctx } = this;
     for (const m of this.game.missiles) {
+      // In the fog, others' missiles show only where they start or land in sight.
+      if (this.fog && m.owner !== this.me && m.victim !== this.me && this.fog.hidden(m.from) && this.fog.hidden(m.to)) continue;
       const [x0, y0] = this.screen(camera, m.from);
       const [x1, y1] = this.screen(camera, m.to);
       const t = Math.min(1, Math.max(0, (tick - m.launched) / (m.arrives - m.launched)));
@@ -782,6 +784,7 @@ export class Renderer {
     const { ctx } = this;
     this.explosions = this.explosions.filter((e) => now - e.start < EXPLOSION_MS);
     for (const e of this.explosions) {
+      if (this.fog?.hidden(Math.floor(e.y) * this.game.width + Math.floor(e.x))) continue;
       const t = (now - e.start) / EXPLOSION_MS;
       const sx = camera.x + e.x * camera.scale;
       const sy = camera.y + e.y * camera.scale;
