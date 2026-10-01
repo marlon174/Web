@@ -4,7 +4,7 @@ import { toHex } from './colors';
 import { uiScale } from './settings';
 import { sound } from './sound';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
-import { iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
+import { GROUP_NAMES, iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
 
 export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -12,7 +12,7 @@ export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
   return el as T;
 }
 
-export type Tone = 'good' | 'bad' | 'info';
+export type Tone = 'good' | 'bad' | 'info' | 'tip';
 
 export interface OverlayAction {
   label: string;
@@ -92,18 +92,19 @@ export class Hud {
       if (li) this.onRecall(Number(li.dataset.target));
     });
     const bar = byId('tools');
-    for (const tool of TOOLS) {
+    TOOLS.forEach((tool, i) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'tool';
-      button.title = `${tool.name} (${tool.key.toUpperCase()}): ${tool.hint}`;
+      // A gap and a hairline where a new group starts.
+      button.className = i > 0 && TOOLS[i - 1].group !== tool.group ? 'tool group-start' : 'tool';
+      button.title = `${tool.name} (${tool.key.toUpperCase()}) · ${GROUP_NAMES[tool.group]}\n${tool.hint}`;
       button.innerHTML = `${iconSvg(tool.kind)}<span class="tool-name"></span><span class="tool-cost"></span><kbd></kbd>`;
       button.querySelector('.tool-name')!.textContent = tool.name;
       button.querySelector('kbd')!.textContent = tool.key;
       button.addEventListener('click', () => this.onTool(tool.kind));
       this.toolButtons.set(tool.kind, button);
       bar.append(button);
-    }
+    });
   }
 
   show(me: Player): void {
@@ -328,14 +329,18 @@ export class Hud {
 
   post(text: string, tone: Tone): void {
     text = text.charAt(0).toUpperCase() + text.slice(1);
-    if (tone !== 'info') sound.play(tone);
+    if (tone === 'good' || tone === 'bad') sound.play(tone);
     const li = document.createElement('li');
     li.className = tone;
-    li.textContent = text;
+    const span = document.createElement('span');
+    span.textContent = text;
+    li.append(span);
     this.feed.prepend(li);
     while (this.feed.children.length > FEED_LIMIT) this.feed.lastElementChild?.remove();
-    window.setTimeout(() => li.classList.add('fading'), FEED_MS);
-    window.setTimeout(() => li.remove(), FEED_MS + 700);
+    // Tips stay up long enough to read.
+    const ms = tone === 'tip' ? FEED_MS * 2 : FEED_MS;
+    window.setTimeout(() => li.classList.add('fading'), ms);
+    window.setTimeout(() => li.remove(), ms + 700);
   }
 
   toast(text: string): void {

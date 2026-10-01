@@ -50,69 +50,75 @@
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-quick" value="quick" checked />
                   <span class="mode-name">Schnelles Spiel</span>
-                  <span class="mode-note">5 Minuten auf der kleinsten Karte. Das meiste Land gewinnt.</span>
+                  <span class="mode-note">5 Minuten. Das meiste Land gewinnt.</span>
                 </label>
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-classic" value="classic" />
                   <span class="mode-name">Klassisch</span>
-                  <span class="mode-note">Halte 70 % des Landes, um zu gewinnen (auf echten Karten 50 %).</span>
+                  <span class="mode-note">Erobere 70 % des Landes.</span>
                 </label>
                 <label class="mode">
                   <input type="radio" name="mode" id="mode-royale" value="royale" />
                   <span class="mode-name">Battle Royale</span>
-                  <span class="mode-note">Nach einer Minute steigt das Meer und frisst die Karte von außen. Rot markiertes Land geht bald unter.</span>
+                  <span class="mode-note">Das Meer steigt und frisst die Karte.</span>
                 </label>
               </div>
             </fieldset>
 
-            <fieldset class="field">
-              <legend>Karte</legend>
-              <div class="segmented">
-                <input type="radio" name="world" id="world-none" value="" checked /><label for="world-none">Zufall</label>
-                <input type="radio" name="world" id="world-world" value="world" /><label for="world-world">Welt</label>
-                <input type="radio" name="world" id="world-europe" value="europe" /><label for="world-europe">Europa</label>
-                <input type="radio" name="world" id="world-germany" value="germany" /><label for="world-germany">Deutschland</label>
-              </div>
-            </fieldset>
+            <details class="more" id="more-options">
+              <summary><span class="more-title">Mehr Optionen</span> <span class="more-summary" id="more-summary"></span></summary>
+              <div class="more-body">
+                <fieldset class="field">
+                  <legend>Karte</legend>
+                  <div class="segmented">
+                    <input type="radio" name="world" id="world-none" value="" checked /><label for="world-none">Zufall</label>
+                    <input type="radio" name="world" id="world-world" value="world" /><label for="world-world">Welt</label>
+                    <input type="radio" name="world" id="world-europe" value="europe" /><label for="world-europe">Europa</label>
+                    <input type="radio" name="world" id="world-germany" value="germany" /><label for="world-germany">Deutschland</label>
+                  </div>
+                </fieldset>
 
-            <fieldset class="field" id="size-field" disabled>
-              <legend>Kartengröße</legend>
-              <div class="segmented">
-                <input type="radio" name="size" id="size-small" value="small" /><label for="size-small">Klein</label>
-                <input type="radio" name="size" id="size-medium" value="medium" checked /><label for="size-medium">Mittel</label>
-                <input type="radio" name="size" id="size-large" value="large" /><label for="size-large">Groß</label>
-                <input type="radio" name="size" id="size-huge" value="huge" /><label for="size-huge">Riesig</label>
-              </div>
-            </fieldset>
+                <fieldset class="field" id="size-field" disabled>
+                  <legend>Kartengröße</legend>
+                  <p class="field-hint">Das schnelle Spiel nutzt immer die kleine Karte.</p>
+                  <div class="segmented">
+                    <input type="radio" name="size" id="size-small" value="small" /><label for="size-small">Klein</label>
+                    <input type="radio" name="size" id="size-medium" value="medium" checked /><label for="size-medium">Mittel</label>
+                    <input type="radio" name="size" id="size-large" value="large" /><label for="size-large">Groß</label>
+                    <input type="radio" name="size" id="size-huge" value="huge" /><label for="size-huge">Riesig</label>
+                  </div>
+                </fieldset>
 
-            <fieldset class="field">
-              <legend>Teams</legend>
-              <div class="segmented">
-                <input type="radio" name="teams" id="teams-0" value="0" checked /><label for="teams-0">Jeder für sich</label>
-                <input type="radio" name="teams" id="teams-2" value="2" /><label for="teams-2">2 Teams</label>
-                <input type="radio" name="teams" id="teams-4" value="4" /><label for="teams-4">4 Teams</label>
-              </div>
-            </fieldset>
+                <fieldset class="field">
+                  <legend>Teams</legend>
+                  <div class="segmented">
+                    <input type="radio" name="teams" id="teams-0" value="0" checked /><label for="teams-0">Jeder für sich</label>
+                    <input type="radio" name="teams" id="teams-2" value="2" /><label for="teams-2">2 Teams</label>
+                    <input type="radio" name="teams" id="teams-4" value="4" /><label for="teams-4">4 Teams</label>
+                  </div>
+                </fieldset>
 
-            <div class="field-row">
-              <div class="field">
-                <label for="bots">Bots <output id="bots-out" for="bots">15</output></label>
-                <input type="range" id="bots" name="bots" min="3" max="100" value="15" />
-              </div>
-              <fieldset class="field">
-                <legend>Bot-Stärke</legend>
-                <div class="segmented">
-                  <input type="radio" name="difficulty" id="diff-easy" value="easy" /><label for="diff-easy">Leicht</label>
-                  <input type="radio" name="difficulty" id="diff-normal" value="normal" checked /><label for="diff-normal">Normal</label>
-                  <input type="radio" name="difficulty" id="diff-hard" value="hard" /><label for="diff-hard">Schwer</label>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="bots">Bots <output id="bots-out" for="bots">15</output></label>
+                    <input type="range" id="bots" name="bots" min="3" max="100" value="15" />
+                  </div>
+                  <fieldset class="field">
+                    <legend>Bot-Stärke</legend>
+                    <div class="segmented">
+                      <input type="radio" name="difficulty" id="diff-easy" value="easy" /><label for="diff-easy">Leicht</label>
+                      <input type="radio" name="difficulty" id="diff-normal" value="normal" checked /><label for="diff-normal">Normal</label>
+                      <input type="radio" name="difficulty" id="diff-hard" value="hard" /><label for="diff-hard">Schwer</label>
+                    </div>
+                  </fieldset>
                 </div>
-              </fieldset>
-            </div>
 
-            <label class="check option">
-              <input type="checkbox" id="fog" name="fog" />
-              <span>Nebel des Krieges <span class="mode-note">Du siehst nur, was nahe an deinem Land liegt.</span></span>
-            </label>
+                <label class="check option">
+                  <input type="checkbox" id="fog" name="fog" />
+                  <span>Nebel des Krieges <span class="mode-note">Du siehst nur, was nahe an deinem Land liegt.</span></span>
+                </label>
+              </div>
+            </details>
 
             <div class="menu-actions">
               <button type="button" id="reroll" class="button ghost">
@@ -265,6 +271,7 @@
               <label class="check"><input type="checkbox" id="set-feed" /> Ereignisse</label>
               <label class="check"><input type="checkbox" id="set-minimap" /> Übersichtskarte</label>
               <label class="check"><input type="checkbox" id="set-keys" /> Tastenkürzel</label>
+              <label class="check"><input type="checkbox" id="set-tips" /> Tipps für Einsteiger</label>
             </div>
           </fieldset>
 

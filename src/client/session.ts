@@ -9,6 +9,7 @@ import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
+import { takeTip, TIPS, type TipId } from './tips';
 import { sound } from './sound';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -75,6 +76,7 @@ export class Session implements InputTarget {
   private replayAt = 0;
   private lastShellNote = -Infinity;
   private floodAnnounced = false;
+  private lastTip = -Infinity;
   /** The result goes to the hooks once per match: on defeat, or at the end if still in. */
   private resultReported = false;
   private readonly fog: Fog | null = null;
@@ -194,6 +196,7 @@ export class Session implements InputTarget {
       this.options.play.hud.update(this.game, this.me);
       this.options.play.hud.updateTools(this.game, this.me, this.tool);
       this.updateOffer();
+      this.coach(now);
       this.drawMinimap();
       this.updateTip();
     }
@@ -638,6 +641,26 @@ export class Session implements InputTarget {
   }
 
   // Pausing and match results
+
+  /** Newcomer tips, each the first time it applies (and only while playing, not replaying). */
+  private coach(now: number): void {
+    const { game, me } = this;
+    const hud = this.options.play?.hud;
+    if (!hud || !me || this.replay || !me.alive || game.phase !== 'play' || this.paused) return;
+    // One at a time, a few seconds apart.
+    const tip = (id: TipId, when: boolean) => {
+      if (!when || now - this.lastTip < 9000 || !takeTip(id)) return;
+      this.lastTip = now;
+      hud.post(TIPS[id], 'tip');
+    };
+    const since = now - this.spawnedAt;
+    tip('expand', since > 1500);
+    tip('zoom', since > 15000);
+    tip('city', since > 8000 && me.gold >= game.buildCost(me, 'city'));
+    tip('full', me.troops > game.maxTroops(me) * 0.9);
+    tip('neighbour', since > 20000 && game.players.some((p) => p.id !== me.id && p.alive && !game.allied(me.id, p.id) && game.sharesBorder(me, p.id)));
+    tip('attacked', game.attacks.some((a) => a.target === me.id));
+  }
 
   /** Keeps the alliance offer card's countdown current, and removes it once the offer is gone. */
   private updateOffer(): void {

@@ -1,5 +1,6 @@
 import { byId } from './hud';
 import { sound } from './sound';
+import { resetTips } from './tips';
 
 /** Display choices, remembered in this browser. They never touch the simulation. */
 export interface Settings {
@@ -11,6 +12,7 @@ export interface Settings {
   showFeed: boolean;
   showMinimap: boolean;
   showKeys: boolean;
+  showTips: boolean;
 }
 
 const KEY = 'landgrab.settings.v1';
@@ -24,14 +26,16 @@ const DEFAULTS: Settings = {
   showFeed: true,
   showMinimap: true,
   showKeys: true,
+  showTips: true,
 };
 
 /** Checkbox id → setting, and the class on <html> that hides the panel when it's off. */
-const TOGGLES: [string, 'showBoard' | 'showFeed' | 'showMinimap' | 'showKeys', string][] = [
+const TOGGLES: [string, 'showBoard' | 'showFeed' | 'showMinimap' | 'showKeys' | 'showTips', string][] = [
   ['set-board', 'showBoard', 'hide-board'],
   ['set-feed', 'showFeed', 'hide-feed'],
   ['set-minimap', 'showMinimap', 'hide-minimap'],
   ['set-keys', 'showKeys', 'hide-keys'],
+  ['set-tips', 'showTips', 'hide-tips'],
 ];
 
 function clampScale(value: number): number {
@@ -134,6 +138,8 @@ export class SettingsPanel {
   }
 
   private update(change: Partial<Settings>): void {
+    // Turning tips back on shows them all again.
+    if (change.showTips && !this.settings.showTips) resetTips();
     this.settings = { ...this.settings, ...change };
     this.settings.uiScale = clampScale(this.settings.uiScale);
     apply(this.settings);

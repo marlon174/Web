@@ -356,7 +356,7 @@ input[type="range"] {
 
 .modes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -444,12 +444,86 @@ fieldset:disabled .segmented label {
   cursor: not-allowed;
 }
 
+/* Always in reach: the play button sticks to the bottom while the form scrolls. */
 .menu-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
+  margin: 0 -18px -18px;
+  padding: 12px 18px;
+  background: var(--panel-solid);
+  border-top: 1px solid var(--panel-edge);
+  border-radius: 0 0 14px 14px;
+}
+
+/* Rarely changed options fold away, with a one-line summary of what's set. */
+.more {
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  background: var(--field);
+}
+
+.more summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+.more summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft);
+  transform: translateY(-2px) rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.more[open] summary::before {
+  transform: translateY(-4px) rotate(45deg);
+}
+
+.more-title {
+  font-weight: 700;
+}
+
+.more-summary {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.more[open] .more-summary {
+  display: none;
+}
+
+.more-body {
+  display: grid;
+  gap: 16px;
+  padding: 4px 12px 14px;
+}
+
+.field-hint {
+  display: none;
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+fieldset:disabled .field-hint {
+  display: block;
 }
 
 .chart-no {
@@ -605,6 +679,25 @@ fieldset:disabled .segmented label {
 
 .feed li.bad {
   --tone: var(--bad);
+}
+
+.feed li > span {
+  min-width: 0;
+  white-space: normal;
+}
+
+.feed li.tip {
+  max-width: 320px;
+  box-sizing: border-box;
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.feed li.tip::before {
+  content: "💡";
+  width: auto;
+  height: auto;
+  background: none;
 }
 
 .feed li.fading {
@@ -837,6 +930,20 @@ fieldset:disabled .segmented label {
 
 .tool:hover {
   background: var(--field-hover);
+}
+
+.tool.group-start {
+  margin-left: 7px;
+}
+
+.tool.group-start::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -7px;
+  width: 1px;
+  background: var(--panel-edge);
 }
 
 .tool svg {
@@ -1080,30 +1187,107 @@ fieldset:disabled .segmented label {
 }
 
 @media (max-width: 640px) {
+  /* Phones: the three numbers in one slim row, so the map stays free. */
   .stats {
+    grid-template-columns: repeat(3, auto);
     min-width: 0;
-    gap: 4px;
-    padding: 8px 10px;
+    gap: 12px;
+    padding: 7px 11px;
+  }
+
+  .who,
+  .stat-note,
+  .stat-max {
+    display: none;
   }
 
   .stat {
     grid-template-columns: 1fr;
+    gap: 1px;
   }
 
-  .stat-note {
-    grid-column: 1;
+  .stat-label {
+    font-size: 9px;
   }
 
   .stat-value {
-    font-size: 22px;
+    font-size: 19px;
   }
 
-  .stat-max {
+  .hud-buttons {
+    gap: 6px;
+  }
+
+  .hud .icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Modes as a list: name on the left, a short note beside it. */
+  .modes {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .mode {
+    grid-template-columns: 9.5em 1fr;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 12px;
+  }
+
+  .wordmark {
+    font-size: 58px;
+  }
+
+  .tagline {
     font-size: 14px;
   }
 
-  .stat-note {
-    font-size: 11px;
+  /* Play takes the full width; a new map is a smaller button beside the seed. */
+  .menu-actions {
+    flex-wrap: nowrap;
+  }
+
+  .menu-actions #play {
+    flex: 1;
+    order: 2;
+  }
+
+  .menu-actions #reroll {
+    order: 1;
+    padding-inline: 12px;
+  }
+
+  .menu-actions .chart-no {
+    display: none;
+  }
+
+  .tools {
+    gap: 3px;
+    padding: 5px;
+  }
+
+  .tool {
+    padding: 6px 1px 4px;
+  }
+
+  .tool.group-start {
+    margin-left: 4px;
+  }
+
+  .tool.group-start::before {
+    left: -4px;
+  }
+
+  .tool-cost {
+    font-size: 10px;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  .tool:last-child .tool-cost {
+    font-size: 8.5px;
   }
 
   .feed {

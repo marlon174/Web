@@ -30,6 +30,7 @@ export class App {
   private readonly chartNo = byId('chart-no');
   private readonly dailyDesc = byId('daily-desc');
   private readonly dailyBest = byId('daily-best');
+  private readonly moreSummary = byId('more-summary');
   private readonly hud = new Hud();
   private session: Session | null = null;
   private seed = randomSeed();
@@ -58,11 +59,16 @@ export class App {
     this.sizeField.disabled = prefs.mode === 'quick';
     this.buildSwatches();
 
-    this.botsInput.addEventListener('input', () => (this.botsOut.textContent = this.botsInput.value));
+    this.summarise();
+    this.botsInput.addEventListener('input', () => {
+      this.botsOut.textContent = this.botsInput.value;
+      this.summarise();
+    });
     this.form.addEventListener('change', (e) => {
       const target = e.target as HTMLInputElement;
       if (target.name === 'mode') this.sizeField.disabled = target.value === 'quick';
       if (target.name === 'mode' || target.name === 'size' || target.name === 'world') this.preview();
+      this.summarise();
     });
     byId('daily-play').addEventListener('click', () => this.playDaily());
     byId('reroll').addEventListener('click', () => {
@@ -76,6 +82,23 @@ export class App {
     window.addEventListener('resize', () => {
       if (!this.menu.hidden) this.session?.refit();
     });
+  }
+
+  /** One line under "Mehr Optionen" saying what is set, so the folded options aren't a mystery. */
+  private summarise(): void {
+    const maps: Record<string, string> = { '': 'Zufallskarte', world: 'Weltkarte', europe: 'Europa', germany: 'Deutschland' };
+    const sizes: Record<string, string> = { small: 'Klein', medium: 'Mittel', large: 'Groß', huge: 'Riesig' };
+    const levels: Record<string, string> = { easy: 'Leicht', normal: 'Normal', hard: 'Schwer' };
+    const quick = this.radio('mode') === 'quick';
+    const teams = Number(this.radio('teams'));
+    const parts = [
+      maps[this.radio('world')] ?? 'Zufallskarte',
+      quick ? 'Klein' : sizes[this.radio('size')],
+      `${this.botsInput.value} Bots, ${levels[this.radio('difficulty')]}`,
+    ];
+    if (teams) parts.push(`${teams} Teams`);
+    if (this.fogInput.checked) parts.push('Nebel');
+    this.moreSummary.textContent = parts.join(' · ');
   }
 
   private check(id: string): void {
