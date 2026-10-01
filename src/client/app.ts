@@ -21,6 +21,7 @@ export class App {
   private readonly nameInput = byId<HTMLInputElement>('name');
   private readonly botsInput = byId<HTMLInputElement>('bots');
   private readonly botsOut = byId<HTMLOutputElement>('bots-out');
+  private readonly fogInput = byId<HTMLInputElement>('fog');
   private readonly sizeField = byId<HTMLFieldSetElement>('size-field');
   private readonly swatches = byId('swatches');
   private readonly chartNo = byId('chart-no');
@@ -43,6 +44,7 @@ export class App {
     this.nameInput.value = prefs.name;
     this.botsInput.value = String(prefs.bots);
     this.botsOut.textContent = String(prefs.bots);
+    this.fogInput.checked = prefs.fog;
     this.check(`mode-${prefs.mode}`);
     this.check(`size-${prefs.mapSize}`);
     this.check(`diff-${prefs.difficulty}`);
@@ -172,6 +174,7 @@ export class App {
       mapSize: options.mapSize,
       bots: options.bots,
       difficulty: options.difficulty,
+      fog: this.fogInput.checked,
     });
     this.start(createSettings(options, this.mapFor(options)));
   }
@@ -185,6 +188,7 @@ export class App {
       play: {
         hud: this.hud,
         replay,
+        fog: this.fogInput.checked,
         hooks: {
           playAgain: () => {
             this.seed = randomSeed();

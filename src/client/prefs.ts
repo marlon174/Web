@@ -11,6 +11,8 @@ export interface Prefs {
   mapSize: MapSize;
   bots: number;
   difficulty: Difficulty;
+  /** Fog of war: see only near your own land. */
+  fog: boolean;
 }
 
 const KEY = 'landgrab.prefs.v1';
@@ -22,6 +24,7 @@ const DEFAULTS: Prefs = {
   mapSize: 'medium',
   bots: 15,
   difficulty: 'normal',
+  fog: false,
 };
 
 export function loadPrefs(): Prefs {
@@ -34,6 +37,7 @@ export function loadPrefs(): Prefs {
       mapSize: saved.mapSize === 'small' || saved.mapSize === 'large' || saved.mapSize === 'huge' ? saved.mapSize : 'medium',
       bots: typeof saved.bots === 'number' ? Math.min(100, Math.max(3, Math.round(saved.bots))) : DEFAULTS.bots,
       difficulty: saved.difficulty === 'easy' || saved.difficulty === 'hard' ? saved.difficulty : 'normal',
+      fog: saved.fog === true,
     };
   } catch {
     return { ...DEFAULTS };

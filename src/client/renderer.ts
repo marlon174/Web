@@ -2,6 +2,7 @@ import { CONFIG } from '../core/config';
 import { NEUTRAL, type Game, type Missile } from '../core/game';
 import { Terrain } from '../core/map';
 import type { Camera } from './camera';
+import type { Fog } from './fog';
 import { mix, shade, toHex, toPixel } from './colors';
 import { formatTroops } from './format';
 import { LabelLayout } from './labels';
@@ -83,6 +84,8 @@ export class Renderer {
   private readonly capitalInk: string[];
   private dirty = { x0: 0, y0: 0, x1: -1, y1: -1 };
   private explosions: Explosion[] = [];
+  /** Fog of war, when the match uses it. */
+  fog: Fog | null = null;
   private floats: FloatText[] = [];
   /** Bombed areas to repaint once their fallout ends. */
   private scorched: { tiles: number[]; until: number }[] = [];
@@ -216,6 +219,7 @@ export class Renderer {
     this.drawBuildings(camera, dpr);
     this.drawCapitals(camera, dpr);
     this.drawLabels(camera, dpr);
+    this.fog?.draw(ctx, camera.x, camera.y, camera.scale);
     this.drawYou(camera, dpr, now, overlay.spawnedAt);
     this.drawMissiles(camera, dpr, now, overlay.tick);
     this.drawExplosions(camera, now);
@@ -338,6 +342,7 @@ export class Renderer {
     ctx.lineJoin = 'round';
     for (const [id, label] of this.labels.labels) {
       const p = this.game.player(id);
+      if (this.fog?.hidden(Math.floor(label.y) * this.game.width + Math.floor(label.x))) continue;
       // Fit the name across the widest open circle in the territory, whatever font loaded.
       ctx.font = `800 100px ${NAME_FONT}`;
       const widthAt100 = Math.max(1, ctx.measureText(p.name).width);

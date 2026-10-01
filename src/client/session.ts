@@ -3,6 +3,7 @@ import { NEUTRAL, type BuildingKind, type Game, type GameEvent, type Intent, typ
 import { Terrain } from '../core/map';
 import { Camera, type Inset } from './camera';
 import { chartData, LandHistory, landChart } from './chart';
+import { Fog } from './fog';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
@@ -36,7 +37,7 @@ export interface SessionHooks {
 
 export interface SessionOptions {
   /** Absent for the menu backdrop, which only shows the map. */
-  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog };
+  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean };
   /** Screen space (CSS pixels) to keep clear when fitting the map, e.g. behind the menu. */
   inset?: () => Inset;
 }
@@ -71,6 +72,7 @@ export class Session implements InputTarget {
   private readonly replay: IntentLog | null;
   private replayAt = 0;
   private lastShellNote = -Infinity;
+  private readonly fog: Fog | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -80,6 +82,10 @@ export class Session implements InputTarget {
     this.me = game.players.find((p) => !p.bot) ?? null;
     this.replay = options.play?.replay ?? null;
     this.renderer = new Renderer(canvas, game, this.me?.id ?? null);
+    if (options.play?.fog && this.me && !options.play.replay) {
+      this.fog = new Fog(game, this.me.id);
+      this.renderer.fog = this.fog;
+    }
     if (options.play && this.me) {
       this.input = new Input(canvas, this.camera, this);
       options.play.hud.onTool = (kind) => this.selectTool(kind);
@@ -167,6 +173,7 @@ export class Session implements InputTarget {
     this.sinceLabels += dt;
     if (this.sinceLabels > 300) {
       this.renderer.labels.recompute();
+      this.fog?.update();
       this.sinceLabels = 0;
     }
     this.renderer.labels.animate(dt / 1000);
@@ -428,6 +435,10 @@ export class Session implements InputTarget {
     const kind = game.map.terrain[t];
     const ground = kind === Terrain.Mountains ? 'Gebirge (sehr langsam)' : kind === Terrain.Highlands ? 'Hügel (langsam)' : 'Flachland';
     const lines: string[] = [];
+    if (this.fog?.hidden(t)) {
+      hud.showTip(['Im Nebel', ground], this.tipAt.x, this.tipAt.y);
+      return;
+    }
     if (o === NEUTRAL) {
       lines.push('Freies Land', ground);
     } else {
@@ -459,6 +470,7 @@ export class Session implements InputTarget {
     const ctx = mini.getContext('2d')!;
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.renderer.mapImage, 0, 0, w, h);
+    this.fog?.draw(ctx, 0, 0, w / this.game.width);
     const k = w / this.game.width;
     const cam = this.camera;
     ctx.strokeStyle = '#ffffff';
