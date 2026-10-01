@@ -220,7 +220,7 @@ export class Renderer {
     this.drawWarships(camera, dpr);
     this.drawBuildings(camera, dpr);
     this.drawCapitals(camera, dpr);
-    this.drawLabels(camera, dpr);
+    this.drawLabels(camera, dpr, overlay.tool !== null);
     this.fog?.draw(ctx, camera.x, camera.y, camera.scale);
     this.drawYou(camera, dpr, now, overlay.spawnedAt);
     this.drawMissiles(camera, dpr, now, overlay.tick);
@@ -355,7 +355,18 @@ export class Renderer {
     return base;
   }
 
-  private drawLabels(camera: Camera, dpr: number): void {
+  /**
+   * How visible a name is at this size on screen (device pixels): zoomed in,
+   * big names fade so they don't cover the land you are building on. Your own
+   * fades early, and nearly vanishes while a build or missile tool is in hand.
+   */
+  private labelAlpha(id: number, px: number, dpr: number, tool: boolean): number {
+    const fade = (from: number, to: number) => Math.min(1, Math.max(0, (to * dpr - px) / ((to - from) * dpr)));
+    if (id !== this.me) return fade(150, 220);
+    return fade(45, 85) * (tool ? 0.15 : 1);
+  }
+
+  private drawLabels(camera: Camera, dpr: number, tool: boolean): void {
     const { ctx } = this;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -375,6 +386,9 @@ export class Renderer {
       const nameY = sy - numberPx * 0.45;
       const numberY = sy + px * 0.55;
       if (sx < -px * 8 || sy < -px * 2 || sx > this.canvas.width + px * 8 || sy > this.canvas.height + px * 2) continue;
+      const alpha = this.labelAlpha(id, px, dpr, tool);
+      if (alpha <= 0.01) continue;
+      ctx.globalAlpha = alpha;
 
       ctx.font = `800 ${px.toFixed(1)}px ${NAME_FONT}`;
       ctx.lineWidth = Math.max(2, px * 0.16);
@@ -390,6 +404,7 @@ export class Renderer {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.86)';
       ctx.fillText(troops, sx, numberY);
     }
+    ctx.globalAlpha = 1;
   }
 
   /** A star in a ring: the map symbol for a capital. */
