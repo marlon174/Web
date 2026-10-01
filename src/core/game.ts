@@ -1257,6 +1257,7 @@ export class Game {
       let mixed = false;
       let hasCapital = false;
       let contaminated = false;
+      let coastal = false;
       stack[top++] = start;
       seen[start] = stamp;
 
@@ -1281,7 +1282,10 @@ export class Game {
             if (t + width >= size) continue;
             n = t + width;
           }
-          if (terrain[n] === Terrain.Water) continue;
+          if (terrain[n] === Terrain.Water) {
+            coastal = true;
+            continue;
+          }
           const no = owner[n];
           if (no === o) {
             if (seen[n] !== stamp) {
@@ -1300,7 +1304,8 @@ export class Game {
       const enclosing = this.player(surrounding);
       if (o === NEUTRAL) {
         if (contaminated || count > Math.min(CONFIG.pocketMax, enclosing.tiles * CONFIG.pocketShare)) continue;
-      } else if (hasCapital) {
+      } else if (hasCapital || coastal) {
+        // A fragment holding a capital, or on the coast (a beachhead, supplied by sea), isn't cut off.
         continue;
       }
       this.annex(component.subarray(0, count), o, surrounding);

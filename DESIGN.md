@@ -13,7 +13,7 @@ Landgrab keeps the one mechanic that makes territorial.io work: a single troop c
 | Terrain | Per tile by terrain class: plains 2 ticks / 1×, hills 4 ticks / 1.6×, mountains 9 ticks / 2.8×, all divided by `troopSpeed` (1.21). Tiles an attack can't afford are skipped, not fatal. Maps colour terrain by class (green, brown, grey rock with snow) with a dark rim where ground steps up. | `enqueue()`, `tileCost()` |
 | Fronts | Each attack keeps a priority queue of target tiles keyed by the tick they fall. Terrain slows it, tiles surrounded on more sides fall sooner, and a little seeded randomness keeps fronts organic. | `enqueue()`, `heap.ts` |
 | Capitals | Losing yours halves your troops; a new one is chosen near the middle of your land. | `loseCapital()` |
-| Encirclement | Every second, land cut off by exactly one player changes hands: enemy fragments without their capital, and small neutral pockets. | `sweepEnclosures()` |
+| Encirclement | Every second, land cut off by exactly one player changes hands: enemy fragments without their capital and not touching the sea (coastal land, such as a beachhead, is supplied by water), and small neutral pockets. | `sweepEnclosures()` |
 | Winning | Quick match: most land after 5 minutes. Classic: 70% of the land, or last one standing. | `checkEnd()` |
 | Gold | Each tile earns gold every tick. | `grow()` |
 | Buildings | City: +20% troop cap. Bunker (defence post): land within 12 tiles costs attackers 3.5×, falls 6 ticks slower per tile, and its owner loses only half the usual troops there. Overrunning a bunker destroys it; other buildings change hands. Silo: launches missiles. Each one you own raises the next one's price. Buildings change hands with their tile. | `canBuild()`, `conquer()` |

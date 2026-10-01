@@ -21,7 +21,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 - **Scout.** Hover over (or tap) land to see who holds it, their troops and what a tile would cost you. The minimap (bottom right) jumps anywhere on click.
 - **Grow.** Troops grow fastest when you are well below your cap, and the cap rises with your land. Sitting at the cap wastes growth.
 - **Capitals.** The star in a ring is a capital. Losing yours costs half your troops, and a new one is picked inside your land.
-- **Encircle.** Enemy land cut off from its capital by you alone becomes yours, and so do small pockets of empty land inside your territory.
+- **Encircle.** Enemy land cut off from its capital by you alone becomes yours (unless it touches the sea), and so do small pockets of empty land inside your territory.
 - **Gold and buildings.** Land earns gold. Press `Q` for a city (+20% troop cap), `R` for a bunker (land within 12 tiles costs attackers 3.5×, falls much slower, and you lose half as many troops there; an enemy who overruns it destroys it), `T` for a missile silo, then click your land.
 - **Terrain.** Green plains are quick, brown hills slow, grey mountains (with snow on the peaks) very slow and dear. Each tile counts on its own: only the part of a front that is climbing slows down, and a tile the attack can't afford is skipped rather than ending the attack.
 - **Prices and limits.** Each building of a kind you already own adds a fixed amount to the next one's price, up to a cap. How many you can build grows with your land (for cities: 2 plus 1 per 2,500 tiles). Cities add +20% troop cap each, up to +100%. Silos reload for 10 seconds after each launch.

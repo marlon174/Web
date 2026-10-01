@@ -449,3 +449,28 @@ describe('recall', () => {
     expect(a.troops).toBeGreaterThan(home + sent * 0.9);
   });
 });
+
+describe('beachheads', () => {
+  it('hold after landing on an enemy coast instead of being swallowed as an enclave', () => {
+    // A strait at x = 20..23; B lives on the far side.
+    const strait = Array.from({ length: 12 * 4 }, (_, i): [number, number] => [20 + (i % 4), Math.floor(i / 4)]);
+    const game = start(duel(40, 12, strait), [4, 5], [32, 5]);
+    const a = game.player(1);
+    const b = game.player(2);
+    game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
+    game.queue({ type: 'attack', player: 2, target: NEUTRAL, permille: 1000 });
+    run(game, 200);
+    a.gold = 1e6;
+    game.queue({ type: 'build', player: 1, tile: 5 * 40 + 19, kind: 'port' });
+    game.step();
+    a.troops = 3 * b.troops;
+    const target = 5 * 40 + 28;
+    expect(game.owner[target]).toBe(2);
+    game.queue({ type: 'boat', player: 1, tile: target, permille: 1000 });
+    const events = run(game, 120);
+    expect(events.some((e) => e.type === 'landed')).toBe(true);
+    let held = 0;
+    for (let t = 0; t < game.size; t++) if (t % 40 > 23 && game.owner[t] === 1) held++;
+    expect(held).toBeGreaterThan(10);
+  });
+});
