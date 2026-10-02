@@ -2,6 +2,7 @@ import { CONFIG } from '../core/config';
 import type { Game } from '../core/game';
 import { toHex } from './colors';
 import { formatClock, formatShare } from './format';
+import { t } from './i18n';
 
 /** How often the land history takes a sample, in ticks (once a game second). */
 const SAMPLE_EVERY = CONFIG.ticksPerSecond;
@@ -50,7 +51,7 @@ export function chartData(game: Game, history: LandHistory, meId: number | null)
   return {
     seconds: history.ticks.map((t) => t / CONFIG.ticksPerSecond),
     series: chosen.map(({ p, i }) => ({
-      name: p.id === meId ? 'Du' : p.name,
+      name: p.id === meId ? t('Du', 'You') : p.name,
       color: p.color,
       values: history.tiles.map((s) => s[i] / land),
       me: p.id === meId,
@@ -66,10 +67,10 @@ export function landChart(data: ChartData): HTMLElement {
   figure.className = 'land-chart';
   const caption = document.createElement('figcaption');
   caption.className = 'chart-title';
-  caption.textContent = 'Land im Verlauf';
+  caption.textContent = t('Land im Verlauf', 'Land over time');
   const canvas = document.createElement('canvas');
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', `Landanteil im Verlauf der Partie: ${data.series.map((s) => `${s.name} zuletzt ${formatShare(s.values[s.values.length - 1])}`).join(', ')}`);
+  canvas.setAttribute('aria-label', `${t('Landanteil im Verlauf der Partie', 'Share of the land over the match')}: ${data.series.map((s) => `${s.name} ${t('zuletzt', 'finally')} ${formatShare(s.values[s.values.length - 1])}`).join(', ')}`);
   const readout = document.createElement('p');
   readout.className = 'chart-readout';
   const legend = document.createElement('ul');

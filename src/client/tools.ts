@@ -1,4 +1,5 @@
 import type { BuildingKind, MissileKind } from '../core/game';
+import { t } from './i18n';
 
 export type ToolKind = BuildingKind | MissileKind | 'ally' | 'warship';
 
@@ -6,10 +7,10 @@ export type ToolKind = BuildingKind | MissileKind | 'ally' | 'warship';
 export type ToolGroup = 'economy' | 'defense' | 'strike' | 'diplomacy';
 
 export const GROUP_NAMES: Record<ToolGroup, string> = {
-  economy: 'Wirtschaft',
-  defense: 'Verteidigung',
-  strike: 'Raketen',
-  diplomacy: 'Diplomatie',
+  economy: t('Wirtschaft', 'Economy'),
+  defense: t('Verteidigung', 'Defence'),
+  strike: t('Raketen', 'Missiles'),
+  diplomacy: t('Diplomatie', 'Diplomacy'),
 };
 
 export interface Tool {
@@ -23,16 +24,16 @@ export interface Tool {
 
 /** The build bar, in order and in groups. */
 export const TOOLS: Tool[] = [
-  { group: 'economy', kind: 'city', action: 'build', key: 'q', name: 'Stadt', hint: 'Erhöht deine Truppenobergrenze um 20 % (höchstens +100 % mit 5 Städten; weitere zahlen sich über Züge aus). Du kannst 2 plus 1 je 2.500 Felder bauen.' },
-  { group: 'economy', kind: 'factory', action: 'build', key: 'w', name: 'Fabrik', hint: 'Verlegt Gleise zu deinen Städten und Häfen in der Nähe. Jede Minute fährt ein Zug; jede Stadt und jeder Hafen auf der Strecke bringt 10K Gold.' },
-  { group: 'economy', kind: 'port', action: 'build', key: 'e', name: 'Hafen', hint: 'An der Küste. Damit schickst du Truppen per Boot übers Wasser: einfach auf Land jenseits des Wassers klicken.' },
-  { group: 'defense', kind: 'defense', action: 'build', key: 'r', name: 'Bunker', hint: 'Im großen Umkreis kostet dein Land Angreifer 3,5-mal so viel, fällt viel langsamer, und du verlierst dort nur halb so viele Truppen. Wird sein Feld erobert, ist er zerstört.' },
-  { group: 'defense', kind: 'warship', action: 'warship', key: 'v', name: 'Schiff', hint: 'Kriegsschiff: Klick aufs Wasser, und es läuft aus deinem nächsten Hafen dorthin aus. Es versenkt feindliche Boote und Schiffe und beschießt feindliche Küsten. Eins pro Hafen; danach lenkst du damit dein nächstes Schiff um.' },
-  { group: 'defense', kind: 'silo', action: 'build', key: 't', name: 'Silo', hint: 'Nötig, um Raketen und Atombomben abzufeuern.' },
-  { group: 'strike', kind: 'rocket', action: 'launch', key: 'f', name: 'Rakete', hint: 'Zerstört Land und Gebäude in einem kleinen Umkreis.' },
-  { group: 'strike', kind: 'nuke', action: 'launch', key: 'g', name: 'A-Bombe', hint: 'Zerstört einen großen Umkreis und verseucht ihn 30 Sekunden lang.' },
-  { group: 'strike', kind: 'hbomb', action: 'launch', key: 'b', name: 'H-Bombe', hint: 'Wasserstoffbombe: fast doppelter Radius der Atombombe. Teuer, und du brauchst 3 Silos.' },
-  { group: 'diplomacy', kind: 'ally', action: 'ally', key: 'h', name: 'Bündnis', hint: 'Klick auf das Land eines Spielers, um ein Bündnis für 3 Minuten anzubieten. Bei einem Verbündeten beendest du es damit.' },
+  { group: 'economy', kind: 'city', action: 'build', key: 'q', name: t('Stadt', 'City'), hint: t('Erhöht deine Truppenobergrenze um 20 % (höchstens +100 % mit 5 Städten; weitere zahlen sich über Züge aus). Du kannst 2 plus 1 je 2.500 Felder bauen.', 'Raises your troop cap by 20% (up to +100% with 5 cities; more pay off through trains). You can build 2, plus 1 per 2,500 tiles.') },
+  { group: 'economy', kind: 'factory', action: 'build', key: 'w', name: t('Fabrik', 'Factory'), hint: t('Verlegt Gleise zu deinen Städten und Häfen in der Nähe. Jede Minute fährt ein Zug; jede Stadt und jeder Hafen auf der Strecke bringt 10K Gold.', 'Lays rail to your cities and ports nearby. A train runs every minute; each city and port on the line pays 10K gold.') },
+  { group: 'economy', kind: 'port', action: 'build', key: 'e', name: t('Hafen', 'Port'), hint: t('An der Küste. Damit schickst du Truppen per Boot übers Wasser: einfach auf Land jenseits des Wassers klicken.', 'On the coast. Lets you ship troops across the water: just click land on the far side.') },
+  { group: 'defense', kind: 'defense', action: 'build', key: 'r', name: 'Bunker', hint: t('Im großen Umkreis kostet dein Land Angreifer 3,5-mal so viel, fällt viel langsamer, und du verlierst dort nur halb so viele Truppen. Wird sein Feld erobert, ist er zerstört.', 'In a wide radius your land costs attackers 3.5 times as much, falls much more slowly, and you lose only half as many troops there. Destroyed if its tile is taken.') },
+  { group: 'defense', kind: 'warship', action: 'warship', key: 'v', name: t('Schiff', 'Ship'), hint: t('Kriegsschiff: Klick aufs Wasser, und es läuft aus deinem nächsten Hafen dorthin aus. Es versenkt feindliche Boote und Schiffe und beschießt feindliche Küsten. Eins pro Hafen; danach lenkst du damit dein nächstes Schiff um.', 'Warship: click the water and one sails there from your nearest port. It sinks enemy boats and ships and shells enemy coasts. One per port; after that the tool steers your nearest ship.') },
+  { group: 'defense', kind: 'silo', action: 'build', key: 't', name: 'Silo', hint: t('Nötig, um Raketen und Atombomben abzufeuern.', 'Needed to fire rockets and nukes.') },
+  { group: 'strike', kind: 'rocket', action: 'launch', key: 'f', name: t('Rakete', 'Rocket'), hint: t('Zerstört Land und Gebäude in einem kleinen Umkreis.', 'Destroys land and buildings in a small radius.') },
+  { group: 'strike', kind: 'nuke', action: 'launch', key: 'g', name: t('A-Bombe', 'Nuke'), hint: t('Zerstört einen großen Umkreis und verseucht ihn 30 Sekunden lang.', 'Destroys a wide radius and poisons it for 30 seconds.') },
+  { group: 'strike', kind: 'hbomb', action: 'launch', key: 'b', name: t('H-Bombe', 'H-bomb'), hint: t('Wasserstoffbombe: fast doppelter Radius der Atombombe. Teuer, und du brauchst 3 Silos.', 'Hydrogen bomb: nearly twice a nuke\'s radius. Expensive, and you need 3 silos.') },
+  { group: 'diplomacy', kind: 'ally', action: 'ally', key: 'h', name: t('Bündnis', 'Alliance'), hint: t('Klick auf das Land eines Spielers, um ein Bündnis für 3 Minuten anzubieten. Bei einem Verbündeten beendest du es damit.', 'Click a player\'s land to offer a 3-minute alliance. Used on an ally, it ends the alliance.') },
 ];
 
 export function isMissile(kind: ToolKind): kind is MissileKind {

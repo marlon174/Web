@@ -1,6 +1,7 @@
 import { byId } from './hud';
 import { sound } from './sound';
 import { resetTips } from './tips';
+import { lang, setLang, t } from './i18n';
 
 /** Display choices, remembered in this browser. They never touch the simulation. */
 export interface Settings {
@@ -106,6 +107,11 @@ export class SettingsPanel {
       byId(id).addEventListener('click', () => this.update({ uiScale: value }));
     }
     byId('settings-reset').addEventListener('click', () => this.update(DEFAULTS));
+    // Language: the page reloads in the new one.
+    byId<HTMLInputElement>(`lang-${lang}`).checked = true;
+    for (const next of ['de', 'en'] as const) {
+      byId(`lang-${next}`).addEventListener('change', () => setLang(next));
+    }
     byId('settings-done').addEventListener('click', () => this.close());
     // A click on the dimmed area around the card closes it.
     this.root.addEventListener('pointerdown', (e) => {
@@ -154,7 +160,7 @@ export class SettingsPanel {
     this.scaleOut.textContent = `${percent} %`;
     const volume = Math.round(this.settings.volume * 100);
     this.volume.value = String(volume);
-    this.volumeOut.textContent = volume === 0 ? 'Aus' : `${volume} %`;
+    this.volumeOut.textContent = volume === 0 ? t('Aus', 'Off') : `${volume} %`;
     for (const [id, key] of TOGGLES) byId<HTMLInputElement>(id).checked = this.settings[key];
     for (const [id, value] of [['ui-small', 0.8], ['ui-normal', 1], ['ui-large', 1.2]] as const) {
       byId(id).setAttribute('aria-pressed', String(Math.abs(this.settings.uiScale - value) < 0.01));

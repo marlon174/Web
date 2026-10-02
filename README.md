@@ -1,6 +1,6 @@
 # Landgrab
 
-A territory-conquest strategy game for the browser (German interface), in the spirit of territorial.io and frontwars.io. You start on a few tiles of a generated continent (up to 1840×1150 tiles, with up to 100 bots), grow troops and push your borders until the map is yours.
+A territory-conquest strategy game for the browser (German and English; it follows the browser's language and can be switched in the settings), in the spirit of territorial.io and frontwars.io. You start on a few tiles of a generated continent (up to 1840×1150 tiles, with up to 100 bots), grow troops and push your borders until the map is yours.
 
 **Play online:** https://marlon174.github.io/Web/ (deployed by `.github/workflows/pages.yml` on every push; in the repository settings, Pages must use "GitHub Actions" as its source).
 

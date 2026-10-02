@@ -43,6 +43,10 @@ For multiplayer, a server only has to collect intents, stamp them with a tick an
 
 The client (`src/client`) draws the map as one pixel per tile on an offscreen canvas, repaints only changed tiles, and scales it up with the camera. Territory labels sit at the point farthest from any border, found with a distance transform every 300 ms.
 
+## Languages
+
+German and English. Strings sit side by side where they are used, `t('Freies Land', 'Free land')` (`src/client/i18n.ts`); the static page carries its English in `data-en` attributes. The language comes from the browser unless chosen in the settings, which reloads the page.
+
 ## Performance
 
 Map sizes: 552×345, 920×575, 1380×862 and 1840×1150 tiles, with 3–100 bots. Worst case measured (huge map, 100 normal bots, 4,000 ticks): 4–5 ms a tick on average, 99% of ticks under 16 ms, and no tick over 50 ms after the first. What it took:
@@ -71,7 +75,8 @@ Neutral land runs out after 60 to 120 seconds; classic matches last 7 to 15 minu
 | 1. Single-player MVP | Map, spawning, troop growth, attacks, bots, rendering, send slider | **Done**, plus capitals, quick match and the colour picker |
 | 2. Multiplayer | Lobby server, lockstep tick relay, desync checks via `hash()`, reconnection | Next (needs hosting) |
 | 3. Frontwars layer | Gold, cities, defence posts, silos, rockets, nukes, hydrogen bombs, factories with trains, ports with boats, warships, alliances and bot diplomacy, real-world maps | **Done** |
-| 4. Polish | Minimap, settings (UI size, panels, volume), game speed, sound, replays from `game.log`, results chart, fog of war, battle royale, teams, daily challenge **done**. Still to come: tutorial match | Mostly done |
+| 4. Polish | Minimap, settings (UI size, panels, volume, language), game speed, sound, replays from `game.log`, results chart, fog of war, battle royale, teams, daily challenge, tutorial match, achievements, English **done** | **Done** |
+| 5. Publish | GitHub Pages workflow (`.github/workflows/pages.yml`) | Waiting for Pages to be switched on in the repository settings |
 
 ## Idea backlog
 
@@ -81,7 +86,6 @@ Still open, roughly in order of cost:
 
 - **Emotes**: a few fixed icons instead of chat, nothing to moderate.
 - **Replay sharing**: a link that replays a whole match from its intent log.
-- **Tutorial bot match**: two guided minutes on expanding, attacking and holding troops back.
 - **Map events**: gold rush (cheaper land), storms (no boats).
 - **Rebellions**: huge empires occasionally lose a border region to neutral.
 - **Daily leaderboard**: needs a server, like multiplayer.

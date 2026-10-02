@@ -1,4 +1,5 @@
 /** Achievements and lifetime stats, kept in this browser. */
+import { t } from './i18n';
 
 export type AchievementId =
   | 'tutorial'
@@ -20,23 +21,23 @@ export type AchievementId =
   | 'veteran';
 
 export const ACHIEVEMENTS: { id: AchievementId; name: string; text: string }[] = [
-  { id: 'tutorial', name: 'Musterschüler', text: 'Schließ das Tutorial ab.' },
-  { id: 'firstWin', name: 'Erster Sieg', text: 'Gewinne eine Partie.' },
-  { id: 'quickWin', name: 'Blitzsieg', text: 'Gewinne ein schnelles Spiel.' },
-  { id: 'classicWin', name: 'Eroberer', text: 'Gewinne eine klassische Partie.' },
-  { id: 'royaleWin', name: 'Trockene Füße', text: 'Gewinne Battle Royale.' },
-  { id: 'teamWin', name: 'Teamplayer', text: 'Gewinne mit deinem Team.' },
-  { id: 'worldWin', name: 'Weltherrschaft', text: 'Gewinne auf einer echten Karte.' },
-  { id: 'hardWin', name: 'Gegen die Besten', text: 'Gewinne gegen schwere Bots.' },
-  { id: 'fogWin', name: 'Durch den Nebel', text: 'Gewinne mit Nebel des Krieges.' },
-  { id: 'daily', name: 'Tagesform', text: 'Gewinne eine tägliche Herausforderung.' },
-  { id: 'capital', name: 'Königsmörder', text: 'Erobere eine feindliche Hauptstadt.' },
-  { id: 'nuke', name: 'Atomzeitalter', text: 'Feuere eine Atombombe ab.' },
-  { id: 'hbomb', name: 'Sonne auf Erden', text: 'Feuere eine H-Bombe ab.' },
-  { id: 'sinker', name: 'Admiral', text: 'Versenke ein feindliches Kriegsschiff.' },
-  { id: 'tenCities', name: 'Städtebauer', text: 'Besitze 10 Städte auf einmal.' },
-  { id: 'half', name: 'Halbe Welt', text: 'Halte die Hälfte des Landes.' },
-  { id: 'veteran', name: 'Veteran', text: 'Spiele 10 Partien zu Ende.' },
+  { id: 'tutorial', name: t('Musterschüler', 'Star pupil'), text: t('Schließ das Tutorial ab.', 'Finish the tutorial.') },
+  { id: 'firstWin', name: t('Erster Sieg', 'First win'), text: t('Gewinne eine Partie.', 'Win a match.') },
+  { id: 'quickWin', name: t('Blitzsieg', 'Blitz'), text: t('Gewinne ein schnelles Spiel.', 'Win a quick match.') },
+  { id: 'classicWin', name: t('Eroberer', 'Conqueror'), text: t('Gewinne eine klassische Partie.', 'Win a classic match.') },
+  { id: 'royaleWin', name: t('Trockene Füße', 'Dry feet'), text: t('Gewinne Battle Royale.', 'Win battle royale.') },
+  { id: 'teamWin', name: t('Teamplayer', 'Team player'), text: t('Gewinne mit deinem Team.', 'Win with your team.') },
+  { id: 'worldWin', name: t('Weltherrschaft', 'World domination'), text: t('Gewinne auf einer echten Karte.', 'Win on a real map.') },
+  { id: 'hardWin', name: t('Gegen die Besten', 'Against the best'), text: t('Gewinne gegen schwere Bots.', 'Win against hard bots.') },
+  { id: 'fogWin', name: t('Durch den Nebel', 'Through the fog'), text: t('Gewinne mit Nebel des Krieges.', 'Win with fog of war.') },
+  { id: 'daily', name: t('Tagesform', 'On the day'), text: t('Gewinne eine tägliche Herausforderung.', 'Win a daily challenge.') },
+  { id: 'capital', name: t('Königsmörder', 'Kingslayer'), text: t('Erobere eine feindliche Hauptstadt.', 'Take an enemy capital.') },
+  { id: 'nuke', name: t('Atomzeitalter', 'Atomic age'), text: t('Feuere eine Atombombe ab.', 'Fire a nuke.') },
+  { id: 'hbomb', name: t('Sonne auf Erden', 'Sun on earth'), text: t('Feuere eine H-Bombe ab.', 'Fire a hydrogen bomb.') },
+  { id: 'sinker', name: t('Admiral', 'Admiral'), text: t('Versenke ein feindliches Kriegsschiff.', 'Sink an enemy warship.') },
+  { id: 'tenCities', name: t('Städtebauer', 'City builder'), text: t('Besitze 10 Städte auf einmal.', 'Own 10 cities at once.') },
+  { id: 'half', name: t('Halbe Welt', 'Half the world'), text: t('Halte die Hälfte des Landes.', 'Hold half the land.') },
+  { id: 'veteran', name: t('Veteran', 'Veteran'), text: t('Spiele 10 Partien zu Ende.', 'Finish 10 matches.') },
 ];
 
 export interface Profile {

@@ -1,17 +1,19 @@
+import { t } from './i18n';
+
 /** Colours a player can pick in the menu. Bots get generated colours that avoid the pick. */
 export const SWATCHES: { name: string; color: number }[] = [
-  { name: 'Karmesin', color: 0xd7263d },
-  { name: 'Mandarine', color: 0xf46036 },
-  { name: 'Safran', color: 0xf2b134 },
-  { name: 'Limette', color: 0x8cc63f },
-  { name: 'Smaragd', color: 0x1b9e5a },
-  { name: 'Petrol', color: 0x17a2a4 },
-  { name: 'Azur', color: 0x2e86de },
-  { name: 'Indigo', color: 0x4b4bc8 },
-  { name: 'Violett', color: 0x8e44d8 },
-  { name: 'Magenta', color: 0xd63384 },
-  { name: 'Rosa', color: 0xff7aa2 },
-  { name: 'Anthrazit', color: 0x3a4750 },
+  { name: t('Karmesin', 'Crimson'), color: 0xd7263d },
+  { name: t('Mandarine', 'Tangerine'), color: 0xf46036 },
+  { name: t('Safran', 'Saffron'), color: 0xf2b134 },
+  { name: t('Limette', 'Lime'), color: 0x8cc63f },
+  { name: t('Smaragd', 'Emerald'), color: 0x1b9e5a },
+  { name: t('Petrol', 'Teal'), color: 0x17a2a4 },
+  { name: t('Azur', 'Azure'), color: 0x2e86de },
+  { name: t('Indigo', 'Indigo'), color: 0x4b4bc8 },
+  { name: t('Violett', 'Violet'), color: 0x8e44d8 },
+  { name: t('Magenta', 'Magenta'), color: 0xd63384 },
+  { name: t('Rosa', 'Pink'), color: 0xff7aa2 },
+  { name: t('Anthrazit', 'Charcoal'), color: 0x3a4750 },
 ];
 
 export function toHex(rgb: number): string {

@@ -8,6 +8,7 @@ import { byId, Hud } from './hud';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
 import { Session, type IntentLog } from './session';
 import { Tutorial } from './tutorial';
+import { t, translatePage } from './i18n';
 import { ACHIEVEMENTS, loadProfile, recordMatch, unlock } from './achievements';
 import { SettingsPanel } from './settings';
 import { formatClock } from './format';
@@ -41,6 +42,7 @@ export class App {
   private color: number;
 
   constructor() {
+    translatePage();
     new SettingsPanel();
     const prefs = loadPrefs();
     this.color = prefs.color;
@@ -98,18 +100,18 @@ export class App {
 
   /** One line under "Mehr Optionen" saying what is set, so the folded options aren't a mystery. */
   private summarise(): void {
-    const maps: Record<string, string> = { '': 'Zufallskarte', world: 'Weltkarte', europe: 'Europa', germany: 'Deutschland' };
-    const sizes: Record<string, string> = { small: 'Klein', medium: 'Mittel', large: 'Groß', huge: 'Riesig' };
-    const levels: Record<string, string> = { easy: 'Leicht', normal: 'Normal', hard: 'Schwer' };
+    const maps: Record<string, string> = { '': t('Zufallskarte', 'Random map'), world: t('Weltkarte', 'World map'), europe: t('Europa', 'Europe'), germany: t('Deutschland', 'Germany') };
+    const sizes: Record<string, string> = { small: t('Klein', 'Small'), medium: t('Mittel', 'Medium'), large: t('Groß', 'Large'), huge: t('Riesig', 'Huge') };
+    const levels: Record<string, string> = { easy: t('Leicht', 'Easy'), normal: 'Normal', hard: t('Schwer', 'Hard') };
     const quick = this.radio('mode') === 'quick';
     const teams = Number(this.radio('teams'));
     const parts = [
-      maps[this.radio('world')] ?? 'Zufallskarte',
-      quick ? 'Klein' : sizes[this.radio('size')],
-      `${this.botsInput.value} Bots, ${levels[this.radio('difficulty')]}`,
+      maps[this.radio('world')] ?? t('Zufallskarte', 'Random map'),
+      quick ? t('Klein', 'Small') : sizes[this.radio('size')],
+      `${this.botsInput.value} ${t('Bots', 'bots')}, ${levels[this.radio('difficulty')]}`,
     ];
-    if (teams) parts.push(`${teams} Teams`);
-    if (this.fogInput.checked) parts.push('Nebel');
+    if (teams) parts.push(t(`${teams} Teams`, `${teams} teams`));
+    if (this.fogInput.checked) parts.push(t('Nebel', 'Fog'));
     this.moreSummary.textContent = parts.join(' · ');
   }
 
@@ -141,11 +143,11 @@ export class App {
     // Any other colour, through the browser's picker.
     const custom = document.createElement('label');
     custom.className = 'swatch custom';
-    custom.title = 'Eigene Farbe wählen';
+    custom.title = t('Eigene Farbe wählen', 'Pick your own colour');
     const picker = document.createElement('input');
     picker.type = 'color';
     picker.id = 'color-custom';
-    picker.setAttribute('aria-label', 'Eigene Farbe wählen');
+    picker.setAttribute('aria-label', t('Eigene Farbe wählen', 'Pick your own colour'));
     const preset = SWATCHES.some((s) => s.color === this.color);
     picker.value = toHex(preset ? 0x888888 : this.color);
     custom.classList.toggle('selected', !preset);
@@ -168,7 +170,7 @@ export class App {
   }
 
   private options(): MatchOptions {
-    const name = this.nameInput.value.trim().slice(0, 16) || 'Du';
+    const name = this.nameInput.value.trim().slice(0, 16) || t('Du', 'You');
     return {
       seed: this.seed,
       mode: this.radio('mode') as Mode,
@@ -201,7 +203,7 @@ export class App {
     const game = new Game(createSettings(options, this.mapFor(options)));
     this.session?.dispose();
     this.session = new Session(this.canvas, game, { inset: () => this.menuInset() });
-    this.chartNo.textContent = `Nr. ${this.seed}`;
+    this.chartNo.textContent = `${t('Nr.', 'No.')} ${this.seed}`;
   }
 
   private showMenu(): void {
@@ -216,9 +218,9 @@ export class App {
     const profile = loadProfile();
     const unlocked = ACHIEVEMENTS.filter((a) => profile.unlocked[a.id]).length;
     const stats: [string, string][] = [
-      ['Partien', String(profile.played)],
-      ['Siege', String(profile.won)],
-      ['Erfolge', `${unlocked}/${ACHIEVEMENTS.length}`],
+      [t('Partien', 'Matches'), String(profile.played)],
+      [t('Siege', 'Wins'), String(profile.won)],
+      [t('Erfolge', 'Achievements'), `${unlocked}/${ACHIEVEMENTS.length}`],
     ];
     byId('profile-stats').replaceChildren(
       ...stats.map(([label, value]) => {
@@ -255,10 +257,10 @@ export class App {
     const { best, tries } = progress(daily);
     this.dailyDesc.textContent = daily.title;
     this.dailyBest.textContent = best
-      ? `Deine Bestzeit heute: ${formatClock(best)}`
+      ? t(`Deine Bestzeit heute: ${formatClock(best)}`, `Your best time today: ${formatClock(best)}`)
       : tries
-        ? `Noch nicht geschafft (${tries} ${tries === 1 ? 'Versuch' : 'Versuche'}). Gewinne so schnell du kannst.`
-        : 'Gewinne so schnell du kannst. Alle spielen heute dieselbe Karte.';
+        ? t(`Noch nicht geschafft (${tries} ${tries === 1 ? 'Versuch' : 'Versuche'}). Gewinne so schnell du kannst.`, `Not won yet (${tries} ${tries === 1 ? 'try' : 'tries'}). Win as fast as you can.`)
+        : t('Gewinne so schnell du kannst. Alle spielen heute dieselbe Karte.', 'Win as fast as you can. Everyone plays the same map today.');
   }
 
   /** The guided first match: a small island, three easy bots, gold for a city. */
@@ -331,9 +333,9 @@ export class App {
             });
             if (!daily) return null;
             const best = recordResult(daily, won, seconds);
-            if (best) return `Neue Tagesbestzeit: ${formatClock(seconds)}!`;
+            if (best) return t(`Neue Tagesbestzeit: ${formatClock(seconds)}!`, `New best time today: ${formatClock(seconds)}!`);
             const { best: time } = progress(daily);
-            return time ? `Deine Tagesbestzeit: ${formatClock(time)}.` : null;
+            return time ? t(`Deine Tagesbestzeit: ${formatClock(time)}.`, `Your best time today: ${formatClock(time)}.`) : null;
           },
         },
       },

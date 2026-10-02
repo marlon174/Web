@@ -1,17 +1,18 @@
 import type { MatchOptions } from '../core/setup';
+import { t } from './i18n';
 
 /** One twist per weekday (0 = Sunday), so each day of the week plays differently. */
 const TWISTS: { name: string; options: Partial<MatchOptions>; fog?: boolean }[] = [
   { name: 'Battle Royale', options: { mode: 'royale', mapSize: 'medium', bots: 15 } },
-  { name: 'Klassisch', options: { mode: 'classic', mapSize: 'medium', bots: 15 } },
-  { name: 'Nebel des Krieges', options: { mode: 'classic', mapSize: 'medium', bots: 15 }, fog: true },
-  { name: '2 Teams', options: { mode: 'classic', mapSize: 'medium', bots: 15, teams: 2 } },
-  { name: 'Schwere Bots', options: { mode: 'classic', mapSize: 'medium', bots: 12, difficulty: 'hard' } },
-  { name: 'Battle Royale mit Nebel', options: { mode: 'royale', mapSize: 'medium', bots: 15 }, fog: true },
-  { name: 'Große Karte, 30 Bots', options: { mode: 'classic', mapSize: 'large', bots: 30 } },
+  { name: t('Klassisch', 'Classic'), options: { mode: 'classic', mapSize: 'medium', bots: 15 } },
+  { name: t('Nebel des Krieges', 'Fog of war'), options: { mode: 'classic', mapSize: 'medium', bots: 15 }, fog: true },
+  { name: t('2 Teams', '2 teams'), options: { mode: 'classic', mapSize: 'medium', bots: 15, teams: 2 } },
+  { name: t('Schwere Bots', 'Hard bots'), options: { mode: 'classic', mapSize: 'medium', bots: 12, difficulty: 'hard' } },
+  { name: t('Battle Royale mit Nebel', 'Battle royale in fog'), options: { mode: 'royale', mapSize: 'medium', bots: 15 }, fog: true },
+  { name: t('Große Karte, 30 Bots', 'Big map, 30 bots'), options: { mode: 'classic', mapSize: 'large', bots: 30 } },
 ];
 
-const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+const WEEKDAYS = [t('Sonntag', 'Sunday'), t('Montag', 'Monday'), t('Dienstag', 'Tuesday'), t('Mittwoch', 'Wednesday'), t('Donnerstag', 'Thursday'), t('Freitag', 'Friday'), t('Samstag', 'Saturday')];
 const KEY = 'landgrab.daily.v1';
 
 export interface Daily {

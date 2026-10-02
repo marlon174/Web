@@ -4,6 +4,7 @@ import { toHex } from './colors';
 import { uiScale } from './settings';
 import { sound } from './sound';
 import { onUnlock } from './achievements';
+import { decimal, lang, t } from './i18n';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import { GROUP_NAMES, iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -32,7 +33,7 @@ export interface OverlayContent {
 }
 
 const BOARD_ROWS = 8;
-const MISSILE_NAMES = { rocket: 'Rakete', nuke: 'Atombombe', hbomb: 'H-Bombe' } as const;
+const MISSILE_NAMES = lang === 'en' ? { rocket: 'Rocket', nuke: 'Nuke', hbomb: 'H-bomb' } : { rocket: 'Rakete', nuke: 'Atombombe', hbomb: 'H-Bombe' };
 const FEED_LIMIT = 4;
 const FEED_MS = 7000;
 
@@ -85,7 +86,7 @@ export class Hud {
   onOffer: (from: number, accept: boolean) => void = () => {};
 
   constructor() {
-    onUnlock((name) => this.post(`Erfolg freigeschaltet: ${name}`, 'award'));
+    onUnlock((name) => this.post(t(`Erfolg freigeschaltet: ${name}`, `Achievement unlocked: ${name}`), 'award'));
     byId('offer-accept').addEventListener('click', () => this.answerOffer(true));
     byId('offer-decline').addEventListener('click', () => this.answerOffer(false));
     // The chips are rebuilt several times a second, so act on press, not click.
@@ -143,17 +144,17 @@ export class Hud {
     if (game.phase === 'spawn') {
       this.growth.textContent = '';
     } else if (!me.alive) {
-      this.growth.textContent = 'Ausgeschieden';
+      this.growth.textContent = t('Ausgeschieden', 'Eliminated');
     } else if (me.troops >= max) {
-      this.growth.textContent = 'Voll: schick Truppen los';
+      this.growth.textContent = t('Voll: schick Truppen los', 'Full: send troops out');
     } else {
       const perTick = me.troops * CONFIG.interest * (1 - me.troops / max) + me.tiles * CONFIG.landIncome;
-      this.growth.textContent = `+${formatTroops(perTick * CONFIG.ticksPerSecond)} pro Sekunde`;
+      this.growth.textContent = t(`+${formatTroops(perTick * CONFIG.ticksPerSecond)} pro Sekunde`, `+${formatTroops(perTick * CONFIG.ticksPerSecond)} a second`);
     }
     this.gold.textContent = formatTroops(me.gold);
-    this.goldRate.textContent = me.alive && game.phase === 'play' ? `+${formatTroops(me.tiles * CONFIG.goldPerTile * CONFIG.ticksPerSecond)} pro Sekunde` : '';
+    this.goldRate.textContent = me.alive && game.phase === 'play' ? t(`+${formatTroops(me.tiles * CONFIG.goldPerTile * CONFIG.ticksPerSecond)} pro Sekunde`, `+${formatTroops(me.tiles * CONFIG.goldPerTile * CONFIG.ticksPerSecond)} a second`) : '';
     this.land.textContent = formatShare(me.tiles / game.map.landTiles);
-    this.tiles.textContent = `${formatCount(me.tiles)} Felder`;
+    this.tiles.textContent = t(`${formatCount(me.tiles)} Felder`, `${formatCount(me.tiles)} tiles`);
     this.ratioOut.textContent = `${this.percent}% · ${formatTroops((me.troops * this.percent) / 100)}`;
 
     const limit = game.settings.timeLimit;
@@ -182,7 +183,7 @@ export class Hud {
     for (const [kind, button] of this.toolButtons) {
       let ready = me.alive && game.phase === 'play';
       if (kind === 'ally') {
-        button.querySelector('.tool-cost')!.textContent = '3 Min';
+        button.querySelector('.tool-cost')!.textContent = t('3 Min', '3 min');
       } else if (kind === 'warship') {
         const afloat = game.warships.some((s) => s.owner === me.id);
         const refusal = game.canWarship(me);
@@ -253,7 +254,7 @@ export class Hud {
       dot.style.setProperty('--c', toHex(lead.color));
       const name = document.createElement('span');
       name.className = 'name';
-      name.textContent = team === me.team ? 'Dein Team' : `Team ${lead.name}`;
+      name.textContent = team === me.team ? t('Dein Team', 'Your team') : `Team ${lead.name}`;
       const share = document.createElement('span');
       share.className = 'share';
       share.textContent = formatShare(tiles / game.map.landTiles);
@@ -270,7 +271,7 @@ export class Hud {
       if (b.owner !== me.id) continue;
       const li = document.createElement('li');
       li.className = 'outgoing';
-      li.textContent = `⛵ Boot · ${formatTroops(b.troops)}`;
+      li.textContent = t(`⛵ Boot · ${formatTroops(b.troops)}`, `⛵ Boat · ${formatTroops(b.troops)}`);
       items.push(li);
     }
     for (const m of game.missiles) {
@@ -286,10 +287,10 @@ export class Hud {
       const li = document.createElement('li');
       const outgoing = a.attacker === me.id;
       li.className = outgoing ? 'outgoing' : 'incoming';
-      const who = outgoing ? (a.target === NEUTRAL ? 'Freies Land' : game.player(a.target).name) : game.player(a.attacker).name;
-      const pace = a.target !== NEUTRAL ? ` · ⚡${game.pressure(a).toFixed(1).replace('.', ',')}×` : '';
+      const who = outgoing ? (a.target === NEUTRAL ? t('Freies Land', 'Free land') : game.player(a.target).name) : game.player(a.attacker).name;
+      const pace = a.target !== NEUTRAL ? ` · ⚡${game.pressure(a).toFixed(1).replace('.', decimal)}×` : '';
       li.textContent = `${outgoing ? '→' : '←'} ${who} · ${formatTroops(a.troops)}${pace}${outgoing ? ' ✕' : ''}`;
-      li.title = outgoing ? `Deine Truppen rücken vor: ${who}. Klicken ruft sie zurück.` : `${who} greift dich an`;
+      li.title = outgoing ? t(`Deine Truppen rücken vor: ${who}. Klicken ruft sie zurück.`, `Your troops are advancing: ${who}. Click to call them back.`) : t(`${who} greift dich an`, `${who} is attacking you`);
       if (outgoing) li.dataset.target = String(a.target);
       items.push(li);
     }
@@ -392,7 +393,7 @@ export class Hud {
     chip.style.setProperty('--c', toHex(from.color));
     const name = document.createElement('strong');
     name.textContent = from.name;
-    this.offerText.append(chip, name, ` bietet dir ein Bündnis an (${seconds} s)`);
+    this.offerText.append(chip, name, t(` bietet dir ein Bündnis an (${seconds} s)`, ` offers you an alliance (${seconds} s)`));
     this.offerEl.hidden = false;
   }
 
@@ -414,7 +415,7 @@ export class Hud {
   /** Shows the game speed on its button; anything above 1× stands out. */
   set speed(value: number) {
     this.speedButton.textContent = `${value}×`;
-    this.speedButton.setAttribute('aria-label', `Spieltempo: ${value}-fach`);
+    this.speedButton.setAttribute('aria-label', t(`Spieltempo: ${value}-fach`, `Game speed: ${value}x`));
     this.speedButton.classList.toggle('fast', value > 1);
   }
 

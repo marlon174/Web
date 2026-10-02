@@ -9,6 +9,7 @@ import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
+import { t } from './i18n';
 import { takeTip, TIPS, type TipId } from './tips';
 import type { Tutorial } from './tutorial';
 import { unlock } from './achievements';
@@ -105,19 +106,19 @@ export class Session implements InputTarget {
       options.play.hud.onRecall = (target) => {
         if (!this.me || this.replay) return;
         this.game.queue({ type: 'recall', player: this.me.id, target });
-        options.play?.hud.toast('Truppen zurückgerufen.');
+        options.play?.hud.toast(t('Truppen zurückgerufen.', 'Troops recalled.'));
       };
       options.play.hud.onOffer = (from, accept) => {
         if (!this.me || this.replay) return;
         if (accept) this.game.queue({ type: 'ally', player: this.me.id, target: from });
-        else options.play?.hud.toast(`Du hast ${this.game.player(from).name} abgewiesen.`);
+        else options.play?.hud.toast(t(`Du hast ${this.game.player(from).name} abgewiesen.`, `You turned down ${this.game.player(from).name}.`));
       };
       options.play.hud.minimap.addEventListener('pointerdown', this.onMinimap);
       options.play.hud.minimap.addEventListener('pointermove', this.onMinimap);
       options.play.hud.show(this.me);
       options.play.hud.root.classList.toggle('replay', this.replay !== null);
       // The tutorial card explains the start itself.
-      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : 'Klick auf eine beliebige Stelle an Land, um dort zu starten.');
+      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : t('Klick auf eine beliebige Stelle an Land, um dort zu starten.', 'Click anywhere on land to start there.'));
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
       options.play.hud.centerButton.addEventListener('click', this.onCenterButton);
       options.play.hud.speedButton.addEventListener('click', this.onSpeedButton);
@@ -224,46 +225,46 @@ export class Session implements InputTarget {
   /** Why the tool can't be used on this tile, or null if it can. Tile -1: only the checks that don't depend on a spot. */
   private toolRefusal(kind: ToolKind, tile: number): string | null {
     const { game, me } = this;
-    if (!me || game.phase !== 'play' || !me.alive) return 'Warte, bis die Partie läuft.';
+    if (!me || game.phase !== 'play' || !me.alive) return t('Warte, bis die Partie läuft.', 'Wait until the match is running.');
     if (kind === 'ally') {
       if (tile < 0) return null;
       const o = game.owner[tile];
-      if (o === NEUTRAL || o === me.id) return 'Klick auf das Land eines anderen Spielers.';
+      if (o === NEUTRAL || o === me.id) return t('Klick auf das Land eines anderen Spielers.', 'Click another player\'s land.');
       return null;
     }
     if (kind === 'warship') {
       const refusal = game.canWarship(me);
       const afloat = game.warships.some((s) => s.owner === me.id);
-      if (refusal === 'noPort' && !afloat) return 'Bau zuerst einen Hafen. Kriegsschiffe laufen von dort aus.';
-      if (refusal === 'gold' && !afloat) return `Ein Kriegsschiff kostet ${formatTroops(CONFIG.warship.cost)} Gold.`;
-      if (tile >= 0 && !game.isWater(tile)) return 'Klick aufs Wasser: dorthin fährt dein Kriegsschiff.';
+      if (refusal === 'noPort' && !afloat) return t('Bau zuerst einen Hafen. Kriegsschiffe laufen von dort aus.', 'Build a port first. Warships sail from there.');
+      if (refusal === 'gold' && !afloat) return t(`Ein Kriegsschiff kostet ${formatTroops(CONFIG.warship.cost)} Gold.`, `A warship costs ${formatTroops(CONFIG.warship.cost)} gold.`);
+      if (tile >= 0 && !game.isWater(tile)) return t('Klick aufs Wasser: dorthin fährt dein Kriegsschiff.', 'Click the water: your warship sails there.');
       return null;
     }
     if (isMissile(kind)) {
       const refusal = game.canLaunch(me, kind);
-      if (refusal === 'noSilo') return 'Bau zuerst ein Raketensilo.';
-      if (refusal === 'reloading') return 'Deine Silos laden nach. Jedes Silo kann alle 10 Sekunden feuern.';
-      if (refusal === 'silos') return `Für eine H-Bombe brauchst du ${CONFIG.hbombSilos} Raketensilos.`;
-      if (refusal === 'gold') return `${{ rocket: 'Eine Rakete', nuke: 'Eine Atombombe', hbomb: 'Eine H-Bombe' }[kind]} kostet ${formatTroops(game.missileCost(kind))} Gold.`;
-      if (tile >= 0 && game.allied(me.id, game.owner[tile])) return 'Du kannst nicht auf Verbündete schießen.';
+      if (refusal === 'noSilo') return t('Bau zuerst ein Raketensilo.', 'Build a missile silo first.');
+      if (refusal === 'reloading') return t('Deine Silos laden nach. Jedes Silo kann alle 10 Sekunden feuern.', 'Your silos are reloading. Each silo can fire every 10 seconds.');
+      if (refusal === 'silos') return t(`Für eine H-Bombe brauchst du ${CONFIG.hbombSilos} Raketensilos.`, `A hydrogen bomb needs ${CONFIG.hbombSilos} missile silos.`);
+      if (refusal === 'gold') return t(`${{ rocket: 'Eine Rakete', nuke: 'Eine Atombombe', hbomb: 'Eine H-Bombe' }[kind]} kostet ${formatTroops(game.missileCost(kind))} Gold.`, `${{ rocket: 'A rocket', nuke: 'A nuke', hbomb: 'A hydrogen bomb' }[kind]} costs ${formatTroops(game.missileCost(kind))} gold.`);
+      if (tile >= 0 && game.allied(me.id, game.owner[tile])) return t('Du kannst nicht auf Verbündete schießen.', 'You can\'t fire at allies.');
       return null;
     }
     if (tile < 0) {
       if (me.owned[kind] >= game.buildLimit(me, kind)) return this.limitText(kind);
-      return me.gold < game.buildCost(me, kind) ? `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.` : null;
+      return me.gold < game.buildCost(me, kind) ? t(`Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.`, `That costs ${formatTroops(game.buildCost(me, kind))} gold.`) : null;
     }
     switch (game.canBuild(me, kind, tile)) {
       case 'gold':
-        return `Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.`;
+        return t(`Das kostet ${formatTroops(game.buildCost(me, kind))} Gold.`, `That costs ${formatTroops(game.buildCost(me, kind))} gold.`);
       case 'notYours':
       case 'offMap':
-        return 'Bau auf deinem eigenen Land.';
+        return t('Bau auf deinem eigenen Land.', 'Build on your own land.');
       case 'notCoast':
-        return 'Häfen müssen direkt am Wasser stehen.';
+        return t('Häfen müssen direkt am Wasser stehen.', 'Ports must stand right by the water.');
       case 'limit':
         return this.limitText(kind);
       case 'tooClose':
-        return 'Zu nah an einem anderen Gebäude. Lass 4 Felder Abstand.';
+        return t('Zu nah an einem anderen Gebäude. Lass 4 Felder Abstand.', 'Too close to another building. Leave 4 tiles between them.');
       default:
         return null;
     }
@@ -271,7 +272,7 @@ export class Session implements InputTarget {
 
   private limitText(kind: BuildingKind): string {
     const per = formatCount(CONFIG.tilesPerBuilding[kind]);
-    return `Mehr davon geht erst mit mehr Land: 2 plus 1 je ${per} Felder.`;
+    return t(`Mehr davon geht erst mit mehr Land: 2 plus 1 je ${per} Felder.`, `You need more land for more of these: 2, plus 1 per ${per} tiles.`);
   }
 
   private selectTool(kind: ToolKind): void {
@@ -290,21 +291,21 @@ export class Session implements InputTarget {
     this.tool = kind;
     const name = TOOLS.find((t) => t.kind === kind)!.name;
     const building: Record<string, string> = {
-      city: 'eine Stadt',
-      factory: 'eine Fabrik',
-      port: 'einen Hafen (an der Küste)',
-      defense: 'einen Bunker',
-      silo: 'ein Raketensilo',
+      city: t('eine Stadt', 'a city'),
+      factory: t('eine Fabrik', 'a factory'),
+      port: t('einen Hafen (an der Küste)', 'a port (on the coast)'),
+      defense: t('einen Bunker', 'a bunker'),
+      silo: t('ein Raketensilo', 'a missile silo'),
     };
-    const cancel = 'Rechtsklick oder Esc bricht ab.';
+    const cancel = t('Rechtsklick oder Esc bricht ab.', 'Right-click or Esc cancels.');
     hud.setBanner(
       kind === 'warship'
-        ? `Klick aufs Wasser: ${this.game.canWarship(this.me) === null ? 'Ein neues Kriegsschiff läuft dorthin aus.' : 'Dein nächstes Kriegsschiff fährt dorthin.'} ${cancel}`
+        ? `${t('Klick aufs Wasser:', 'Click the water:')} ${this.game.canWarship(this.me) === null ? t('Ein neues Kriegsschiff läuft dorthin aus.', 'A new warship sails there.') : t('Dein nächstes Kriegsschiff fährt dorthin.', 'Your nearest warship heads there.')} ${cancel}`
         : kind === 'ally'
-        ? `Klick auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`
+        ? t(`Klick auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`, `Click a player\'s land to offer an alliance (or to end one). ${cancel}`)
         : isMissile(kind)
-          ? `Klick auf ein Ziel für deine ${name}. ${cancel}`
-          : `Klick auf dein Land, um ${building[kind]} zu bauen. ${cancel}`,
+          ? t(`Klick auf ein Ziel für deine ${name}. ${cancel}`, `Click a target for your ${name}. ${cancel}`)
+          : t(`Klick auf dein Land, um ${building[kind]} zu bauen. ${cancel}`, `Click your land to build ${building[kind]}. ${cancel}`),
     );
     hud.updateTools(this.game, this.me, this.tool);
   }
@@ -357,18 +358,18 @@ export class Session implements InputTarget {
     const me = this.me!;
     const plan = this.game.planBoat(me, tile);
     const why: Record<string, string> = {
-      noPort: 'Dieses Land grenzt nicht an deins. Mit einem Hafen kannst du übers Wasser übersetzen.',
-      boats: `Du hast schon ${CONFIG.maxBoats} Boote unterwegs.`,
-      ally: 'Dort wohnt ein Verbündeter.',
-      noRoute: 'Kein Seeweg von deinen Häfen zu dieser Küste.',
-      offMap: 'Ziel auf Land.',
+      noPort: t('Dieses Land grenzt nicht an deins. Mit einem Hafen kannst du übers Wasser übersetzen.', 'This land doesn\'t border yours. With a port you can cross the water.'),
+      boats: t(`Du hast schon ${CONFIG.maxBoats} Boote unterwegs.`, `You already have ${CONFIG.maxBoats} boats at sea.`),
+      ally: t('Dort wohnt ein Verbündeter.', 'An ally lives there.'),
+      noRoute: t('Kein Seeweg von deinen Häfen zu dieser Küste.', 'No sea route from your ports to that coast.'),
+      offMap: t('Ziel auf Land.', 'Aim at land.'),
     };
     if (typeof plan === 'string') {
-      hud.toast(why[plan] ?? 'Dorthin kann kein Boot fahren.');
+      hud.toast(why[plan] ?? t('Dorthin kann kein Boot fahren.', 'No boat can go there.'));
       return;
     }
     if (me.troops < 2) {
-      hud.toast('Du hast noch keine Truppen zum Losschicken.');
+      hud.toast(t('Du hast noch keine Truppen zum Losschicken.', 'You have no troops to send yet.'));
       return;
     }
     this.game.queue({ type: 'boat', player: me.id, tile, permille: hud.percent * 10 });
@@ -393,8 +394,8 @@ export class Session implements InputTarget {
     if (tile < 0) return;
 
     if (game.phase === 'spawn') {
-      if (!game.isLand(tile)) hud.toast('Wähl eine Stelle an Land.');
-      else if (!this.canSpawnAt(tile)) hud.toast('Auf Bergen wächst man zu langsam. Wähl tieferes Land.');
+      if (!game.isLand(tile)) hud.toast(t('Wähl eine Stelle an Land.', 'Pick a spot on land.'));
+      else if (!this.canSpawnAt(tile)) hud.toast(t('Auf Bergen wächst man zu langsam. Wähl tieferes Land.', 'Mountains grow too slowly. Pick lower ground.'));
       else {
         game.queue({ type: 'spawn', player: me.id, tile });
         hud.setBanner('');
@@ -408,14 +409,14 @@ export class Session implements InputTarget {
     }
     if (game.phase !== 'play' || !me.alive) return;
     if (!game.isLand(tile)) {
-      hud.toast('Klick auf Land jenseits des Wassers. Boote brauchen einen Hafen.');
+      hud.toast(t('Klick auf Land jenseits des Wassers. Boote brauchen einen Hafen.', 'Click land across the water. Boats need a port.'));
       return;
     }
     const target = game.owner[tile];
     if (target === me.id) return;
     if (game.teammates(me.id, target)) {
       if (me.troops < 2) {
-        hud.toast('Du hast noch keine Truppen zum Verschicken.');
+        hud.toast(t('Du hast noch keine Truppen zum Verschicken.', 'You have no troops to send yet.'));
         return;
       }
       game.queue({ type: 'donate', player: me.id, target, troops: hud.percent * 10, gold: 0 });
@@ -423,16 +424,16 @@ export class Session implements InputTarget {
       return;
     }
     if (game.allied(me.id, target)) {
-      hud.toast(`${game.player(target).name} ist dein Verbündeter.`);
+      hud.toast(t(`${game.player(target).name} ist dein Verbündeter.`, `${game.player(target).name} is your ally.`));
       return;
     }
     if (!game.sharesBorder(me, target)) {
       if (me.owned.port > 0) this.sendBoat(tile);
-      else hud.toast(target === NEUTRAL ? 'Dieses Land grenzt nicht an deins. Mit einem Hafen kommst du übers Wasser.' : `Du hast keine gemeinsame Grenze mit ${game.player(target).name}.`);
+      else hud.toast(target === NEUTRAL ? t('Dieses Land grenzt nicht an deins. Mit einem Hafen kommst du übers Wasser.', 'This land doesn\'t border yours. A port gets you across the water.') : t(`Du hast keine gemeinsame Grenze mit ${game.player(target).name}.`, `You don\'t share a border with ${game.player(target).name}.`));
       return;
     }
     if (me.troops < 2) {
-      hud.toast('Du hast noch keine Truppen zum Losschicken.');
+      hud.toast(t('Du hast noch keine Truppen zum Losschicken.', 'You have no troops to send yet.'));
       return;
     }
     game.queue({ type: 'attack', player: me.id, target, permille: hud.percent * 10 });
@@ -458,31 +459,31 @@ export class Session implements InputTarget {
     const hud = this.options.play?.hud;
     const { game, me } = this;
     if (!hud || !me || !this.tipAt) return;
-    const t = this.hoverTile;
-    if (t < 0 || !game.isLand(t) || game.phase !== 'play') {
+    const tile = this.hoverTile;
+    if (tile < 0 || !game.isLand(tile) || game.phase !== 'play') {
       hud.showTip(null);
       return;
     }
-    const o = game.owner[t];
-    const kind = game.map.terrain[t];
-    const ground = kind === Terrain.Mountains ? 'Gebirge (sehr langsam)' : kind === Terrain.Highlands ? 'Hügel (langsam)' : 'Flachland';
+    const o = game.owner[tile];
+    const kind = game.map.terrain[tile];
+    const ground = kind === Terrain.Mountains ? t('Gebirge (sehr langsam)', 'Mountains (very slow)') : kind === Terrain.Highlands ? t('Hügel (langsam)', 'Hills (slow)') : t('Flachland', 'Plains');
     const lines: string[] = [];
-    if (this.fog?.hidden(t)) {
-      hud.showTip(['Im Nebel', 'Unbekanntes Gebiet'], this.tipAt.x, this.tipAt.y);
+    if (this.fog?.hidden(tile)) {
+      hud.showTip([t('Im Nebel', 'In the fog'), t('Unbekanntes Gebiet', 'Unknown land')], this.tipAt.x, this.tipAt.y);
       return;
     }
     if (o === NEUTRAL) {
-      lines.push('Freies Land', ground);
+      lines.push(t('Freies Land', 'Free land'), ground);
     } else {
       const p = game.player(o);
-      lines.push(o === me.id ? `${p.name} (du)` : p.name);
-      lines.push(`${formatTroops(p.troops)} Truppen · ${formatShare(p.tiles / game.map.landTiles)} Land`);
-      if (game.teammates(me.id, o)) lines.push('Dein Team: Klick schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds');
-      else if (game.allied(me.id, o)) lines.push(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`);
+      lines.push(o === me.id ? t(`${p.name} (du)`, `${p.name} (you)`) : p.name);
+      lines.push(t(`${formatTroops(p.troops)} Truppen · ${formatShare(p.tiles / game.map.landTiles)} Land`, `${formatTroops(p.troops)} troops · ${formatShare(p.tiles / game.map.landTiles)} land`));
+      if (game.teammates(me.id, o)) lines.push(t('Dein Team: Klick schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds', 'Your team: click to send troops, alliance tool (H) gives a third of your gold'));
+      else if (game.allied(me.id, o)) lines.push(t(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`, `Allied for another ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`));
       lines.push(ground);
     }
     if (o !== me.id && !game.allied(me.id, o) && me.alive) {
-      lines.push(`Kostet etwa ${formatTroops(game.costToTake(t, me.id))} Truppen pro Feld`);
+      lines.push(t(`Kostet etwa ${formatTroops(game.costToTake(tile, me.id))} Truppen pro Feld`, `Costs about ${formatTroops(game.costToTake(tile, me.id))} troops a tile`));
     }
     hud.showTip(lines, this.tipAt.x, this.tipAt.y);
   }
@@ -709,26 +710,26 @@ export class Session implements InputTarget {
     }
     if (this.replay) {
       play.hud.showOverlay({
-        eyebrow: 'Wiederholung',
-        title: 'Angehalten',
+        eyebrow: t('Wiederholung', 'Replay'),
+        title: t('Angehalten', 'Paused'),
         text: `Bei ${this.matchTime()}.`,
         stats: [],
         actions: [
-          { label: 'Weiter', primary: true, run: () => this.togglePause() },
-          { label: 'Zum Menü', run: () => play.hooks.menu() },
+          { label: t('Weiter', 'Continue'), primary: true, run: () => this.togglePause() },
+          { label: t('Zum Menü', 'Menu'), run: () => play.hooks.menu() },
         ],
       });
       return;
     }
     play.hud.showOverlay({
       eyebrow: 'Pause',
-      title: 'Spiel pausiert',
-      text: 'Nichts bewegt sich, bis du weiterspielst.',
+      title: t('Spiel pausiert', 'Game paused'),
+      text: t('Nichts bewegt sich, bis du weiterspielst.', 'Nothing moves until you carry on.'),
       stats: [],
       actions: [
-        { label: 'Weiter', primary: true, run: () => this.togglePause() },
-        { label: 'Neue Karte', run: () => play.hooks.playAgain() },
-        { label: 'Zum Menü', run: () => play.hooks.menu() },
+        { label: t('Weiter', 'Continue'), primary: true, run: () => this.togglePause() },
+        { label: t('Neue Karte', 'New map'), run: () => play.hooks.playAgain() },
+        { label: t('Zum Menü', 'Menu'), run: () => play.hooks.menu() },
       ],
     });
   }
@@ -736,7 +737,7 @@ export class Session implements InputTarget {
   private handleEvents(events: GameEvent[]): void {
     const hud = this.options.play!.hud;
     const me = this.me!;
-    const name = (id: number) => (id === me.id ? 'du' : id === NEUTRAL ? 'die Flut' : this.game.player(id).name);
+    const name = (id: number) => (id === me.id ? t('du', 'you') : id === NEUTRAL ? t('die Flut', 'the flood') : this.game.player(id).name);
     // Many buildings can change hands at once: report them together.
     const captures = new Map<string, number>();
     for (const e of events) {
@@ -746,42 +747,42 @@ export class Session implements InputTarget {
     }
     for (const [key, n] of captures) {
       const [by, from] = key.split(':').map(Number);
-      const what = n === 1 ? 'ein Gebäude' : `${n} Gebäude`;
-      if (by === me.id) hud.post(`Du hast ${what} von ${name(from)} erobert.`, 'good');
-      else hud.post(`${name(by)} hat ${what} von dir erobert.`, 'bad');
+      const what = n === 1 ? t('ein Gebäude', 'a building') : t(`${n} Gebäude`, `${n} buildings`);
+      if (by === me.id) hud.post(t(`Du hast ${what} von ${name(from)} erobert.`, `You captured ${what} from ${name(from)}.`), 'good');
+      else hud.post(t(`${name(by)} hat ${what} von dir erobert.`, `${name(by)} captured ${what} from you.`), 'bad');
     }
     for (const e of events) {
       if (e.type === 'capitalLost') {
-        if (e.player === me.id) hud.post(`${name(e.by)} hat deine Hauptstadt erobert. Du hast die Hälfte deiner Truppen verloren.`, 'bad');
+        if (e.player === me.id) hud.post(t(`${name(e.by)} hat deine Hauptstadt erobert. Du hast die Hälfte deiner Truppen verloren.`, `${name(e.by)} took your capital. You lost half your troops.`), 'bad');
         else if (e.by === me.id && !this.replay) unlock('capital');
-        if (e.by === me.id) hud.post(`Du hast die Hauptstadt von ${name(e.player)} erobert. Sie verlieren die Hälfte ihrer Truppen.`, 'good');
+        if (e.by === me.id) hud.post(t(`Du hast die Hauptstadt von ${name(e.player)} erobert. Sie verlieren die Hälfte ihrer Truppen.`, `You took ${name(e.player)}\'s capital. They lose half their troops.`), 'good');
       } else if (e.type === 'eliminated') {
-        if (e.player === me.id && this.replay) hud.post(`${name(e.by)} hat dich ausgelöscht.`, 'bad');
+        if (e.player === me.id && this.replay) hud.post(t(`${name(e.by)} hat dich ausgelöscht.`, `${name(e.by)} wiped you out.`), 'bad');
         else if (e.player === me.id) this.showDefeat(e.by);
-        else if (e.by === me.id) hud.post(`Du hast ${name(e.player)} ausgelöscht.`, 'good');
-        else hud.post(`${name(e.by)} hat ${name(e.player)} ausgelöscht.`, 'info');
+        else if (e.by === me.id) hud.post(t(`Du hast ${name(e.player)} ausgelöscht.`, `You wiped out ${name(e.player)}.`), 'good');
+        else hud.post(t(`${name(e.by)} hat ${name(e.player)} ausgelöscht.`, `${name(e.by)} wiped out ${name(e.player)}.`), 'info');
       } else if (e.type === 'encircled') {
-        if (e.player === me.id) hud.post(`${name(e.by)} hat ${e.tiles} deiner Felder abgeschnitten und übernommen.`, 'bad');
-        else if (e.by === me.id) hud.post(`Du hast ${e.tiles} Felder von ${name(e.player)} abgeschnitten und übernommen.`, 'good');
+        if (e.player === me.id) hud.post(t(`${name(e.by)} hat ${e.tiles} deiner Felder abgeschnitten und übernommen.`, `${name(e.by)} cut off and took ${e.tiles} of your tiles.`), 'bad');
+        else if (e.by === me.id) hud.post(t(`Du hast ${e.tiles} Felder von ${name(e.player)} abgeschnitten und übernommen.`, `You cut off and took ${e.tiles} tiles from ${name(e.player)}.`), 'good');
       } else if (e.type === 'captured') {
         // Reported together above.
       } else if (e.type === 'bunkerDestroyed') {
-        if (e.by === me.id) hud.post(`Du hast einen Bunker von ${name(e.from)} zerstört.`, 'good');
-        else if (e.from === me.id) hud.post(`${name(e.by)} hat einen deiner Bunker zerstört.`, 'bad');
+        if (e.by === me.id) hud.post(t(`Du hast einen Bunker von ${name(e.from)} zerstört.`, `You destroyed a bunker of ${name(e.from)}.`), 'good');
+        else if (e.from === me.id) hud.post(t(`${name(e.by)} hat einen deiner Bunker zerstört.`, `${name(e.by)} destroyed one of your bunkers.`), 'bad');
       } else if (e.type === 'trainStop') {
         if (e.owner === me.id) {
           this.renderer.floatText(e.tile, `+${formatTroops(e.gold)}`);
           sound.play('train', 0.5);
         }
       } else if (e.type === 'landed') {
-        if (e.owner === me.id) hud.post(e.target === NEUTRAL ? 'Deine Truppen sind gelandet.' : `Deine Truppen sind bei ${name(e.target)} gelandet.`, 'good');
-        else if (e.target === me.id) hud.post(`${name(e.owner)} ist an deiner Küste gelandet!`, 'bad');
+        if (e.owner === me.id) hud.post(e.target === NEUTRAL ? t('Deine Truppen sind gelandet.', 'Your troops have landed.') : t(`Deine Truppen sind bei ${name(e.target)} gelandet.`, `Your troops have landed on ${name(e.target)}\'s shore.`), 'good');
+        else if (e.target === me.id) hud.post(t(`${name(e.owner)} ist an deiner Küste gelandet!`, `${name(e.owner)} has landed on your coast!`), 'bad');
       } else if (e.type === 'repelled') {
-        if (e.owner === me.id) hud.post('Deine Landung wurde abgewehrt.', 'bad');
-        else if (e.target === me.id) hud.post(`Du hast eine Landung von ${name(e.owner)} abgewehrt.`, 'good');
+        if (e.owner === me.id) hud.post(t('Deine Landung wurde abgewehrt.', 'Your landing was beaten back.'), 'bad');
+        else if (e.target === me.id) hud.post(t(`Du hast eine Landung von ${name(e.owner)} abgewehrt.`, `You beat back a landing by ${name(e.owner)}.`), 'good');
       } else if (e.type === 'alliance') {
-        if (e.from === me.id) hud.post(e.accepted ? `${name(e.to)} ist jetzt dein Verbündeter (3 Minuten).` : `${name(e.to)} lehnt ein Bündnis ab. Versuch es später nochmal.`, e.accepted ? 'good' : 'info');
-        else if (e.to === me.id && e.accepted) hud.post(`${name(e.from)} ist jetzt dein Verbündeter.`, 'good');
+        if (e.from === me.id) hud.post(e.accepted ? t(`${name(e.to)} ist jetzt dein Verbündeter (3 Minuten).`, `${name(e.to)} is now your ally (3 minutes).`) : t(`${name(e.to)} lehnt ein Bündnis ab. Versuch es später nochmal.`, `${name(e.to)} turns down an alliance. Try again later.`), e.accepted ? 'good' : 'info');
+        else if (e.to === me.id && e.accepted) hud.post(t(`${name(e.from)} ist jetzt dein Verbündeter.`, `${name(e.from)} is now your ally.`), 'good');
       } else if (e.type === 'allianceOffer') {
         if (e.to === me.id && !this.replay) {
           hud.showOffer(this.game.player(e.from), Math.round(CONFIG.allianceOfferTicks / CONFIG.ticksPerSecond));
@@ -790,9 +791,9 @@ export class Session implements InputTarget {
       } else if (e.type === 'allianceEnded') {
         const other = e.a === me.id ? e.b : e.b === me.id ? e.a : NEUTRAL;
         if (other !== NEUTRAL) {
-          if (e.brokenBy === me.id) hud.post(`Du hast das Bündnis mit ${name(other)} beendet.`, 'info');
-          else if (e.brokenBy === other) hud.post(`${name(other)} hat das Bündnis gebrochen!`, 'bad');
-          else hud.post(`Das Bündnis mit ${name(other)} ist abgelaufen.`, 'info');
+          if (e.brokenBy === me.id) hud.post(t(`Du hast das Bündnis mit ${name(other)} beendet.`, `You ended the alliance with ${name(other)}.`), 'info');
+          else if (e.brokenBy === other) hud.post(t(`${name(other)} hat das Bündnis gebrochen!`, `${name(other)} broke the alliance!`), 'bad');
+          else hud.post(t(`Das Bündnis mit ${name(other)} ist abgelaufen.`, `The alliance with ${name(other)} has run out.`), 'info');
         }
       } else if (e.type === 'launched') {
         const m = e.missile;
@@ -803,12 +804,12 @@ export class Session implements InputTarget {
         const mine = m.owner === me.id || e.losses.some((l) => l.player === me.id);
         sound.play(m.kind === 'rocket' ? 'boom' : 'bigBoom', mine ? 1 : 0.25);
       } else if (e.type === 'sunk') {
-        if (e.by === me.id) hud.post(`Dein Kriegsschiff hat ein Boot von ${name(e.owner)} versenkt (${formatTroops(e.troops)} Truppen).`, 'good');
-        else if (e.owner === me.id) hud.post(`${name(e.by)} hat dein Boot versenkt!`, 'bad');
+        if (e.by === me.id) hud.post(t(`Dein Kriegsschiff hat ein Boot von ${name(e.owner)} versenkt (${formatTroops(e.troops)} Truppen).`, `Your warship sank a boat of ${name(e.owner)} (${formatTroops(e.troops)} troops).`), 'good');
+        else if (e.owner === me.id) hud.post(t(`${name(e.by)} hat dein Boot versenkt!`, `${name(e.by)} sank your boat!`), 'bad');
       } else if (e.type === 'shipSunk') {
         if (e.by === me.id && !this.replay) unlock('sinker');
-        if (e.by === me.id) hud.post(`Du hast ein Kriegsschiff von ${name(e.owner)} versenkt.`, 'good');
-        else if (e.owner === me.id) hud.post(`${name(e.by)} hat dein Kriegsschiff versenkt!`, 'bad');
+        if (e.by === me.id) hud.post(t(`Du hast ein Kriegsschiff von ${name(e.owner)} versenkt.`, `You sank a warship of ${name(e.owner)}.`), 'good');
+        else if (e.owner === me.id) hud.post(t(`${name(e.by)} hat dein Kriegsschiff versenkt!`, `${name(e.by)} sank your warship!`), 'bad');
         this.renderer.shellHit(e.tile);
       } else if (e.type === 'shelled') {
         this.renderer.shellHit(e.tile);
@@ -816,17 +817,17 @@ export class Session implements InputTarget {
         // Once in a while, not for every shell.
         if (e.owner === me.id && performance.now() - this.lastShellNote > 15000) {
           this.lastShellNote = performance.now();
-          hud.post(`Ein Kriegsschiff von ${name(e.by)} beschießt deine Küste!`, 'bad');
+          hud.post(t(`Ein Kriegsschiff von ${name(e.by)} beschießt deine Küste!`, `A warship of ${name(e.by)} is shelling your coast!`), 'bad');
         }
       } else if (e.type === 'donated') {
-        const what = [e.troops > 0 ? `${formatTroops(e.troops)} Truppen` : '', e.gold > 0 ? `${formatTroops(e.gold)} Gold` : ''].filter(Boolean).join(' und ');
-        if (e.to === me.id) hud.post(`${name(e.from)} schickt dir ${what}.`, 'good');
-        else if (e.from === me.id) hud.toast(`Du hast ${name(e.to)} ${what} geschickt.`);
+        const what = [e.troops > 0 ? t(`${formatTroops(e.troops)} Truppen`, `${formatTroops(e.troops)} troops`) : '', e.gold > 0 ? t(`${formatTroops(e.gold)} Gold`, `${formatTroops(e.gold)} gold`) : ''].filter(Boolean).join(t(' und ', ' and '));
+        if (e.to === me.id) hud.post(t(`${name(e.from)} schickt dir ${what}.`, `${name(e.from)} sends you ${what}.`), 'good');
+        else if (e.from === me.id) hud.toast(t(`Du hast ${name(e.to)} ${what} geschickt.`, `You sent ${name(e.to)} ${what}.`));
       } else if (e.type === 'flooded') {
         this.renderer.flood(e.tiles);
         if (!this.floodAnnounced) {
           this.floodAnnounced = true;
-          hud.post('Das Meer steigt! Rot markiertes Land geht in 20 Sekunden unter.', 'bad');
+          hud.post(t('Das Meer steigt! Rot markiertes Land geht in 20 Sekunden unter.', 'The sea is rising! Land marked red goes under within 20 seconds.'), 'bad');
         }
       } else if (e.type === 'gameOver') {
         this.showResult(e.winner);
@@ -842,9 +843,9 @@ export class Session implements InputTarget {
     const me = this.me!;
     const place = me.place || this.game.players.filter((p) => p.alive && p.tiles > me.tiles).length + 1;
     return [
-      ['Platz', `${place}/${this.game.players.length}`],
-      ['Meistes Land', formatShare(me.peakTiles / this.game.map.landTiles)],
-      ['Zeit', this.matchTime()],
+      [t('Platz', 'Place'), `${place}/${this.game.players.length}`],
+      [t('Meistes Land', 'Most land'), formatShare(me.peakTiles / this.game.map.landTiles)],
+      [t('Zeit', 'Time'), this.matchTime()],
     ];
   }
 
@@ -863,19 +864,19 @@ export class Session implements InputTarget {
       play.hooks.result?.(false, this.game.tick / CONFIG.ticksPerSecond);
     }
     play.hud.showOverlay({
-      eyebrow: 'Niederlage',
-      title: 'Ausgeschieden',
-      text: `${this.game.player(by).name} hat nach ${this.matchTime()} dein letztes Feld erobert.`,
+      eyebrow: t('Niederlage', 'Defeat'),
+      title: t('Ausgeschieden', 'Eliminated'),
+      text: t(`${this.game.player(by).name} hat nach ${this.matchTime()} dein letztes Feld erobert.`, `${this.game.player(by).name} took your last tile after ${this.matchTime()}.`),
       stats: this.stats(),
       extra: this.chart(),
       actions: [
-        { label: 'Nochmal spielen', primary: true, run: () => play.hooks.playAgain() },
-        { label: 'Weiter zuschauen', run: () => play.hud.hideOverlay() },
-        { label: 'Wiederholung', run: () => play.hooks.replay(this.game.log.slice()) },
-        { label: 'Menü', run: () => play.hooks.menu() },
+        { label: t('Nochmal spielen', 'Play again'), primary: true, run: () => play.hooks.playAgain() },
+        { label: t('Weiter zuschauen', 'Keep watching'), run: () => play.hud.hideOverlay() },
+        { label: t('Wiederholung', 'Replay'), run: () => play.hooks.replay(this.game.log.slice()) },
+        { label: t('Menü', 'Menu'), run: () => play.hooks.menu() },
       ],
     });
-    play.hud.setBanner('Du schaust zu. Die Bots spielen weiter.');
+    play.hud.setBanner(t('Du schaust zu. Die Bots spielen weiter.', 'You\'re watching. The bots play on.'));
   }
 
   private showResult(winnerId: number): void {
@@ -895,21 +896,24 @@ export class Session implements InputTarget {
     if (this.game.teamGame) {
       const won = winner.team === me.team;
       const teamShare = formatShare((this.game.teamTiles()[winner.team] ?? 0) / this.game.map.landTiles);
-      eyebrow = won ? 'Sieg' : me.alive ? 'Niederlage' : 'Partie vorbei';
-      title = won ? 'Dein Team gewinnt' : `Team ${winner.name} gewinnt`;
-      text = `${won ? 'Deinem Team' : `Team ${winner.name}`} gehören ${timed ? 'zum Schluss ' : `nach ${this.matchTime()} `}${teamShare} des Landes.`;
+      eyebrow = won ? t('Sieg', 'Victory') : me.alive ? t('Niederlage', 'Defeat') : t('Partie vorbei', 'Match over');
+      title = won ? t('Dein Team gewinnt', 'Your team wins') : t(`Team ${winner.name} gewinnt`, `Team ${winner.name} wins`);
+      const holder = won ? t('Deinem Team', 'Your team') : `Team ${winner.name}`;
+      text = timed
+        ? t(`Die Zeit ist um. ${holder} gehören ${teamShare} des Landes.`, `Time's up. ${holder} holds ${teamShare} of the land.`)
+        : t(`${holder} gehören nach ${this.matchTime()} ${teamShare} des Landes.`, `${holder} holds ${teamShare} of the land after ${this.matchTime()}.`);
     } else if (winnerId === me.id) {
-      eyebrow = 'Sieg';
-      title = lastStanding ? 'Als Letzter übrig' : timed ? 'Das meiste Land zum Schluss' : 'Die Karte gehört dir';
-      text = timed ? `Die Zeit ist um. Dir gehören ${share} des Landes.` : `Nach ${this.matchTime()} gehören dir ${share} des Landes.`;
+      eyebrow = t('Sieg', 'Victory');
+      title = lastStanding ? t('Als Letzter übrig', 'Last one standing') : timed ? t('Das meiste Land zum Schluss', 'Most land at the end') : t('Die Karte gehört dir', 'The map is yours');
+      text = timed ? t(`Die Zeit ist um. Dir gehören ${share} des Landes.`, `Time\'s up. You hold ${share} of the land.`) : t(`Nach ${this.matchTime()} gehören dir ${share} des Landes.`, `After ${this.matchTime()} you hold ${share} of the land.`);
     } else {
-      eyebrow = me.alive ? 'Niederlage' : 'Partie vorbei';
+      eyebrow = me.alive ? t('Niederlage', 'Defeat') : t('Partie vorbei', 'Match over');
       title = `${winner.name} gewinnt`;
       text = timed
-        ? `Die Zeit ist um. ${winner.name} gehören ${share} des Landes.`
-        : `${winner.name} hat nach ${this.matchTime()} ${share} des Landes erobert.`;
+        ? t(`Die Zeit ist um. ${winner.name} gehören ${share} des Landes.`, `Time\'s up. ${winner.name} holds ${share} of the land.`)
+        : t(`${winner.name} hat nach ${this.matchTime()} ${share} des Landes erobert.`, `${winner.name} conquered ${share} of the land in ${this.matchTime()}.`);
     }
-    if (this.replay) eyebrow = 'Ende der Wiederholung';
+    if (this.replay) eyebrow = t('Ende der Wiederholung', 'End of the replay');
     else if (!this.resultReported) {
       this.resultReported = true;
       const won = winnerId === me.id || (this.game.teamGame && winner.team === me.team);
@@ -923,9 +927,9 @@ export class Session implements InputTarget {
       stats: this.stats(),
       extra: this.chart(),
       actions: [
-        { label: 'Nochmal spielen', primary: true, run: () => play.hooks.playAgain() },
-        { label: this.replay ? 'Nochmal ansehen' : 'Wiederholung', run: () => play.hooks.replay((this.replay ?? this.game.log).slice()) },
-        { label: 'Menü', run: () => play.hooks.menu() },
+        { label: t('Nochmal spielen', 'Play again'), primary: true, run: () => play.hooks.playAgain() },
+        { label: this.replay ? t('Nochmal ansehen', 'Watch again') : t('Wiederholung', 'Replay'), run: () => play.hooks.replay((this.replay ?? this.game.log).slice()) },
+        { label: t('Menü', 'Menu'), run: () => play.hooks.menu() },
       ],
     });
   }

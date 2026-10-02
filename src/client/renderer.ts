@@ -5,6 +5,7 @@ import type { Camera } from './camera';
 import type { Fog } from './fog';
 import { mix, shade, toHex, toPixel } from './colors';
 import { formatTroops } from './format';
+import { t } from './i18n';
 import { LabelLayout } from './labels';
 import { ICONS, isMissile, type ToolKind } from './tools';
 
@@ -701,7 +702,7 @@ export class Renderer {
     }
     const font = `800 ${13 * dpr}px "Public Sans", system-ui, sans-serif`;
     ctx.font = font;
-    const text = 'DU';
+    const text = t('DU', 'YOU');
     const w = ctx.measureText(text).width + 12 * dpr;
     const h = 18 * dpr;
     const ty = sy - 30 * dpr - h;
