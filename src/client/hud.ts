@@ -3,6 +3,7 @@ import { NEUTRAL, type Game, type Player } from '../core/game';
 import { toHex } from './colors';
 import { uiScale } from './settings';
 import { sound } from './sound';
+import { onUnlock } from './achievements';
 import { formatClock, formatCount, formatShare, formatTroops } from './format';
 import { GROUP_NAMES, iconSvg, isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -12,7 +13,7 @@ export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
   return el as T;
 }
 
-export type Tone = 'good' | 'bad' | 'info' | 'tip';
+export type Tone = 'good' | 'bad' | 'info' | 'tip' | 'award';
 
 export interface OverlayAction {
   label: string;
@@ -84,6 +85,7 @@ export class Hud {
   onOffer: (from: number, accept: boolean) => void = () => {};
 
   constructor() {
+    onUnlock((name) => this.post(`Erfolg freigeschaltet: ${name}`, 'award'));
     byId('offer-accept').addEventListener('click', () => this.answerOffer(true));
     byId('offer-decline').addEventListener('click', () => this.answerOffer(false));
     // The chips are rebuilt several times a second, so act on press, not click.
@@ -330,6 +332,7 @@ export class Hud {
   post(text: string, tone: Tone): void {
     text = text.charAt(0).toUpperCase() + text.slice(1);
     if (tone === 'good' || tone === 'bad') sound.play(tone);
+    if (tone === 'award') sound.play('alliance');
     const li = document.createElement('li');
     li.className = tone;
     const span = document.createElement('span');
@@ -338,7 +341,7 @@ export class Hud {
     this.feed.prepend(li);
     while (this.feed.children.length > FEED_LIMIT) this.feed.lastElementChild?.remove();
     // Tips stay up long enough to read.
-    const ms = tone === 'tip' ? FEED_MS * 2 : FEED_MS;
+    const ms = tone === 'tip' || tone === 'award' ? FEED_MS * 2 : FEED_MS;
     window.setTimeout(() => li.classList.add('fading'), ms);
     window.setTimeout(() => li.remove(), ms + 700);
   }

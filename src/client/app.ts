@@ -8,6 +8,7 @@ import { byId, Hud } from './hud';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
 import { Session, type IntentLog } from './session';
 import { Tutorial } from './tutorial';
+import { ACHIEVEMENTS, loadProfile, recordMatch, unlock } from './achievements';
 import { SettingsPanel } from './settings';
 import { formatClock } from './format';
 import { progress, recordResult, today, type Daily } from './daily';
@@ -73,6 +74,15 @@ export class App {
     });
     byId('daily-play').addEventListener('click', () => this.playDaily());
     byId('tutorial-play').addEventListener('click', () => this.playTutorial());
+    byId('profile-open').addEventListener('click', () => this.showProfile());
+    byId('profile-close').addEventListener('click', () => (byId('profile').hidden = true));
+    byId('profile').addEventListener('pointerdown', (e) => {
+      if (e.target === e.currentTarget) byId('profile').hidden = true;
+    });
+    byId('profile').addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') byId('profile').hidden = true;
+    });
     byId('reroll').addEventListener('click', () => {
       this.seed = randomSeed();
       this.preview();
@@ -201,7 +211,46 @@ export class App {
     this.preview();
   }
 
+  /** Lifetime numbers and every achievement, unlocked ones in colour. */
+  private showProfile(): void {
+    const profile = loadProfile();
+    const unlocked = ACHIEVEMENTS.filter((a) => profile.unlocked[a.id]).length;
+    const stats: [string, string][] = [
+      ['Partien', String(profile.played)],
+      ['Siege', String(profile.won)],
+      ['Erfolge', `${unlocked}/${ACHIEVEMENTS.length}`],
+    ];
+    byId('profile-stats').replaceChildren(
+      ...stats.map(([label, value]) => {
+        const div = document.createElement('div');
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        div.append(dt, dd);
+        return div;
+      }),
+    );
+    byId('profile-list').replaceChildren(
+      ...ACHIEVEMENTS.map((a) => {
+        const li = document.createElement('li');
+        const done = profile.unlocked[a.id];
+        li.className = done ? 'done' : '';
+        const name = document.createElement('strong');
+        name.textContent = `${done ? '🏆' : '🔒'} ${a.name}`;
+        const text = document.createElement('span');
+        text.textContent = a.text;
+        li.append(name, text);
+        return li;
+      }),
+    );
+    byId('profile').hidden = false;
+    byId('profile-close').focus();
+  }
+
   private showDaily(): void {
+    // Newcomers: the tutorial button stands out until it's done once.
+    byId('tutorial-play').classList.toggle('suggest', !loadProfile().unlocked.tutorial);
     const daily = today();
     const { best, tries } = progress(daily);
     this.dailyDesc.textContent = daily.title;
@@ -238,13 +287,14 @@ export class App {
       teams: options.teams ?? 0,
       world: options.world ?? null,
     });
-    this.start(createSettings(options, this.mapFor(options)), { fog: this.fogInput.checked });
+    this.start(createSettings(options, this.mapFor(options)), { fog: this.fogInput.checked, realMap: !!options.world });
   }
 
   /** Runs a match with these settings: a fresh one, or a replay when given the intent log. */
-  private start(settings: GameSettings, how: { fog: boolean; replay?: IntentLog; daily?: Daily; tutorial?: boolean }): void {
+  private start(settings: GameSettings, how: { fog: boolean; replay?: IntentLog; daily?: Daily; tutorial?: boolean; realMap?: boolean }): void {
     const { replay, daily } = how;
     const tutorial = how.tutorial && !replay ? new Tutorial() : undefined;
+    if (tutorial) tutorial.onFinish = (completed) => completed && unlock('tutorial');
     // Fog of war is part of the rules: bots then see only what a human would.
     const game = new Game({ ...settings, fog: how.fog });
     this.menu.hidden = true;
@@ -270,6 +320,15 @@ export class App {
           },
           replay: (log) => this.start(settings, { ...how, replay: log }),
           result: (won, seconds) => {
+            recordMatch({
+              won,
+              mode: settings.royale ? 'royale' : settings.timeLimit > 0 ? 'quick' : 'classic',
+              teams: settings.players.some((p) => (p.team ?? 0) !== 0),
+              realMap: how.realMap ?? false,
+              hard: settings.difficulty === 'hard',
+              fog: how.fog,
+              daily: !!daily,
+            });
             if (!daily) return null;
             const best = recordResult(daily, won, seconds);
             if (best) return `Neue Tagesbestzeit: ${formatClock(seconds)}!`;

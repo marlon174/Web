@@ -700,6 +700,19 @@ fieldset:disabled .field-hint {
   background: none;
 }
 
+.feed li.award {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.feed li.award::before {
+  content: "🏆";
+  width: auto;
+  height: auto;
+  background: none;
+}
+
 .feed li.fading {
   opacity: 0;
 }
@@ -1522,8 +1535,55 @@ fieldset:disabled .field-hint {
 
 .menu-links {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.menu-links .button {
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+/* Until the tutorial is done once, its button stands out. */
+.menu-links .suggest {
+  border-color: var(--signal-hi);
+  background: var(--signal-wash);
+}
+
+.settings .profile-card {
+  width: min(100%, 440px);
+}
+
+.achievements {
+  display: grid;
+  gap: 6px;
+  max-height: 46vh;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.achievements li {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.achievements li strong {
+  color: var(--ink-soft);
+}
+
+.achievements li.done {
+  border: 1px solid var(--gold);
+}
+
+.achievements li.done strong {
+  color: var(--gold);
 }
 
 /* Daily challenge card in the menu */

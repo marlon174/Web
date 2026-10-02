@@ -16,7 +16,7 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 
 ## How to play
 
-New? The **Tutorial (2 Min.)** button in the menu starts a guided match on a small island: pick a start, expand, send more troops, build a city, attack a neighbour.
+New? The **Tutorial** button in the menu starts a guided match on a small island: pick a start, expand, send more troops, build a city, attack a neighbour.
 
 
 - **Pick a start.** Click any spot on land (not mountains).
@@ -36,6 +36,7 @@ New? The **Tutorial (2 Min.)** button in the menu starts a guided match on a sma
 - **Warships (`V`).** With a port, click open water: a warship sails there from your nearest port (6K gold, one per port, four at most). It sinks enemy boats and ships in range and shells enemy coast that no bunker covers. Once you're at the limit, the same tool steers your nearest ship.
 - **Missiles.** With a silo, press `F` (rocket) or `G` (nuke) and click any target. With 3 silos, `B` fires a hydrogen bomb (radius 30, 35K gold). The blast turns land neutral, destroys buildings and kills troops; bombed ground stays poisoned for 30 seconds. Right-click or `Esc` cancels.
 - **Real maps** (menu: Welt, Europa, Deutschland). Coastlines from Natural Earth (public domain), rasterised by `scripts/build-maps.ts` into compact run-length masks; mountains and hills follow the real ranges (Himalaya, Alps, Andes, Rockies, the German uplands...). Bots start on every continent. As oceans split the land, 50% wins a classic match there.
+- **Achievements** (menu: Erfolge). 17 to unlock, from finishing the tutorial to winning on a real map or holding half the land, plus matches played and won. Kept in this browser.
 - **Daily challenge** (menu card). Everyone gets the same map and bots on the same date, with a twist that changes by weekday (battle royale, fog, teams, hard bots, a big map...). Win as fast as you can; your best time today is kept in this browser.
 - **Teams** (menu: 2 or 4 teams). Bots are dealt round the teams, each team in shades of one colour. Teammates are allied for good and start near each other. Click a teammate's land to send them troops (the send slider decides how many); use the alliance tool on them to give a third of your gold. A team wins together with 70% of the land between them.
 - **Fog of war** (menu option). You see only your land, your allies', and a band around them and your boats and ships. The rest of the map is fully dark: no terrain, names, missiles or blasts show through, the info card says only "Im Nebel", and the leaderboard shows "?" for players with no land in sight. The fog is part of the rules, so bots are bound by it too: they only aim missiles at capitals and buildings within 24 tiles of their land, boats or ships, and only ship troops to islands they can see.

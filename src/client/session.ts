@@ -11,6 +11,7 @@ import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
 import { takeTip, TIPS, type TipId } from './tips';
 import type { Tutorial } from './tutorial';
+import { unlock } from './achievements';
 import { sound } from './sound';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -651,6 +652,8 @@ export class Session implements InputTarget {
     const { game, me } = this;
     const hud = this.options.play?.hud;
     if (!hud || !me || this.replay || !me.alive || game.phase !== 'play' || this.paused) return;
+    if (me.owned.city >= 10) unlock('tenCities');
+    if (me.tiles * 2 >= game.map.landTiles) unlock('half');
     // The tutorial does the explaining while it runs.
     if (this.options.play?.tutorial?.active) return;
     // One at a time, a few seconds apart.
@@ -750,7 +753,8 @@ export class Session implements InputTarget {
     for (const e of events) {
       if (e.type === 'capitalLost') {
         if (e.player === me.id) hud.post(`${name(e.by)} hat deine Hauptstadt erobert. Du hast die Hälfte deiner Truppen verloren.`, 'bad');
-        else if (e.by === me.id) hud.post(`Du hast die Hauptstadt von ${name(e.player)} erobert. Sie verlieren die Hälfte ihrer Truppen.`, 'good');
+        else if (e.by === me.id && !this.replay) unlock('capital');
+        if (e.by === me.id) hud.post(`Du hast die Hauptstadt von ${name(e.player)} erobert. Sie verlieren die Hälfte ihrer Truppen.`, 'good');
       } else if (e.type === 'eliminated') {
         if (e.player === me.id && this.replay) hud.post(`${name(e.by)} hat dich ausgelöscht.`, 'bad');
         else if (e.player === me.id) this.showDefeat(e.by);
@@ -792,6 +796,7 @@ export class Session implements InputTarget {
         }
       } else if (e.type === 'launched') {
         const m = e.missile;
+        if (m.owner === me.id && !this.replay && m.kind !== 'rocket') unlock(m.kind);
         sound.play('launch', m.owner === me.id ? 1 : m.victim === me.id ? 0.7 : 0.15);
       } else if (e.type === 'impact') {
         const m = e.missile;
@@ -801,6 +806,7 @@ export class Session implements InputTarget {
         if (e.by === me.id) hud.post(`Dein Kriegsschiff hat ein Boot von ${name(e.owner)} versenkt (${formatTroops(e.troops)} Truppen).`, 'good');
         else if (e.owner === me.id) hud.post(`${name(e.by)} hat dein Boot versenkt!`, 'bad');
       } else if (e.type === 'shipSunk') {
+        if (e.by === me.id && !this.replay) unlock('sinker');
         if (e.by === me.id) hud.post(`Du hast ein Kriegsschiff von ${name(e.owner)} versenkt.`, 'good');
         else if (e.owner === me.id) hud.post(`${name(e.by)} hat dein Kriegsschiff versenkt!`, 'bad');
         this.renderer.shellHit(e.tile);
