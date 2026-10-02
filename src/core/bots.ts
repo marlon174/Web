@@ -168,7 +168,9 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
       const tile = game.findSpot(p, 'factory');
       if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'factory' };
     }
-    if (p.owned.port === 0 && p.tiles > 800 && p.gold >= game.buildCost(p, 'port')) {
+    // A port once big enough, or straight away when the only enemies left are over the water.
+    const stranded = neighbours.size === 0 && !game.sharesBorder(p, NEUTRAL);
+    if (p.owned.port === 0 && (p.tiles > 800 || stranded) && p.gold >= game.buildCost(p, 'port')) {
       const tile = game.findSpot(p, 'port');
       if (tile >= 0) return { type: 'build', player: p.id, tile, kind: 'port' };
     }
@@ -219,6 +221,18 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
   return target >= 0 ? { type: 'launch', player: p.id, tile: target, kind: 'rocket' } : null;
 }
 
+/** A boat to a random coastal tile of a random enemy, if one can be reached by sea. */
+function seaInvasion(game: Game, p: Player, rng: Rng): Intent | null {
+  const enemies = game.players.filter((q) => q.alive && q.id !== p.id && !game.allied(p.id, q.id));
+  if (enemies.length === 0) return null;
+  const q = enemies[rng.int(enemies.length)];
+  // Their coast: tiles of theirs next to the sea (an island holds no border with anyone).
+  const coast = game.tilesOf(q, 5000).filter((t) => game.isCoast(t));
+  if (coast.length === 0) return null;
+  const t = coast[rng.int(coast.length)];
+  return typeof game.planBoat(p, t) !== 'string' ? { type: 'boat', player: p.id, tile: t, permille: 600 } : null;
+}
+
 /** Whether a tile lies within a bot's sailing range of one of its ports. */
 function nearOwnPort(game: Game, p: Player, tile: number): boolean {
   const w = game.width;
@@ -255,6 +269,12 @@ function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng, survey: Su
   }
 
   const { neutral, shared } = survey;
+
+  // Nobody left to reach by land: invade an enemy's coast by sea (how a war across water ends).
+  if (neutral === 0 && shared.size === 0 && p.owned.port > 0 && fill > 0.5 && rng.next() < 0.3) {
+    const invasion = seaInvasion(game, p, rng);
+    if (invasion) return invasion;
+  }
 
   if (neutral > 0 && fill >= brain.expandAt) {
     return { type: 'attack', player: p.id, target: NEUTRAL, permille: brain.expandSend };

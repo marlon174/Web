@@ -899,9 +899,11 @@ export class Session implements InputTarget {
       eyebrow = won ? t('Sieg', 'Victory') : me.alive ? t('Niederlage', 'Defeat') : t('Partie vorbei', 'Match over');
       title = won ? t('Dein Team gewinnt', 'Your team wins') : t(`Team ${winner.name} gewinnt`, `Team ${winner.name} wins`);
       const holder = won ? t('Deinem Team', 'Your team') : `Team ${winner.name}`;
-      text = timed
-        ? t(`Die Zeit ist um. ${holder} gehören ${teamShare} des Landes.`, `Time's up. ${holder} holds ${teamShare} of the land.`)
-        : t(`${holder} gehören nach ${this.matchTime()} ${teamShare} des Landes.`, `${holder} holds ${teamShare} of the land after ${this.matchTime()}.`);
+      text = this.game.settings.conquest
+        ? t(`${holder} hat nach ${this.matchTime()} alle anderen Teams besiegt.`, `${holder} wiped out every other team in ${this.matchTime()}.`)
+        : timed
+          ? t(`Die Zeit ist um. ${holder} gehören ${teamShare} des Landes.`, `Time's up. ${holder} holds ${teamShare} of the land.`)
+          : t(`${holder} gehören nach ${this.matchTime()} ${teamShare} des Landes.`, `${holder} holds ${teamShare} of the land after ${this.matchTime()}.`);
     } else if (winnerId === me.id) {
       eyebrow = t('Sieg', 'Victory');
       title = lastStanding ? t('Als Letzter übrig', 'Last one standing') : timed ? t('Das meiste Land zum Schluss', 'Most land at the end') : t('Die Karte gehört dir', 'The map is yours');

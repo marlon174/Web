@@ -324,7 +324,7 @@ export class App {
           result: (won, seconds) => {
             recordMatch({
               won,
-              mode: settings.royale ? 'royale' : settings.timeLimit > 0 ? 'quick' : 'classic',
+              mode: settings.royale ? 'royale' : settings.conquest ? 'conquest' : settings.timeLimit > 0 ? 'quick' : 'classic',
               teams: settings.players.some((p) => (p.team ?? 0) !== 0),
               realMap: how.realMap ?? false,
               hard: settings.difficulty === 'hard',

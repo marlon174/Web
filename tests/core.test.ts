@@ -512,6 +512,37 @@ describe('real maps', () => {
   });
 });
 
+describe('total conquest', () => {
+  it('keeps going past 70% of the land and ends when the last enemy is gone', () => {
+    const settings = { ...duel(40, 5), conquest: true };
+    const game = start(settings, [5, 2], [35, 2]);
+    const a = game.player(1);
+    // Most of the map, but B still stands: not over.
+    a.troops = 1e6;
+    game.queue({ type: 'attack', player: 1, target: NEUTRAL, permille: 1000 });
+    run(game, 300);
+    expect(a.tiles).toBeGreaterThan(game.map.landTiles * CONFIG.winShare);
+    expect(game.phase).toBe('play');
+    a.troops = 1e7;
+    game.queue({ type: 'attack', player: 1, target: 2, permille: 1000 });
+    const events = run(game, 2000);
+    expect(game.phase).toBe('over');
+    expect(game.winner).toBe(1);
+    expect(events).toContainEqual({ type: 'gameOver', winner: 1 });
+  });
+
+  it('ends alliances once only two sides are left', () => {
+    const settings = { ...duel(40, 5), conquest: true };
+    settings.players[1].bot = true;
+    const game = new Game(settings);
+    game.queue({ type: 'spawn', player: 1, tile: 2 * 40 + 5 });
+    game.step();
+    game.queue({ type: 'ally', player: 1, target: 2 });
+    run(game, 3);
+    expect(game.allied(1, 2)).toBe(false);
+  });
+});
+
 describe('teams', () => {
   it('deals players into teams that are allied for good and can share troops and gold', () => {
     const options: MatchOptions = { ...botMatch, bots: 7, teams: 2 };

@@ -5,7 +5,7 @@ import { generateMap, MAP_DIMENSIONS, type GameMap, type MapSize } from './map';
 import { buildRealMap, type RealMapId } from './realmaps';
 import { Rng } from './rng';
 
-export type Mode = 'quick' | 'classic' | 'royale';
+export type Mode = 'quick' | 'classic' | 'royale' | 'conquest';
 
 export interface MatchOptions {
   seed: number;
@@ -65,6 +65,7 @@ export function createSettings(options: MatchOptions, map: GameMap): GameSetting
     difficulty: options.difficulty,
     timeLimit: options.mode === 'quick' ? QUICK_MATCH_SECONDS * CONFIG.ticksPerSecond : 0,
     royale: options.mode === 'royale',
+    conquest: options.mode === 'conquest',
     // Real maps split the land by oceans, so half of it is enough to win.
     winShare: options.world ? 0.5 : undefined,
   };

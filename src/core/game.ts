@@ -37,6 +37,8 @@ export interface GameSettings {
   fog?: boolean;
   /** Gold humans start with (the tutorial hands out enough for a city). */
   startGold?: number;
+  /** Total conquest: no win by share of land; the last player (or team) left wins. */
+  conquest?: boolean;
 }
 
 export interface Player {
@@ -712,12 +714,38 @@ export class Game {
    * call it from inside the simulation.
    */
   findSpot(p: Player, kind: BuildingKind, front = false): number {
+    // A small empire is hard to hit by picking anywhere on the map: pick among its own tiles.
+    const own = !front && p.tiles * 40 < this.size ? this.tilesOf(p, 3000) : null;
     for (let attempt = 0; attempt < (kind === 'port' ? 400 : 60); attempt++) {
-      const t = front ? p.border[this.rng.int(p.border.length)] : this.rng.int(this.size);
+      const t = front ? p.border[this.rng.int(p.border.length)] : own ? own[this.rng.int(own.length)] : this.rng.int(this.size);
       if (t === undefined || (!front && kind !== 'port' && this.borderPos[t] >= 0)) continue;
       if (this.canBuild(p, kind, t) === null) return t;
     }
     return -1;
+  }
+
+  /**
+   * Up to `limit` of a player's tiles, found outward from their capital:
+   * a cheap sample of their land for small empires (whose tiles a random
+   * pick over the whole map would rarely hit) and for picking landing spots.
+   */
+  tilesOf(p: Player, limit: number): number[] {
+    const out: number[] = [];
+    if (!p.alive || p.capital < 0) return out;
+    const { owner, width: w, size } = this;
+    const seen = new Set<number>([p.capital]);
+    out.push(p.capital);
+    for (let head = 0; head < out.length && out.length < limit; head++) {
+      const t = out[head];
+      const x = t % w;
+      for (const n of [x > 0 ? t - 1 : -1, x < w - 1 ? t + 1 : -1, t - w, t + w]) {
+        if (n < 0 || n >= size || seen.has(n) || owner[n] !== p.id) continue;
+        seen.add(n);
+        out.push(n);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
   }
 
   isLand(tile: number): boolean {
@@ -1422,6 +1450,7 @@ export class Game {
 
   private proposeAlliance(p: Player, target: number): void {
     if (!this.isPlayerId(target) || target === p.id || this.teammates(p.id, target)) return;
+    if (this.settings.conquest && this.sidesLeft() <= 2) return;
     const q = this.player(target);
     const key = this.pairKey(p.id, target);
     if (!q.alive || this.alliances.has(key)) return;
@@ -1476,6 +1505,10 @@ export class Game {
   }
 
   private updateAlliances(): void {
+    // Total conquest with two sides left: nobody can win while they're allied, so it ends.
+    if (this.settings.conquest && this.alliances.size > 0 && this.sidesLeft() <= 2) {
+      for (const key of [...this.alliances.keys()]) this.endAlliance(Math.floor(key / 65536), key % 65536, NEUTRAL);
+    }
     for (const [key, lapses] of this.offers) {
       if (lapses > this.tick) continue;
       // Left unanswered: treat it as a no, so the same player doesn't ask again straight away.
@@ -1951,6 +1984,19 @@ export class Game {
     }
   }
 
+  /** Land that wins outright; in total conquest nothing short of wiping everyone out does. */
+  private winLand(): number {
+    if (this.settings.conquest) return Infinity;
+    return this.map.landTiles * (this.settings.winShare ?? CONFIG.winShare);
+  }
+
+  /** How many sides are still in: players, or teams in a team game. */
+  sidesLeft(): number {
+    const sides = new Set<number>();
+    for (const p of this.players) if (p.alive) sides.add(p.team ? -p.team : p.id);
+    return sides.size;
+  }
+
   /** Land held by each team (index = team number), for team games. */
   teamTiles(): number[] {
     const totals: number[] = [];
@@ -1973,7 +2019,7 @@ export class Game {
     if (!leader) return;
     const limit = this.settings.timeLimit;
     const timeUp = limit > 0 && this.tick + 1 >= limit;
-    if (alive > 1 && leader.tiles < this.map.landTiles * (this.settings.winShare ?? CONFIG.winShare) && !timeUp) return;
+    if (alive > 1 && leader.tiles < this.winLand() && !timeUp) return;
 
     this.phase = 'over';
     this.winner = leader.id;
@@ -1995,7 +2041,7 @@ export class Game {
     if (!best) return;
     const limit = this.settings.timeLimit;
     const timeUp = limit > 0 && this.tick + 1 >= limit;
-    if (teamsAlive > 1 && totals[best] < this.map.landTiles * (this.settings.winShare ?? CONFIG.winShare) && !timeUp) return;
+    if (teamsAlive > 1 && totals[best] < this.winLand() && !timeUp) return;
 
     this.phase = 'over';
     // The winning team's biggest member stands for it.

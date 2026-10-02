@@ -170,7 +170,9 @@ export class Hud {
       this.clock.textContent = `🌊 ${formatClock(Math.ceil(left))}`;
       this.clock.classList.toggle('urgent', left <= 10);
     } else {
-      this.clock.textContent = game.settings.royale ? `🌊 ${formatClock(seconds)}` : formatClock(seconds);
+      // Total conquest: how many enemies (or enemy teams) are still standing.
+      const foes = game.settings.conquest ? ` · ⚔ ${game.sidesLeft() - (me.alive ? 1 : 0)}` : '';
+      this.clock.textContent = (game.settings.royale ? `🌊 ${formatClock(seconds)}` : formatClock(seconds)) + foes;
       this.clock.classList.remove('urgent');
     }
 

@@ -7,6 +7,7 @@ export type AchievementId =
   | 'quickWin'
   | 'classicWin'
   | 'royaleWin'
+  | 'conquestWin'
   | 'teamWin'
   | 'worldWin'
   | 'hardWin'
@@ -26,6 +27,7 @@ export const ACHIEVEMENTS: { id: AchievementId; name: string; text: string }[] =
   { id: 'quickWin', name: t('Blitzsieg', 'Blitz'), text: t('Gewinne ein schnelles Spiel.', 'Win a quick match.') },
   { id: 'classicWin', name: t('Eroberer', 'Conqueror'), text: t('Gewinne eine klassische Partie.', 'Win a classic match.') },
   { id: 'royaleWin', name: t('Trockene Füße', 'Dry feet'), text: t('Gewinne Battle Royale.', 'Win battle royale.') },
+  { id: 'conquestWin', name: t('Alleinherrscher', 'Sole ruler'), text: t('Gewinne eine totale Eroberung.', 'Win a total conquest.') },
   { id: 'teamWin', name: t('Teamplayer', 'Team player'), text: t('Gewinne mit deinem Team.', 'Win with your team.') },
   { id: 'worldWin', name: t('Weltherrschaft', 'World domination'), text: t('Gewinne auf einer echten Karte.', 'Win on a real map.') },
   { id: 'hardWin', name: t('Gegen die Besten', 'Against the best'), text: t('Gewinne gegen schwere Bots.', 'Win against hard bots.') },
@@ -90,7 +92,7 @@ export function unlock(id: AchievementId): boolean {
 
 export interface MatchSummary {
   won: boolean;
-  mode: 'quick' | 'classic' | 'royale';
+  mode: 'quick' | 'classic' | 'royale' | 'conquest';
   teams: boolean;
   realMap: boolean;
   hard: boolean;
@@ -107,7 +109,7 @@ export function recordMatch(m: MatchSummary): void {
   if (profile.played >= 10) unlock('veteran');
   if (!m.won) return;
   unlock('firstWin');
-  unlock(m.mode === 'quick' ? 'quickWin' : m.mode === 'royale' ? 'royaleWin' : 'classicWin');
+  unlock({ quick: 'quickWin', classic: 'classicWin', royale: 'royaleWin', conquest: 'conquestWin' }[m.mode] as AchievementId);
   if (m.teams) unlock('teamWin');
   if (m.realMap) unlock('worldWin');
   if (m.hard) unlock('hardWin');
