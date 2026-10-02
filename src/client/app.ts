@@ -7,6 +7,7 @@ import { fromHex, SWATCHES, toHex } from './colors';
 import { byId, Hud } from './hud';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
 import { Session, type IntentLog } from './session';
+import { Tutorial } from './tutorial';
 import { SettingsPanel } from './settings';
 import { formatClock } from './format';
 import { progress, recordResult, today, type Daily } from './daily';
@@ -71,6 +72,7 @@ export class App {
       this.summarise();
     });
     byId('daily-play').addEventListener('click', () => this.playDaily());
+    byId('tutorial-play').addEventListener('click', () => this.playTutorial());
     byId('reroll').addEventListener('click', () => {
       this.seed = randomSeed();
       this.preview();
@@ -210,6 +212,12 @@ export class App {
         : 'Gewinne so schnell du kannst. Alle spielen heute dieselbe Karte.';
   }
 
+  /** The guided first match: a small island, three easy bots, gold for a city. */
+  private playTutorial(): void {
+    const options: MatchOptions = { seed: 31337, mode: 'classic', mapSize: 'small', bots: 3, difficulty: 'easy', teams: 0, human: this.options().human };
+    this.start({ ...createSettings(options, this.mapFor(options)), startGold: 3000 }, { fog: false, tutorial: true });
+  }
+
   /** Today's challenge, with the name and colour from the menu. */
   private playDaily(): void {
     const daily = today();
@@ -234,8 +242,9 @@ export class App {
   }
 
   /** Runs a match with these settings: a fresh one, or a replay when given the intent log. */
-  private start(settings: GameSettings, how: { fog: boolean; replay?: IntentLog; daily?: Daily }): void {
+  private start(settings: GameSettings, how: { fog: boolean; replay?: IntentLog; daily?: Daily; tutorial?: boolean }): void {
     const { replay, daily } = how;
+    const tutorial = how.tutorial && !replay ? new Tutorial() : undefined;
     // Fog of war is part of the rules: bots then see only what a human would.
     const game = new Game({ ...settings, fog: how.fog });
     this.menu.hidden = true;
@@ -245,6 +254,7 @@ export class App {
         hud: this.hud,
         replay,
         fog: how.fog,
+        tutorial,
         hooks: {
           playAgain: () => {
             if (daily) {

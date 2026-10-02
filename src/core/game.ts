@@ -35,6 +35,8 @@ export interface GameSettings {
   winShare?: number;
   /** Fog of war: bots, like humans, only know what is near their own land. */
   fog?: boolean;
+  /** Gold humans start with (the tutorial hands out enough for a city). */
+  startGold?: number;
 }
 
 export interface Player {
@@ -885,6 +887,7 @@ export class Game {
     }
     p.capital = tile;
     p.troops = CONFIG.startTroops;
+    if (!p.bot) p.gold = this.settings.startGold ?? 0;
     p.spawned = true;
   }
 

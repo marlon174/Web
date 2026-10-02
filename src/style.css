@@ -1354,6 +1354,61 @@ fieldset:disabled .field-hint {
   color: var(--signal-hi);
 }
 
+/* Tutorial card under the clock */
+.coach {
+  display: grid;
+  gap: 6px;
+  width: min(380px, calc(100vw - 2 * var(--gutter)));
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-color: var(--signal-hi);
+}
+
+.coach-step {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--signal-hi);
+}
+
+.coach-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.coach-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.coach-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.coach-actions .button {
+  padding: 7px 14px;
+  font-size: 14px;
+}
+
+.coach-actions .button.primary {
+  font-size: 16px;
+}
+
+/* "Weiter" only once it's finished; until then only "Tutorial beenden". */
+.coach:not(.finished) #coach-done,
+.coach.finished #coach-skip {
+  display: none;
+}
+
 /* Alliance offer card under the clock */
 .offer {
   display: grid;
@@ -1463,6 +1518,12 @@ fieldset:disabled .field-hint {
 .check.option .mode-note {
   display: block;
   font-weight: 400;
+}
+
+.menu-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 /* Daily challenge card in the menu */

@@ -132,10 +132,16 @@
             </div>
           </form>
 
-          <button type="button" class="button ghost settings-link" data-open-settings>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6.9 1h2.2l.4 1.9c.5.2.9.4 1.3.7l1.8-.6 1.1 1.9-1.4 1.3c.1.5.1 1.1 0 1.6l1.4 1.3-1.1 1.9-1.8-.6c-.4.3-.8.5-1.3.7L9.1 15H6.9l-.4-1.9c-.5-.2-.9-.4-1.3-.7l-1.8.6-1.1-1.9 1.4-1.3a4 4 0 0 1 0-1.6L2.3 6.9l1.1-1.9 1.8.6c.4-.3.8-.5 1.3-.7zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>
-            Einstellungen
-          </button>
+          <div class="menu-links">
+            <button type="button" class="button ghost settings-link" id="tutorial-play">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zm-.9 3.2 4.3 3.3-4.3 3.3z"/></svg>
+              Tutorial (2 Min.)
+            </button>
+            <button type="button" class="button ghost settings-link" data-open-settings>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6.9 1h2.2l.4 1.9c.5.2.9.4 1.3.7l1.8-.6 1.1 1.9-1.4 1.3c.1.5.1 1.1 0 1.6l1.4 1.3-1.1 1.9-1.8-.6c-.4.3-.8.5-1.3.7L9.1 15H6.9l-.4-1.9c-.5-.2-.9-.4-1.3-.7l-1.8.6-1.1-1.9 1.4-1.3a4 4 0 0 1 0-1.6L2.3 6.9l1.1-1.9 1.8.6c.4-.3.8-.5 1.3-.7zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>
+              Einstellungen
+            </button>
+          </div>
 
           <details class="howto">
             <summary>So wird gespielt</summary>
@@ -186,6 +192,15 @@
         <div class="top-center">
           <div class="clock" id="clock"></div>
           <p class="banner" id="banner" role="status"></p>
+          <section class="panel coach" id="coach" aria-live="polite" hidden>
+            <p class="coach-step" id="coach-step"></p>
+            <h2 class="coach-title" id="coach-title"></h2>
+            <p class="coach-text" id="coach-text"></p>
+            <div class="coach-actions">
+              <button type="button" class="button ghost" id="coach-skip">Tutorial beenden</button>
+              <button type="button" class="button primary" id="coach-done">Weiter</button>
+            </div>
+          </section>
           <div class="panel offer" id="offer" role="alertdialog" aria-labelledby="offer-text" hidden>
             <p class="offer-text" id="offer-text"></p>
             <div class="offer-actions">

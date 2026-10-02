@@ -10,6 +10,7 @@ import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
 import { takeTip, TIPS, type TipId } from './tips';
+import type { Tutorial } from './tutorial';
 import { sound } from './sound';
 import { isMissile, TOOLS, type ToolKind } from './tools';
 
@@ -40,7 +41,7 @@ export interface SessionHooks {
 
 export interface SessionOptions {
   /** Absent for the menu backdrop, which only shows the map. */
-  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean };
+  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean; tutorial?: Tutorial };
   /** Screen space (CSS pixels) to keep clear when fitting the map, e.g. behind the menu. */
   inset?: () => Inset;
 }
@@ -114,7 +115,8 @@ export class Session implements InputTarget {
       options.play.hud.minimap.addEventListener('pointermove', this.onMinimap);
       options.play.hud.show(this.me);
       options.play.hud.root.classList.toggle('replay', this.replay !== null);
-      options.play.hud.setBanner(this.replay ? '' : 'Klick auf eine beliebige Stelle an Land, um dort zu starten.');
+      // The tutorial card explains the start itself.
+      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : 'Klick auf eine beliebige Stelle an Land, um dort zu starten.');
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
       options.play.hud.centerButton.addEventListener('click', this.onCenterButton);
       options.play.hud.speedButton.addEventListener('click', this.onSpeedButton);
@@ -142,6 +144,7 @@ export class Session implements InputTarget {
     this.options.play?.hud.minimap.removeEventListener('pointerdown', this.onMinimap);
     this.options.play?.hud.minimap.removeEventListener('pointermove', this.onMinimap);
     this.options.play?.hud.showTip(null);
+    this.options.play?.tutorial?.hide();
   }
 
   /** Re-fits the map, e.g. after the menu changes size. */
@@ -196,6 +199,7 @@ export class Session implements InputTarget {
       this.options.play.hud.update(this.game, this.me);
       this.options.play.hud.updateTools(this.game, this.me, this.tool);
       this.updateOffer();
+      this.options.play.tutorial?.update(this.game, this.me);
       this.coach(now);
       this.drawMinimap();
       this.updateTip();
@@ -647,6 +651,8 @@ export class Session implements InputTarget {
     const { game, me } = this;
     const hud = this.options.play?.hud;
     if (!hud || !me || this.replay || !me.alive || game.phase !== 'play' || this.paused) return;
+    // The tutorial does the explaining while it runs.
+    if (this.options.play?.tutorial?.active) return;
     // One at a time, a few seconds apart.
     const tip = (id: TipId, when: boolean) => {
       if (!when || now - this.lastTip < 9000 || !takeTip(id)) return;

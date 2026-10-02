@@ -16,6 +16,9 @@ npm run sim        # play a bots-only match in the terminal: npm run sim -- [see
 
 ## How to play
 
+New? The **Tutorial (2 Min.)** button in the menu starts a guided match on a small island: pick a start, expand, send more troops, build a city, attack a neighbour.
+
+
 - **Pick a start.** Click any spot on land (not mountains).
 - **Expand.** Click empty land to push into it along your whole border.
 - **Attack.** Click a neighbour's land. Attacking costs more than it costs them to defend, so pick on thin defences. The more you outnumber them, the faster your front moves (√ of the troop ratio, 0.8× to 2.5×; shown as ⚡ on the attack).
