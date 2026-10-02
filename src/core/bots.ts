@@ -219,6 +219,21 @@ function spendGold(game: Game, p: Player, brain: BotBrain, rng: Rng, neighbours:
   return target >= 0 ? { type: 'launch', player: p.id, tile: target, kind: 'rocket' } : null;
 }
 
+/** Whether a tile lies within a bot's sailing range of one of its ports. */
+function nearOwnPort(game: Game, p: Player, tile: number): boolean {
+  const w = game.width;
+  const tx = tile % w;
+  const ty = (tile - tx) / w;
+  const reach = CONFIG.botBoatReach * CONFIG.botBoatReach;
+  for (const b of game.buildings) {
+    if (b.kind !== 'port' || b.owner !== p.id) continue;
+    const dx = (b.tile % w) - tx;
+    const dy = Math.floor(b.tile / w) - ty;
+    if (dx * dx + dy * dy <= reach) return true;
+  }
+  return false;
+}
+
 /** Grab neutral land while there is any, then pick on the neighbour that is cheapest to attack. */
 function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng, survey: Survey): Intent | null {
   const max = game.maxTroops(p);
@@ -232,6 +247,8 @@ function sendTroops(game: Game, p: Player, brain: BotBrain, rng: Rng, survey: Su
       if (game.map.terrain[t] === Terrain.Water || game.map.mainland[t] || game.owner[t] !== NEUTRAL) continue;
       // In fog of war, only islands within sight of its coast or ships (ports see a bit further).
       if (!game.canSee(p, t, CONFIG.fogSight * 2)) continue;
+      // Only islands a short voyage from one of its ports: far ones would mean searching a whole ocean.
+      if (!nearOwnPort(game, p, t)) continue;
       if (typeof game.planBoat(p, t) !== 'string') return { type: 'boat', player: p.id, tile: t, permille: 350 };
       break;
     }

@@ -7,6 +7,9 @@ import { Rng } from './rng';
 /** Owner id of land nobody holds. Players are numbered from 1. */
 export const NEUTRAL = 0;
 
+/** The quick sweep around recent conquests leaves regions bigger than this to the full sweep. */
+const QUICK_SWEEP_LIMIT = 600;
+
 /** Attack fronts schedule tiles in tenths of a tick. */
 const SUBTICKS = 10;
 
@@ -222,22 +225,36 @@ export class Game {
   private readonly borderPos: Int32Array;
   private attackList: Attack[] = [];
   private readonly buildingsByTile = new Map<number, Building>();
-  /** Defence post tiles per owner, so coverage checks only look at that player's posts. */
+  /**
+   * Defence post tiles, bucketed by owner and by a grid cell as wide as a
+   * post's reach, so a coverage check only looks at the nine cells around a tile.
+   */
   private readonly posts = new Map<number, number[]>();
+  private readonly postCols: number;
+  private readonly postCells: number;
   private readonly sweepInterval: number;
+  /** Tiles that changed hands since the last sweep: enclosures can only form next to them. */
+  private sweepSeeds: number[] = [];
+  /** Where the slow full pass has got to, and the flood number it started from. */
+  private sliceAt = 0;
+  private sliceBase = 1;
   // Scratch space for boat routes.
   private readonly waterParent: Int32Array;
   private readonly waterSeen: Int32Array;
   private readonly waterQueue: Int32Array;
   private waterStamp = 0;
+  /** Which connected body of water each water tile belongs to (-1 on land); rebuilt after floods. */
+  private waterBodies: Int32Array | null = null;
   private missileList: Missile[] = [];
   private nextId = 1;
   private trainList: Train[] = [];
   private boatList: Boat[] = [];
   private shipList: Warship[] = [];
   /** Alliance expiry tick, and cool-down end tick, keyed by "low:high" player ids. */
-  private readonly alliances = new Map<string, number>();
-  private readonly cooldowns = new Map<string, number>();
+  private readonly alliances = new Map<number, number>();
+  private readonly cooldowns = new Map<number, number>();
+  /** Set once at the start: whether anyone plays in a team. */
+  private readonly teamsInPlay: boolean;
   /** Alliance offers to humans waiting for an answer, "from:to", with the tick they lapse. */
   private readonly offers = new Map<string, number>();
   private pending: Intent[] = [];
@@ -262,6 +279,8 @@ export class Game {
     this.owner = new Uint16Array(this.size);
     this.fallout = new Int32Array(this.size);
     this.borderPos = new Int32Array(this.size).fill(-1);
+    this.postCols = Math.ceil(this.width / CONFIG.defenseRadius);
+    this.postCells = this.postCols * Math.ceil(this.height / CONFIG.defenseRadius);
     this.seen = new Int32Array(this.size);
     this.stack = new Int32Array(this.size);
     this.component = new Int32Array(this.size);
@@ -269,7 +288,7 @@ export class Game {
     this.waterSeen = new Int32Array(this.size);
     this.waterQueue = new Int32Array(this.size);
     // The encirclement sweep scans the whole map, so big maps run it less often.
-    this.sweepInterval = Math.max(CONFIG.sweepEvery, Math.round((CONFIG.sweepEvery * this.size) / 200000));
+    this.sweepInterval = 3 * Math.max(CONFIG.sweepEvery, Math.round((CONFIG.sweepEvery * this.size) / 200000));
     this.rng = new Rng(settings.seed);
     this.players = settings.players.map((setup, i) => ({
       id: i + 1,
@@ -291,6 +310,9 @@ export class Game {
       owned: { city: 0, defense: 0, silo: 0, port: 0, factory: 0 },
       brain: setup.bot ? createBrain(this.rng, settings.difficulty, i) : null,
     }));
+    this.teamsInPlay = this.players.some((p) => p.team !== 0);
+    // Label the seas now, while the match loads, rather than mid-game on the first boat.
+    this.waterBodyMap();
   }
 
   player(id: number): Player {
@@ -396,6 +418,44 @@ export class Game {
     return null;
   }
 
+  /** The up to four tiles next to this one. */
+  private neighbours(tile: number): number[] {
+    const w = this.width;
+    const x = tile % w;
+    const out: number[] = [];
+    if (x > 0) out.push(tile - 1);
+    if (x < w - 1) out.push(tile + 1);
+    if (tile >= w) out.push(tile - w);
+    if (tile + w < this.size) out.push(tile + w);
+    return out;
+  }
+
+  /** Labels each connected body of water once (and again after the sea rises). */
+  private waterBodyMap(): Int32Array {
+    if (this.waterBodies) return this.waterBodies;
+    const { size, terrain, width: w } = this;
+    const label = new Int32Array(size).fill(-1);
+    const stack = this.waterQueue;
+    let next = 0;
+    for (let start = 0; start < size; start++) {
+      if (terrain[start] !== Terrain.Water || label[start] >= 0) continue;
+      let top = 0;
+      stack[top++] = start;
+      label[start] = next;
+      while (top > 0) {
+        const t = stack[--top];
+        const x = t % w;
+        if (x > 0 && terrain[t - 1] === Terrain.Water && label[t - 1] < 0) (label[t - 1] = next), (stack[top++] = t - 1);
+        if (x < w - 1 && terrain[t + 1] === Terrain.Water && label[t + 1] < 0) (label[t + 1] = next), (stack[top++] = t + 1);
+        if (t >= w && terrain[t - w] === Terrain.Water && label[t - w] < 0) (label[t - w] = next), (stack[top++] = t - w);
+        if (t + w < size && terrain[t + w] === Terrain.Water && label[t + w] < 0) (label[t + w] = next), (stack[top++] = t + w);
+      }
+      next++;
+    }
+    this.waterBodies = label;
+    return label;
+  }
+
   /** Whether a water tile touches one of `owner`'s ports. */
   private besidePort(tile: number, owner: number): boolean {
     const w = this.width;
@@ -464,25 +524,26 @@ export class Game {
 
   // Alliances
 
-  private pairKey(a: number, b: number): string {
-    return a < b ? `${a}:${b}` : `${b}:${a}`;
+  /** One number for an unordered pair of players (ids stay below 65536). */
+  private pairKey(a: number, b: number): number {
+    return a < b ? a * 65536 + b : b * 65536 + a;
   }
 
   allied(a: number, b: number): boolean {
     if (a === b || a === NEUTRAL || b === NEUTRAL) return false;
-    return this.teammates(a, b) || this.alliances.has(this.pairKey(a, b));
+    return this.teammates(a, b) || (this.alliances.size > 0 && this.alliances.has(this.pairKey(a, b)));
   }
 
   /** Whether two players are on the same team (always allied). */
   teammates(a: number, b: number): boolean {
-    if (a === b || a === NEUTRAL || b === NEUTRAL) return false;
+    if (!this.teamsInPlay || a === b || a === NEUTRAL || b === NEUTRAL) return false;
     const ta = this.player(a).team;
     return ta !== 0 && ta === this.player(b).team;
   }
 
   /** Whether this match is played in teams. */
   get teamGame(): boolean {
-    return this.players.some((p) => p.team !== 0);
+    return this.teamsInPlay;
   }
 
   /** Tick an alliance ends, or 0 if the two aren't allied. */
@@ -559,9 +620,15 @@ export class Game {
     if (beach < 0) return 'noRoute';
     if (this.allied(p.id, owner[beach])) return 'ally';
 
-    // Breadth-first search over water, from the beach out to any of p's ports.
     const ports = new Set<number>();
     for (const b of this.buildingsByTile.values()) if (b.kind === 'port' && b.owner === p.id) ports.add(b.tile);
+    // No port on the same sea as the beach: say so at once rather than searching a whole ocean.
+    const bodies = this.waterBodyMap();
+    const portSeas = new Set<number>();
+    for (const port of ports) for (const n of this.neighbours(port)) if (bodies[n] >= 0) portSeas.add(bodies[n]);
+    if (!this.neighbours(beach).some((n) => bodies[n] >= 0 && portSeas.has(bodies[n]))) return 'noRoute';
+
+    // Breadth-first search over water, from the beach out to any of p's ports.
     const { waterParent: parent, waterSeen: seenAt, waterQueue: queue } = this;
     const stamp = ++this.waterStamp;
     let tail = 0;
@@ -606,13 +673,14 @@ export class Game {
     if (this.owner[tile] !== p.id || !p.alive) return 'notYours';
     if (kind === 'port' && !this.isCoast(tile)) return 'notCoast';
     if (p.owned[kind] >= this.buildLimit(p, kind)) return 'limit';
+    // Look only at the few tiles around the spot, not at every building on the map.
     const gap = CONFIG.buildingSpacing;
     const x = tile % this.width;
     const y = (tile - x) / this.width;
-    for (const b of this.buildingsByTile.values()) {
-      const bx = b.tile % this.width;
-      const by = (b.tile - bx) / this.width;
-      if (Math.abs(bx - x) < gap && Math.abs(by - y) < gap) return 'tooClose';
+    for (let by = Math.max(0, y - gap + 1); by <= Math.min(this.height - 1, y + gap - 1); by++) {
+      for (let bx = Math.max(0, x - gap + 1); bx <= Math.min(this.width - 1, x + gap - 1); bx++) {
+        if (this.buildingsByTile.has(by * this.width + bx)) return 'tooClose';
+      }
     }
     if (p.gold < this.buildCost(p, kind)) return 'gold';
     return null;
@@ -707,7 +775,10 @@ export class Game {
     this.updateFlood();
     this.updateAlliances();
     this.grow();
-    if (this.tick % this.sweepInterval === 0) this.sweepEnclosures();
+    // A quick look around recent conquests every second, and a slow pass over
+    // the whole map spread thinly across every tick.
+    if (this.tick % CONFIG.sweepEvery === 0) this.sweepEnclosures();
+    this.sweepSlice();
     for (const p of this.players) if (p.tiles > p.peakTiles) p.peakTiles = p.tiles;
     this.checkEnd();
     this.tick++;
@@ -728,7 +799,7 @@ export class Game {
     for (const t of this.trainList) h = Math.imul(h ^ (t.leg * 1000 + Math.floor(t.progress)), 16777619);
     for (const b of this.boatList) h = Math.imul(h ^ Math.floor(b.pos * 10 + b.troops), 16777619);
     for (const s of this.shipList) h = Math.imul(h ^ (s.tile * 8 + s.hp), 16777619);
-    for (const [key, ends] of this.alliances) h = Math.imul(h ^ (ends + key.length), 16777619);
+    for (const [key, ends] of this.alliances) h = Math.imul(h ^ (ends + key), 16777619);
     return h >>> 0;
   }
 
@@ -755,7 +826,7 @@ export class Game {
       p.gold -= this.buildCost(p, intent.kind);
       this.buildingsByTile.set(intent.tile, { id: this.nextId++, kind: intent.kind, tile: intent.tile, owner: p.id });
       p.owned[intent.kind]++;
-      if (intent.kind === 'defense') this.postsOf(p.id).push(intent.tile);
+      if (intent.kind === 'defense') this.addPost(p.id, intent.tile);
     } else if (intent.type === 'recall') {
       // Call an attack off: the surviving troops come home.
       const a = this.findAttack(p.id, intent.target);
@@ -974,31 +1045,50 @@ export class Game {
 
   /** Whether a defence post of `owner` covers this tile. */
   private defended(tile: number, owner: number): boolean {
-    if (owner === NEUTRAL) return false;
-    const posts = this.posts.get(owner);
-    if (!posts || posts.length === 0) return false;
+    if (owner === NEUTRAL || this.player(owner).owned.defense === 0) return false;
     const r = CONFIG.defenseRadius;
-    const x = tile % this.width;
-    const y = (tile - x) / this.width;
-    for (const post of posts) {
-      const bx = post % this.width;
-      const dx = bx - x;
-      const dy = (post - bx) / this.width - y;
-      if (dx * dx + dy * dy <= r * r) return true;
+    const w = this.width;
+    const x = tile % w;
+    const y = (tile - x) / w;
+    const cx = Math.floor(x / r);
+    const cy = Math.floor(y / r);
+    const rows = this.postCells / this.postCols;
+    for (let gy = Math.max(0, cy - 1); gy <= Math.min(rows - 1, cy + 1); gy++) {
+      for (let gx = Math.max(0, cx - 1); gx <= Math.min(this.postCols - 1, cx + 1); gx++) {
+        const list = this.posts.get(owner * this.postCells + gy * this.postCols + gx);
+        if (!list) continue;
+        for (const post of list) {
+          const px = post % w;
+          const dx = px - x;
+          const dy = (post - px) / w - y;
+          if (dx * dx + dy * dy <= r * r) return true;
+        }
+      }
     }
     return false;
   }
 
-  private postsOf(owner: number): number[] {
-    let list = this.posts.get(owner);
-    if (!list) this.posts.set(owner, (list = []));
-    return list;
+  private postKey(owner: number, tile: number): number {
+    const r = CONFIG.defenseRadius;
+    const x = tile % this.width;
+    const y = (tile - x) / this.width;
+    return owner * this.postCells + Math.floor(y / r) * this.postCols + Math.floor(x / r);
+  }
+
+  private addPost(owner: number, tile: number): void {
+    const key = this.postKey(owner, tile);
+    const list = this.posts.get(key);
+    if (list) list.push(tile);
+    else this.posts.set(key, [tile]);
   }
 
   private dropPost(owner: number, tile: number): void {
-    const list = this.posts.get(owner);
+    const key = this.postKey(owner, tile);
+    const list = this.posts.get(key);
     const i = list ? list.indexOf(tile) : -1;
-    if (list && i >= 0) list.splice(i, 1);
+    if (!list || i < 0) return;
+    list.splice(i, 1);
+    if (list.length === 0) this.posts.delete(key);
   }
 
   // Trains
@@ -1288,6 +1378,7 @@ export class Game {
         if (b.kind === 'defense') this.dropPost(b.owner, t);
       }
       this.terrain[t] = Terrain.Water;
+      this.waterBodies = null;
       this.doomed[t] = 0;
       this.fallout[t] = 0;
       (this.map as { landTiles: number }).landTiles--;
@@ -1297,6 +1388,7 @@ export class Game {
       if (t >= this.width) this.refreshBorder(t - this.width);
       if (t + this.width < this.size) this.refreshBorder(t + this.width);
       this.changed.push(t);
+      this.sweepSeeds.push(t);
       tiles.push(t);
     }
     for (const id of hit) {
@@ -1389,7 +1481,8 @@ export class Game {
       this.cooldowns.set(this.pairKey(a, b), this.tick + CONFIG.allianceCooldown);
     }
     for (const [key, ends] of this.alliances) {
-      const [a, b] = key.split(':').map(Number);
+      const a = Math.floor(key / 65536);
+      const b = key % 65536;
       if (ends <= this.tick || !this.player(a).alive || !this.player(b).alive) this.endAlliance(a, b, NEUTRAL);
     }
   }
@@ -1494,6 +1587,7 @@ export class Game {
     if (tile >= width) this.refreshBorder(tile - width);
     if (tile + width < size) this.refreshBorder(tile + width);
     this.changed.push(tile);
+    this.sweepSeeds.push(tile);
   }
 
   private updateAttacks(): void {
@@ -1585,6 +1679,7 @@ export class Game {
     if (tile >= width) this.refreshBorder(tile - width);
     if (tile + width < size) this.refreshBorder(tile + width);
     this.changed.push(tile);
+    this.sweepSeeds.push(tile);
 
     const building = this.buildingsByTile.get(tile);
     if (building && building.owner !== id && building.kind === 'defense') {
@@ -1598,7 +1693,7 @@ export class Game {
       next.owned[building.kind]++;
       if (building.kind === 'defense') {
         this.dropPost(building.owner, tile);
-        this.postsOf(id).push(tile);
+        this.addPost(id, tile);
       }
       this.events.push({ type: 'captured', kind: building.kind, tile, from: building.owner, by: id });
       building.owner = id;
@@ -1649,24 +1744,58 @@ export class Game {
     this.events.push({ type: 'capitalLost', player: p.id, by });
   }
 
-  /** The owned tile nearest the middle of the territory, preferring tiles away from the border. */
+  /**
+   * The owned tile nearest the middle of the territory, preferring tiles
+   * away from the border (ties go to the lower tile index). Searches square
+   * rings outwards from the middle and stops once no nearer tile can follow,
+   * instead of scanning the whole map.
+   */
   private pickCapital(p: Player): number {
+    const { width: w, height: h, owner, borderPos } = this;
     const cx = p.sumX / p.tiles;
     const cy = p.sumY / p.tiles;
-    let best = -1;
-    let bestScore = Infinity;
-    for (let t = 0; t < this.size; t++) {
-      if (this.owner[t] !== p.id) continue;
-      const x = t % this.width;
-      const y = (t - x) / this.width;
-      const penalty = this.borderPos[t] >= 0 ? 1e9 : 0;
-      const score = (x - cx) * (x - cx) + (y - cy) * (y - cy) + penalty;
-      if (score < bestScore) {
-        bestScore = score;
-        best = t;
+    const ox = Math.round(cx);
+    const oy = Math.round(cy);
+    let inner = -1;
+    let innerScore = Infinity;
+    let edge = -1;
+    let edgeScore = Infinity;
+    let seen = 0;
+    const consider = (x: number, y: number) => {
+      if (x < 0 || y < 0 || x >= w || y >= h) return;
+      const t = y * w + x;
+      if (owner[t] !== p.id) return;
+      seen++;
+      const score = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+      if (borderPos[t] >= 0) {
+        if (score < edgeScore || (score === edgeScore && t < edge)) {
+          edgeScore = score;
+          edge = t;
+        }
+      } else if (score < innerScore || (score === innerScore && t < inner)) {
+        innerScore = score;
+        inner = t;
+      }
+    };
+    const maxR = Math.max(w, h);
+    for (let r = 0; r <= maxR; r++) {
+      // Every tile on ring r is at least r - 1 away from the (fractional) middle.
+      const floor = Math.max(0, r - 1);
+      if ((inner >= 0 && floor * floor > innerScore) || seen >= p.tiles) break;
+      if (r === 0) {
+        consider(ox, oy);
+        continue;
+      }
+      for (let d = -r; d <= r; d++) {
+        consider(ox + d, oy - r);
+        consider(ox + d, oy + r);
+      }
+      for (let d = -r + 1; d <= r - 1; d++) {
+        consider(ox - r, oy + d);
+        consider(ox + r, oy + d);
       }
     }
-    return best;
+    return inner >= 0 ? inner : edge;
   }
 
   private eliminate(p: Player, by: number): void {
@@ -1682,74 +1811,116 @@ export class Game {
    * Finds land cut off by a single player and hands it over: pockets of
    * neutral land inside someone's territory, and enemy fragments that no
    * longer connect to their capital.
+   *
+   * Usually only the land around tiles that changed hands since the last
+   * sweep is checked; every few sweeps the whole map is, to catch the rare
+   * case that changes without a nearby conquest (a capital moving away,
+   * fallout wearing off).
    */
   private sweepEnclosures(): void {
+    // Each flood gets its own number; anything at or above `base` was visited during this sweep.
+    const base = this.sweepStamp + 1;
+    const { terrain, seen } = this;
+    {
+      // A conquest can only cut off land of someone else (or empty land) next to it.
+      const { owner, width: w, size } = this;
+      const look = (n: number, o: number) => {
+        if (terrain[n] !== Terrain.Water && owner[n] !== o && seen[n] < base) this.sweepFrom(n, base, QUICK_SWEEP_LIMIT);
+      };
+      for (const t of this.sweepSeeds) {
+        const o = owner[t];
+        const x = t % w;
+        if (x > 0) look(t - 1, o);
+        if (x < w - 1) look(t + 1, o);
+        if (t >= w) look(t - w, o);
+        if (t + w < size) look(t + w, o);
+      }
+    }
+    this.sweepSeeds = [];
+  }
+
+  /**
+   * The slow, complete pass: this tick's share of the map, so the whole of it
+   * is covered every `sweepInterval` ticks without one long pause.
+   */
+  private sweepSlice(): void {
+    const { terrain, seen, size } = this;
+    if (this.sliceAt >= size) {
+      this.sliceAt = 0;
+      this.sliceBase = this.sweepStamp + 1;
+    }
+    const end = Math.min(size, this.sliceAt + Math.ceil(size / this.sweepInterval));
+    for (let start = this.sliceAt; start < end; start++) {
+      if (terrain[start] !== Terrain.Water && seen[start] < this.sliceBase) this.sweepFrom(start, this.sliceBase, Infinity);
+    }
+    this.sliceAt = end;
+  }
+
+  /**
+   * Floods the region of one owner from `start`. Gives up as soon as the
+   * region can't be annexed (it touches two other owners, holds its capital,
+   * reaches the sea, or is too big a neutral pocket); otherwise hands it to
+   * the one player around it.
+   */
+  private sweepFrom(start: number, base: number, limit: number): void {
     const { owner, terrain, width, size, seen, stack, component } = this;
     const stamp = ++this.sweepStamp;
+    const o = owner[start];
+    const capital = o === NEUTRAL ? -1 : this.player(o).capital;
+    // Breadth first, so a flood that gives up has looked at a compact patch around
+    // its start, and the next flood from nearby runs into it straight away.
+    let head = 0;
+    let tail = 0;
+    let count = 0;
+    let surrounding = -1;
+    stack[tail++] = start;
+    seen[start] = stamp;
 
-    for (let start = 0; start < size; start++) {
-      if (terrain[start] === Terrain.Water || seen[start] === stamp) continue;
-      const o = owner[start];
-      const capital = o === NEUTRAL ? -1 : this.player(o).capital;
-      let top = 0;
-      let count = 0;
-      let surrounding = -1;
-      let mixed = false;
-      let hasCapital = false;
-      let contaminated = false;
-      let coastal = false;
-      stack[top++] = start;
-      seen[start] = stamp;
-
-      while (top > 0) {
-        const t = stack[--top];
-        component[count++] = t;
-        if (t === capital) hasCapital = true;
-        if (this.fallout[t] > this.tick) contaminated = true;
-        const x = t % width;
-        for (let k = 0; k < 4; k++) {
-          let n: number;
-          if (k === 0) {
-            if (x === 0) continue;
-            n = t - 1;
-          } else if (k === 1) {
-            if (x === width - 1) continue;
-            n = t + 1;
-          } else if (k === 2) {
-            if (t < width) continue;
-            n = t - width;
-          } else {
-            if (t + width >= size) continue;
-            n = t + width;
-          }
-          if (terrain[n] === Terrain.Water) {
-            coastal = true;
-            continue;
-          }
-          const no = owner[n];
-          if (no === o) {
-            if (seen[n] !== stamp) {
-              seen[n] = stamp;
-              stack[top++] = n;
-            }
-          } else if (surrounding === -1) {
-            surrounding = no;
-          } else if (surrounding !== no) {
-            mixed = true;
-          }
+    while (head < tail) {
+      const t = stack[head++];
+      component[count++] = t;
+      if (count > limit || (o !== NEUTRAL && t === capital)) return;
+      if (o === NEUTRAL && (count > CONFIG.pocketMax || this.fallout[t] > this.tick)) return;
+      const x = t % width;
+      for (let k = 0; k < 4; k++) {
+        let n: number;
+        if (k === 0) {
+          if (x === 0) continue;
+          n = t - 1;
+        } else if (k === 1) {
+          if (x === width - 1) continue;
+          n = t + 1;
+        } else if (k === 2) {
+          if (t < width) continue;
+          n = t - width;
+        } else {
+          if (t + width >= size) continue;
+          n = t + width;
+        }
+        if (terrain[n] === Terrain.Water) {
+          // A fragment on the coast is supplied by sea (a beachhead): not cut off.
+          if (o !== NEUTRAL) return;
+          continue;
+        }
+        const no = owner[n];
+        if (no === o) {
+          if (seen[n] === stamp) continue;
+          // Already looked at by an earlier flood this sweep, which found it can't be annexed.
+          if (seen[n] >= base) return;
+          seen[n] = stamp;
+          stack[tail++] = n;
+        } else if (no === NEUTRAL || (surrounding !== -1 && surrounding !== no)) {
+          // Bordering empty land or two different players: nobody has it surrounded.
+          return;
+        } else {
+          surrounding = no;
         }
       }
-
-      if (mixed || surrounding <= NEUTRAL) continue;
-      const enclosing = this.player(surrounding);
-      if (o === NEUTRAL) {
-        if (contaminated || count > Math.min(CONFIG.pocketMax, enclosing.tiles * CONFIG.pocketShare)) continue;
-      } else if (hasCapital || coastal) {
-        // A fragment holding a capital, or on the coast (a beachhead, supplied by sea), isn't cut off.
-        continue;
-      }
-      this.annex(component.subarray(0, count), o, surrounding);
     }
+
+    if (surrounding <= NEUTRAL) return;
+    if (o === NEUTRAL && count > this.player(surrounding).tiles * CONFIG.pocketShare) return;
+    this.annex(component.subarray(0, count), o, surrounding);
   }
 
   private annex(tiles: Int32Array, from: number, to: number): void {

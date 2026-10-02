@@ -157,6 +157,8 @@ export const CONFIG = {
   // Boats
   /** Tiles a boat sails per tick. */
   boatSpeed: 2,
+  /** Bots only ship troops to islands this many tiles (straight line) from one of their ports. */
+  botBoatReach: 160,
   /** Boats a player can have at sea at once. */
   maxBoats: 3,
   /** How far inland from the clicked spot to look for a beach. */

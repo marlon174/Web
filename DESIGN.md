@@ -45,7 +45,12 @@ The client (`src/client`) draws the map as one pixel per tile on an offscreen ca
 
 ## Performance
 
-Map sizes: 552×345, 920×575, 1380×862 and 1840×1150 tiles, with 3–100 bots. On 1200×750 with 60 bots a tick averages about 2 ms (10 ticks a second); occasional ticks reach 30–80 ms when the encirclement sweep runs, which is scheduled less often on bigger maps. Moving the simulation into a Web Worker would remove those hitches.
+Map sizes: 552×345, 920×575, 1380×862 and 1840×1150 tiles, with 3–100 bots. Worst case measured (huge map, 100 normal bots, 4,000 ticks): 4–5 ms a tick on average, 99% of ticks under 16 ms, and no tick over 50 ms after the first. What it took:
+
+- **Encirclement** is checked every second only around tiles that changed hands (regions over 600 tiles wait for the full pass), and the full pass is spread thinly over every tick. Floods are breadth-first and give up as soon as a region can't be annexed.
+- **New capitals** are found by searching rings outward from the territory's centre, not by scanning the map.
+- **Boats**: every body of water is labelled once, so a route to a different sea is refused at once; bots only sail to islands near their ports.
+- **Bunker cover** uses a grid of cells as wide as a bunker's reach; **building spacing** looks only at nearby tiles; **alliances** use numeric keys.
 
 ## Balance check
 
