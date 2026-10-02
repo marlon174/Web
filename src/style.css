@@ -1,0 +1,1726 @@
+/* Layout: the map fills the page; panels float at its corners like notes on a nautical chart. */
+:root {
+  /* One deliberate night-chart look, so both host themes see the same game. */
+  --sea: #173d57;
+  --panel: rgba(9, 22, 33, 0.9);
+  --panel-solid: #0c1c29;
+  --panel-edge: rgba(170, 204, 224, 0.18);
+  --field: rgba(255, 255, 255, 0.06);
+  --field-hover: rgba(255, 255, 255, 0.1);
+  --ink: #eef4f6;
+  --ink-soft: #9db5c4;
+  --ink-on-light: #0b1a26;
+  /* Chart magenta: on real charts it marks lights, cautions and boundaries. */
+  --signal: #cc2f78;
+  --signal-hover: #dd3f89;
+  --signal-hi: #ff70b3;
+  --signal-wash: rgba(255, 112, 179, 0.14);
+  --on-signal: #ffffff;
+  --good: #62d394;
+  --gold: #f2c14e;
+  --bad: #ff7d7d;
+  --scrim: rgba(6, 16, 24, 0.62);
+  --vignette: rgba(4, 12, 20, 0.5);
+  --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gutter: 16px;
+  /* UI size from the settings: every HUD group scales from the corner it hangs in. */
+  --ui: 1;
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--sea);
+  color: var(--ink);
+  font: 14px/1.45 var(--font-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+#view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+  outline: none;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, var(--vignette) 100%);
+}
+
+#view.dragging {
+  cursor: grabbing;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal-hi);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.label-caps,
+.field > label,
+.field > legend,
+.stat-label,
+.send-label,
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+}
+
+/* Buttons */
+
+.button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: var(--signal);
+  color: var(--on-signal);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  padding: 10px 28px;
+}
+
+.button.primary:hover {
+  background: var(--signal-hover);
+}
+
+.button.ghost {
+  background: var(--field);
+  border: 1px solid var(--panel-edge);
+}
+
+.button.ghost:hover {
+  background: var(--field-hover);
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--panel-solid);
+  border-color: var(--ink-soft);
+}
+
+.speed-button {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-button.fast {
+  background: var(--signal);
+  border-color: var(--signal-hi);
+  color: var(--on-signal);
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.hud-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--signal-hi);
+}
+
+/* Menu */
+
+.menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding-block: 24px;
+  padding-inline: var(--gutter);
+  overflow-y: auto;
+  background: var(--scrim);
+}
+
+.menu-card {
+  width: min(100%, 400px);
+  margin: auto 0;
+  display: grid;
+  gap: 16px;
+}
+
+.menu-head {
+  display: grid;
+  gap: 10px;
+}
+
+.wordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(60px, 16vw, 92px);
+  line-height: 0.82;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* A dashed magenta line: how charts draw a boundary. */
+.wordmark::after {
+  content: "";
+  display: block;
+  height: 4px;
+  margin-top: 12px;
+  background: repeating-linear-gradient(90deg, var(--signal-hi) 0 16px, transparent 16px 24px);
+}
+
+.tagline {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.menu-form {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field > legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.field > label {
+  display: flex;
+  justify-content: space-between;
+}
+
+.field > label output {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 16px;
+  align-items: start;
+}
+
+#name {
+  padding: 10px 12px;
+  background: var(--field);
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+}
+
+#name::placeholder {
+  color: var(--ink-soft);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatches > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.swatch {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+}
+
+.swatches > input:checked + .swatch,
+.swatch.custom.selected {
+  box-shadow: 0 0 0 2px var(--panel-solid), 0 0 0 4px var(--ink);
+}
+
+.swatches > input:focus-visible + .swatch,
+.swatch.custom:focus-within {
+  outline: 2px solid var(--signal-hi);
+  outline-offset: 4px;
+}
+
+.swatch.custom {
+  background: conic-gradient(#ff5d5d, #ffd35d, #6be675, #5dd6ff, #7a6bff, #ff5dd0, #ff5d5d);
+}
+
+.swatch.custom.selected {
+  background: var(--c);
+}
+
+.swatch.custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mode {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  background: var(--field);
+  cursor: pointer;
+}
+
+.mode:hover {
+  background: var(--field-hover);
+}
+
+.mode input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode:has(input:checked) {
+  border-color: var(--signal-hi);
+  background: var(--signal-wash);
+}
+
+.mode:has(input:focus-visible) {
+  outline: 2px solid var(--signal-hi);
+  outline-offset: 2px;
+}
+
+.mode-name {
+  font-weight: 700;
+}
+
+.mode-note {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.segmented {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  background: var(--field);
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented label {
+  flex: 1;
+  padding: 7px 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.segmented input:checked + label {
+  background: var(--ink);
+  color: var(--ink-on-light);
+}
+
+.segmented input:focus-visible + label {
+  outline: 2px solid var(--signal-hi);
+  outline-offset: -2px;
+}
+
+fieldset:disabled .segmented {
+  opacity: 0.4;
+}
+
+fieldset:disabled .segmented label {
+  cursor: not-allowed;
+}
+
+/* Always in reach: the play button sticks to the bottom while the form scrolls. */
+.menu-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 -18px -18px;
+  padding: 12px 18px;
+  background: var(--panel-solid);
+  border-top: 1px solid var(--panel-edge);
+  border-radius: 0 0 14px 14px;
+}
+
+/* Rarely changed options fold away, with a one-line summary of what's set. */
+.more {
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  background: var(--field);
+}
+
+.more summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+.more summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft);
+  transform: translateY(-2px) rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.more[open] summary::before {
+  transform: translateY(-4px) rotate(45deg);
+}
+
+.more-title {
+  font-weight: 700;
+}
+
+.more-summary {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.more[open] .more-summary {
+  display: none;
+}
+
+.more-body {
+  display: grid;
+  gap: 16px;
+  padding: 4px 12px 14px;
+}
+
+.field-hint {
+  display: none;
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+fieldset:disabled .field-hint {
+  display: block;
+}
+
+.chart-no {
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.howto {
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 12px;
+}
+
+.howto summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.howto ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+}
+
+.howto strong {
+  color: var(--ink);
+}
+
+@media (min-width: 760px) {
+  .menu {
+    padding-inline: 48px;
+    background: linear-gradient(90deg, var(--scrim) 0, var(--scrim) 440px, transparent 640px);
+  }
+}
+
+/* In-game HUD */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hud .panel,
+.hud button,
+.hud input {
+  pointer-events: auto;
+}
+
+.top-left {
+  position: absolute;
+  top: var(--gutter);
+  left: var(--gutter);
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  max-width: calc((100% - 2 * var(--gutter)) / var(--ui));
+  transform: scale(var(--ui));
+  transform-origin: top left;
+}
+
+.stats {
+  display: grid;
+  gap: 8px;
+  min-width: 210px;
+  padding: 12px 14px;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.chip {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--c);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: baseline;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value.gold {
+  color: var(--gold);
+}
+
+.stat-max {
+  font-size: 18px;
+  color: var(--ink-soft);
+}
+
+.stat-note {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed {
+  display: grid;
+  gap: 6px;
+  max-width: 320px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feed li {
+  --tone: var(--ink-soft);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  font-size: 13px;
+  transition: opacity 0.6s;
+}
+
+.feed li::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+.feed li.good {
+  --tone: var(--good);
+}
+
+.feed li.bad {
+  --tone: var(--bad);
+}
+
+.feed li > span {
+  min-width: 0;
+  white-space: normal;
+}
+
+.feed li.tip {
+  max-width: 320px;
+  box-sizing: border-box;
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.feed li.tip::before {
+  content: "💡";
+  width: auto;
+  height: auto;
+  background: none;
+}
+
+.feed li.award {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.feed li.award::before {
+  content: "🏆";
+  width: auto;
+  height: auto;
+  background: none;
+}
+
+.feed li.fading {
+  opacity: 0;
+}
+
+.top-center {
+  position: absolute;
+  top: var(--gutter);
+  left: 50%;
+  transform: translateX(-50%) scale(var(--ui));
+  transform-origin: top center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: max-content;
+  max-width: min(420px, calc((100% - 2 * var(--gutter)) / var(--ui)));
+}
+
+.clock {
+  padding: 2px 14px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock:empty,
+.banner:empty {
+  display: none;
+}
+
+.clock.urgent {
+  color: var(--bad);
+}
+
+.banner {
+  margin: 0;
+  padding: 10px 16px;
+  background: var(--signal);
+  color: var(--on-signal);
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.top-right {
+  position: absolute;
+  top: var(--gutter);
+  right: var(--gutter);
+  transform: scale(var(--ui));
+  transform-origin: top right;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.board {
+  width: 220px;
+  padding: 10px 12px;
+}
+
+.board:has(ol:empty) {
+  display: none;
+}
+
+.panel-title {
+  margin: 0 0 6px;
+}
+
+.board ol {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board li {
+  display: grid;
+  grid-template-columns: 18px 10px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  padding: 2px 6px;
+  margin-inline: -6px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-totals {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  list-style: none;
+  border-bottom: 1px solid var(--panel-edge);
+}
+
+.team-totals li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-totals .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.team-totals .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-totals li.me {
+  color: var(--ink);
+}
+
+.team-totals li:not(.me) {
+  color: var(--ink-soft);
+}
+
+.board li.ally .name {
+  color: var(--good);
+}
+
+.board li.me {
+  background: var(--field-hover);
+  font-weight: 700;
+}
+
+.board .rank {
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.board .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--c);
+}
+
+.board .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-center {
+  position: absolute;
+  bottom: var(--gutter);
+  left: 50%;
+  transform: translateX(-50%) scale(var(--ui));
+  transform-origin: bottom center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: min(760px, calc((100% - 2 * var(--gutter)) / var(--ui)));
+}
+
+.fronts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fronts li {
+  padding: 4px 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fronts li[data-target] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.fronts li[data-target]:hover {
+  border-color: var(--ink-soft);
+}
+
+.fronts li.incoming {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.tools {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+  container-type: inline-size;
+}
+
+.tool {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 7px 2px 5px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tool:hover {
+  background: var(--field-hover);
+}
+
+.tool.group-start {
+  margin-left: 7px;
+}
+
+.tool.group-start::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -7px;
+  width: 1px;
+  background: var(--panel-edge);
+}
+
+.tool svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+}
+
+.tool-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tool-cost {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool kbd {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font: 700 10px var(--font-body);
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.tool.locked {
+  opacity: 0.42;
+}
+
+.tool.active {
+  border-color: var(--signal-hi);
+  background: var(--signal-wash);
+}
+
+.send {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+}
+
+.send-out {
+  min-width: 108px;
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.minimap {
+  position: absolute;
+  right: var(--gutter);
+  bottom: calc(var(--gutter) + 28px * var(--ui));
+  width: 200px;
+  transform: scale(var(--ui));
+  transform-origin: bottom right;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.tip {
+  position: fixed;
+  z-index: 5;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--panel-solid);
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: scale(var(--ui));
+  transform-origin: top left;
+}
+
+.tip-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.keys {
+  position: absolute;
+  right: var(--gutter);
+  bottom: var(--gutter);
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  transform: scale(var(--ui));
+  transform-origin: bottom right;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(200px * var(--ui));
+  transform: translateX(-50%) scale(var(--ui));
+  transform-origin: bottom center;
+  max-width: calc(100% - 2 * var(--gutter));
+  padding: 10px 16px;
+  background: var(--panel-solid);
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Pause and results */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-block: 24px;
+  padding-inline: var(--gutter);
+  background: var(--scrim);
+  backdrop-filter: blur(2px);
+}
+
+.overlay-card {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 480px);
+  max-height: calc(100vh / var(--ui) - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 26px;
+  background: var(--panel-solid);
+  border: 1px solid var(--panel-edge);
+  border-radius: 16px;
+  transform: scale(var(--ui));
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--signal-hi);
+}
+
+.overlay-card h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 46px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.overlay-text {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.overlay-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.overlay-stats div {
+  padding: 10px 12px;
+  background: var(--field);
+  border-radius: 8px;
+}
+
+.overlay-stats dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.overlay-stats dd {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 960px) {
+  .minimap {
+    display: none;
+  }
+}
+
+/* Keep the bottom bar clear of the minimap, however big the UI is. */
+@media (min-width: 961px) {
+  :root:not(.hide-minimap) .bottom-center {
+    width: min(760px, calc((100% - 2 * (var(--gutter) + 8px)) / var(--ui) - 2 * 200px));
+  }
+}
+
+@media (max-width: 1500px), (pointer: coarse) {
+  .keys {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* The clock and banner would collide with the corner panels: move them above the slider. */
+  .top-center {
+    top: auto;
+    bottom: calc(196px * var(--ui));
+    transform-origin: bottom center;
+  }
+
+  .toast {
+    bottom: calc(260px * var(--ui));
+  }
+}
+
+@media (max-width: 640px) {
+  /* Phones: the three numbers in one slim row, so the map stays free. */
+  .stats {
+    grid-template-columns: repeat(3, auto);
+    min-width: 0;
+    gap: 12px;
+    padding: 7px 11px;
+  }
+
+  .who,
+  .stat-note,
+  .stat-max {
+    display: none;
+  }
+
+  .stat {
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+  }
+
+  .stat-value {
+    font-size: 19px;
+  }
+
+  .hud-buttons {
+    gap: 6px;
+  }
+
+  .hud .icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Modes as a list: name on the left, a short note beside it. */
+  .modes {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .mode {
+    grid-template-columns: 9.5em 1fr;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 12px;
+  }
+
+  .wordmark {
+    font-size: 58px;
+  }
+
+  .tagline {
+    font-size: 14px;
+  }
+
+  /* Play takes the full width; a new map is a smaller button beside the seed. */
+  .menu-actions {
+    flex-wrap: nowrap;
+  }
+
+  .menu-actions #play {
+    flex: 1;
+    order: 2;
+  }
+
+  .menu-actions #reroll {
+    order: 1;
+    padding-inline: 12px;
+  }
+
+  .menu-actions .chart-no {
+    display: none;
+  }
+
+  .tools {
+    gap: 3px;
+    padding: 5px;
+  }
+
+  .tool {
+    padding: 6px 1px 4px;
+  }
+
+  .tool.group-start {
+    margin-left: 4px;
+  }
+
+  .tool.group-start::before {
+    left: -4px;
+  }
+
+  .tool-cost {
+    font-size: 10px;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  .tool:last-child .tool-cost {
+    font-size: 8.5px;
+  }
+
+  .feed {
+    max-width: 200px;
+  }
+
+  .feed li {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .board {
+    width: 138px;
+    padding: 8px 10px;
+  }
+
+  .board li {
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+    font-size: 12px;
+  }
+
+  .board .dot {
+    display: none;
+  }
+
+  .board li:nth-child(n + 4):not(.me) {
+    display: none;
+  }
+
+  .send-out {
+    min-width: 90px;
+    font-size: 18px;
+  }
+
+  .tool-name,
+  .tool kbd {
+    display: none;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .overlay-card {
+    padding: 20px;
+  }
+
+  .overlay-card h2 {
+    font-size: 38px;
+  }
+}
+
+/* Watching a replay: no orders, so no build bar or send slider. */
+.hud.replay .tools,
+.hud.replay .send,
+.hud.replay .keys {
+  display: none;
+}
+
+.hud.replay .clock::before {
+  content: "Wiederholung ";
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  color: var(--signal-hi);
+}
+
+/* Tutorial card under the clock */
+.coach {
+  display: grid;
+  gap: 6px;
+  width: min(380px, calc(100vw - 2 * var(--gutter)));
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-color: var(--signal-hi);
+}
+
+.coach-step {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--signal-hi);
+}
+
+.coach-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.coach-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.coach-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.coach-actions .button {
+  padding: 7px 14px;
+  font-size: 14px;
+}
+
+.coach-actions .button.primary {
+  font-size: 16px;
+}
+
+/* "Weiter" only once it's finished; until then only "Tutorial beenden". */
+.coach:not(.finished) #coach-done,
+.coach.finished #coach-skip {
+  display: none;
+}
+
+/* Alliance offer card under the clock */
+.offer {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-color: var(--signal-hi);
+  text-align: center;
+}
+
+.offer-text {
+  margin: 0;
+  font-weight: 600;
+}
+
+.offer-text .chip {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.offer-text strong {
+  font-weight: 800;
+}
+
+.offer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.offer-actions .button.primary {
+  font-size: 18px;
+  padding: 8px 18px;
+}
+
+/* Land chart on the results screen */
+
+.overlay-extra:empty {
+  display: none;
+}
+
+.land-chart {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px;
+  background: var(--field);
+  border-radius: 10px;
+}
+
+.chart-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.land-chart canvas {
+  display: block;
+  width: 100%;
+  height: 150px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chart-legend li.me {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.chart-legend .key {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.chart-readout {
+  margin: 0;
+  min-height: 2.6em;
+  font-size: 12px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.check.option {
+  align-items: flex-start;
+}
+
+.check.option .mode-note {
+  display: block;
+  font-weight: 400;
+}
+
+.menu-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.menu-links .button {
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+/* Until the tutorial is done once, its button stands out. */
+.menu-links .suggest {
+  border-color: var(--signal-hi);
+  background: var(--signal-wash);
+}
+
+.settings .profile-card {
+  width: min(100%, 440px);
+}
+
+.achievements {
+  display: grid;
+  gap: 6px;
+  max-height: 46vh;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.achievements li {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.achievements li strong {
+  color: var(--ink-soft);
+}
+
+.achievements li.done {
+  border: 1px solid var(--gold);
+}
+
+.achievements li.done strong {
+  color: var(--gold);
+}
+
+/* Daily challenge card in the menu */
+.daily {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-color: var(--gold);
+}
+
+.daily-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.daily-desc {
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+
+.daily-best {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Settings */
+
+.settings-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.settings-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* A light scrim: the HUD behind it should stay visible while it resizes. */
+.settings {
+  z-index: 10;
+  background: rgba(6, 16, 24, 0.35);
+  backdrop-filter: none;
+}
+
+/* The card itself never scales, so the slider stays put under your finger. */
+.settings .settings-card {
+  transform: none;
+  gap: 18px;
+  width: min(100%, 360px);
+}
+
+.settings-card h2 {
+  font-size: 38px;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.presets .button {
+  padding: 8px 10px;
+}
+
+.presets .button[aria-pressed="true"] {
+  background: var(--signal-wash);
+  border-color: var(--signal-hi);
+}
+
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--signal-hi);
+}
+
+.settings .overlay-actions {
+  justify-content: space-between;
+}
+
+/* Too narrow for names (small screen or a big UI): icons and prices only. */
+@container (max-width: 600px) {
+  .tool-name,
+  .tool kbd {
+    display: none;
+  }
+}
+
+/* Set from the settings when the scaled HUD is too wide for the top row: clock and banner go above the slider. */
+.ui-cramped .top-center {
+  top: auto;
+  bottom: calc(196px * var(--ui));
+  transform-origin: bottom center;
+}
+
+.ui-cramped .toast {
+  bottom: calc(260px * var(--ui));
+}
+
+.hide-board .board,
+.hide-feed .feed,
+.hide-minimap .minimap,
+.hide-keys .keys {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

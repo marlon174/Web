@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Landgrab</title>
+    <meta name="theme-color" content="#0c1c29" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23173d57'/%3E%3Cpath d='M6 22l6-12 5 7 3-4 6 9z' fill='%23ff70b3'/%3E%3C/svg%3E" />
+    <meta property="og:title" content="Landgrab" />
+    <meta property="og:description" content="Territorium-Strategiespiel im Browser: Truppen sammeln, Grenzen verschieben, Karte erobern." />
+    <meta name="description" content="Lass deine Truppen wachsen, verschieb deine Grenzen und erobere die Karte: ein Territorium-Strategiespiel gegen Bots." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="view" tabindex="-1" aria-label="Spielkarte" data-en-label="Game map"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <section id="menu" class="menu" aria-labelledby="menu-title">
+        <div class="menu-card">
+          <header class="menu-head">
+            <h1 id="menu-title" class="wordmark">Landgrab</h1>
+            <p class="tagline" data-en="Gather troops, push borders, conquer the map.">Truppen sammeln, Grenzen verschieben, Karte erobern.</p>
+          </header>
+
+          <section class="daily panel" aria-labelledby="daily-title">
+            <div class="daily-text">
+              <h2 class="daily-title" id="daily-title" data-en="Daily challenge">Tägliche Herausforderung</h2>
+              <p class="daily-desc" id="daily-desc"></p>
+              <p class="daily-best" id="daily-best"></p>
+            </div>
+            <button type="button" class="button ghost" id="daily-play" data-en="Go">Los</button>
+          </section>
+
+          <form id="menu-form" class="menu-form" novalidate>
+            <div class="field">
+              <label for="name" data-en="Name">Name</label>
+              <input id="name" name="name" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Dein Name" data-en-placeholder="Your name" />
+            </div>
+
+            <fieldset class="field">
+              <legend data-en="Colour">Farbe</legend>
+              <div id="swatches" class="swatches"></div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend data-en="Mode">Modus</legend>
+              <div class="modes">
+                <label class="mode">
+                  <input type="radio" name="mode" id="mode-quick" value="quick" checked />
+                  <span class="mode-name" data-en="Quick match">Schnelles Spiel</span>
+                  <span class="mode-note" data-en="5 minutes. Most land wins.">5 Minuten. Das meiste Land gewinnt.</span>
+                </label>
+                <label class="mode">
+                  <input type="radio" name="mode" id="mode-classic" value="classic" />
+                  <span class="mode-name" data-en="Classic">Klassisch</span>
+                  <span class="mode-note" data-en="Conquer 70% of the land.">Erobere 70 % des Landes.</span>
+                </label>
+                <label class="mode">
+                  <input type="radio" name="mode" id="mode-royale" value="royale" />
+                  <span class="mode-name">Battle Royale</span>
+                  <span class="mode-note" data-en="The sea rises and swallows the map.">Das Meer steigt und frisst die Karte.</span>
+                </label>
+                <label class="mode">
+                  <input type="radio" name="mode" id="mode-conquest" value="conquest" />
+                  <span class="mode-name" data-en="Total conquest">Totale Eroberung</span>
+                  <span class="mode-note" data-en="Win only once every enemy (or team) is wiped out.">Gewinn erst, wenn alle Gegner (oder Teams) besiegt sind.</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <details class="more" id="more-options">
+              <summary><span class="more-title" data-en="More options">Mehr Optionen</span> <span class="more-summary" id="more-summary"></span></summary>
+              <div class="more-body">
+                <fieldset class="field">
+                  <legend data-en="Map">Karte</legend>
+                  <div class="segmented">
+                    <input type="radio" name="world" id="world-none" value="" checked /><label for="world-none" data-en="Random">Zufall</label>
+                    <input type="radio" name="world" id="world-world" value="world" /><label for="world-world" data-en="World">Welt</label>
+                    <input type="radio" name="world" id="world-europe" value="europe" /><label for="world-europe" data-en="Europe">Europa</label>
+                    <input type="radio" name="world" id="world-germany" value="germany" /><label for="world-germany" data-en="Germany">Deutschland</label>
+                  </div>
+                </fieldset>
+
+                <fieldset class="field" id="size-field" disabled>
+                  <legend data-en="Map size">Kartengröße</legend>
+                  <p class="field-hint" data-en="A quick match always uses the small map.">Das schnelle Spiel nutzt immer die kleine Karte.</p>
+                  <div class="segmented">
+                    <input type="radio" name="size" id="size-small" value="small" /><label for="size-small" data-en="Small">Klein</label>
+                    <input type="radio" name="size" id="size-medium" value="medium" checked /><label for="size-medium" data-en="Medium">Mittel</label>
+                    <input type="radio" name="size" id="size-large" value="large" /><label for="size-large" data-en="Large">Groß</label>
+                    <input type="radio" name="size" id="size-huge" value="huge" /><label for="size-huge" data-en="Huge">Riesig</label>
+                  </div>
+                </fieldset>
+
+                <fieldset class="field">
+                  <legend>Teams</legend>
+                  <div class="segmented">
+                    <input type="radio" name="teams" id="teams-0" value="0" checked /><label for="teams-0" data-en="Every one for themselves">Jeder für sich</label>
+                    <input type="radio" name="teams" id="teams-2" value="2" /><label for="teams-2" data-en="2 teams">2 Teams</label>
+                    <input type="radio" name="teams" id="teams-4" value="4" /><label for="teams-4" data-en="4 teams">4 Teams</label>
+                  </div>
+                </fieldset>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="bots"><span data-en="Bots">Bots</span> <output id="bots-out" for="bots">15</output></label>
+                    <input type="range" id="bots" name="bots" min="3" max="100" value="15" />
+                  </div>
+                  <fieldset class="field">
+                    <legend data-en="Bot strength">Bot-Stärke</legend>
+                    <div class="segmented">
+                      <input type="radio" name="difficulty" id="diff-easy" value="easy" /><label for="diff-easy" data-en="Easy">Leicht</label>
+                      <input type="radio" name="difficulty" id="diff-normal" value="normal" checked /><label for="diff-normal">Normal</label>
+                      <input type="radio" name="difficulty" id="diff-hard" value="hard" /><label for="diff-hard" data-en="Hard">Schwer</label>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <label class="check option">
+                  <input type="checkbox" id="fog" name="fog" />
+                  <span><span data-en="Fog of war">Nebel des Krieges</span> <span class="mode-note" data-en="You only see what lies near your land.">Du siehst nur, was nahe an deinem Land liegt.</span></span>
+                </label>
+              </div>
+            </details>
+
+            <div class="menu-actions">
+              <button type="button" id="reroll" class="button ghost">
+                <span data-en="New map">Neue Karte</span> <span class="chart-no" id="chart-no"></span>
+              </button>
+              <button type="submit" id="play" class="button primary" data-en="Play">Spielen</button>
+            </div>
+          </form>
+
+          <div class="menu-links">
+            <button type="button" class="button ghost settings-link" id="tutorial-play">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zm-.9 3.2 4.3 3.3-4.3 3.3z"/></svg>
+              <span>Tutorial</span>
+            </button>
+            <button type="button" class="button ghost settings-link" id="profile-open">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h8v2h2.5v1.8c0 1.9-1.4 3.4-3.2 3.7A4 4 0 0 1 9 10.9V12.5h2.5v2h-7v-2H7v-1.6A4 4 0 0 1 4.7 9C2.9 8.7 1.5 7.2 1.5 5.3V3.5H4zm0 3.6H3.1v.2c0 .9.5 1.6 1.2 2A6 6 0 0 1 4 5.6zm8 0v.5a6 6 0 0 1-.3 1.7c.7-.4 1.2-1.1 1.2-2v-.2z"/></svg>
+              <span data-en="Achievements">Erfolge</span>
+            </button>
+            <button type="button" class="button ghost settings-link" data-open-settings>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6.9 1h2.2l.4 1.9c.5.2.9.4 1.3.7l1.8-.6 1.1 1.9-1.4 1.3c.1.5.1 1.1 0 1.6l1.4 1.3-1.1 1.9-1.8-.6c-.4.3-.8.5-1.3.7L9.1 15H6.9l-.4-1.9c-.5-.2-.9-.4-1.3-.7l-1.8.6-1.1-1.9 1.4-1.3a4 4 0 0 1 0-1.6L2.3 6.9l1.1-1.9 1.8.6c.4-.3.8-.5 1.3-.7zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>
+              <span data-en="Settings">Einstellungen</span>
+            </button>
+          </div>
+
+          <details class="howto">
+            <summary data-en="How to play">So wird gespielt</summary>
+            <ul>
+              <li data-en-html="Click empty land to expand into it. Click a neighbour&#x27;s land to attack them. The more troops you send compared with theirs, the faster you advance (⚡ on the attack).">Klick auf freies Land, um dich dorthin auszubreiten. Klick auf das Land eines Nachbarn, um ihn anzugreifen. Je mehr Truppen du im Vergleich zu ihm schickst, desto schneller rückst du vor (⚡ am Angriff).</li>
+              <li data-en-html="The &lt;strong&gt;Send&lt;/strong&gt; slider sets how many of your troops each click sends. Clicking a running attack below calls the troops back.">Der Regler <strong>Senden</strong> legt fest, wie viele deiner Truppen jeder Klick losschickt. Ein Klick auf einen laufenden Angriff unten ruft die Truppen zurück.</li>
+              <li data-en-html="Hover over land to see troops and the cost to attack. The minimap at the bottom right takes you anywhere with a click.">Fahr mit der Maus über ein Gebiet, um Truppen und Angriffskosten zu sehen. Die Übersichtskarte unten rechts bringt dich per Klick überall hin.</li>
+              <li data-en-html="The &lt;strong&gt;1×&lt;/strong&gt; button at the top right (or &lt;kbd&gt;X&lt;/kbd&gt;) runs the game 2 or 3 times as fast.">Mit dem Knopf <strong>1×</strong> oben rechts (oder <kbd>X</kbd>) läuft das Spiel 2- oder 3-mal so schnell.</li>
+              <li data-en-html="Troops grow fastest when you are well below your cap. So spend them.">Truppen wachsen am schnellsten, wenn du weit unter deiner Obergrenze bist. Also gib sie aus.</li>
+              <li data-en-html="Everyone has a capital, marked with a star. Lose yours and you lose half your troops.">Jeder hat eine Hauptstadt, markiert mit einem Stern. Verlierst du deine, verlierst du die Hälfte deiner Truppen.</li>
+              <li data-en-html="Cut enemy land off from its capital, or surround empty land, and it becomes yours.">Schneidest du feindliches Land von seiner Hauptstadt ab oder umschließt freies Land, gehört es dir.</li>
+              <li data-en-html="Land earns &lt;strong&gt;gold&lt;/strong&gt;. Spend it on cities (more troops), bunkers and missile silos.">Land bringt <strong>Gold</strong>. Gib es für Städte (mehr Truppen), Bunker und Raketensilos aus.</li>
+              <li data-en-html="The higher the ground, the slower and dearer your advance. Mountains are natural fortresses.">Je höher das Gelände, desto langsamer und teurer kommen deine Truppen voran. Berge sind natürliche Festungen.</li>
+              <li data-en-html="A &lt;strong&gt;factory&lt;/strong&gt; lays rail to your cities and ports. A train runs every minute; each city on the line pays 10K gold.">Eine <strong>Fabrik</strong> verlegt Gleise zu deinen Städten und Häfen. Jede Minute fährt ein Zug; jede Stadt auf der Strecke bringt 10K Gold.</li>
+              <li data-en-html="With a &lt;strong&gt;port&lt;/strong&gt;, click land across the water and your troops cross by boat. That is how you reach the islands.">Mit einem <strong>Hafen</strong> klickst du auf Land jenseits des Wassers, und deine Truppen setzen per Boot über. So erreichst du die Inseln.</li>
+              <li data-en-html="With the &lt;strong&gt;alliance&lt;/strong&gt; tool, click a bot. If it accepts, you leave each other alone for 3 minutes. Bots offer alliances too, but beware: the weak sometimes get betrayed.">Mit dem Werkzeug <strong>Bündnis</strong> klickst du auf einen Bot. Nimmt er an, greift ihr euch 3 Minuten lang nicht an. Bots bieten dir auch selbst Bündnisse an, aber Vorsicht: Wer schwach wird, wird manchmal verraten.</li>
+              <li data-en-html="A &lt;strong&gt;warship&lt;/strong&gt; (V) sails from your port, sinks enemy boats and ships, and shells coasts no bunker protects.">Ein <strong>Kriegsschiff</strong> (V) läuft aus deinem Hafen aus, versenkt feindliche Boote und Schiffe und beschießt Küsten, die kein Bunker schützt.</li>
+              <li data-en-html="In &lt;strong&gt;team&lt;/strong&gt; games, click a teammate&#x27;s land to send them troops. The alliance tool gives them a third of your gold.">Im <strong>Team</strong>-Modus klickst du auf das Land eines Teammitglieds, um ihm Truppen zu schicken. Mit dem Bündnis-Werkzeug schenkst du ihm ein Drittel deines Golds.</li>
+              <li data-en-html="A silo fires &lt;strong&gt;rockets&lt;/strong&gt; and &lt;strong&gt;nukes&lt;/strong&gt; at any target, and with 3 silos the huge &lt;strong&gt;H-bomb&lt;/strong&gt;. Land that is hit turns neutral and stays poisoned for 30 seconds.">Mit einem Silo feuerst du <strong>Raketen</strong> und <strong>Atombomben</strong> auf jedes Ziel, mit 3 Silos auch die riesige <strong>H-Bombe</strong>. Getroffenes Land wird neutral und bleibt 30 Sekunden verseucht.</li>
+            </ul>
+          </details>
+        </div>
+      </section>
+
+      <div id="hud" class="hud" hidden>
+        <div class="top-left">
+          <section class="panel stats" aria-label="Dein Reich" data-en-label="Your empire">
+            <div class="who"><span class="chip" id="me-chip"></span><span id="me-name"></span></div>
+            <div class="stat">
+              <span class="stat-label" data-en="Troops">Truppen</span>
+              <span class="stat-value"><span id="troops">0</span><span class="stat-max"> / <span id="troops-max">0</span></span></span>
+              <span class="stat-note" id="growth"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Land</span>
+              <span class="stat-value" id="land">0%</span>
+              <span class="stat-note" id="tiles"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Gold</span>
+              <span class="stat-value gold" id="gold">0</span>
+              <span class="stat-note" id="gold-rate"></span>
+            </div>
+          </section>
+          <ul class="feed" id="feed" aria-live="polite"></ul>
+        </div>
+
+        <div class="top-center">
+          <div class="clock" id="clock"></div>
+          <p class="banner" id="banner" role="status"></p>
+          <section class="panel coach" id="coach" aria-live="polite" hidden>
+            <p class="coach-step" id="coach-step"></p>
+            <h2 class="coach-title" id="coach-title"></h2>
+            <p class="coach-text" id="coach-text"></p>
+            <div class="coach-actions">
+              <button type="button" class="button ghost" id="coach-skip" data-en="End tutorial">Tutorial beenden</button>
+              <button type="button" class="button primary" id="coach-done" data-en="Continue">Weiter</button>
+            </div>
+          </section>
+          <div class="panel offer" id="offer" role="alertdialog" aria-labelledby="offer-text" hidden>
+            <p class="offer-text" id="offer-text"></p>
+            <div class="offer-actions">
+              <button type="button" class="button primary" id="offer-accept" data-en="Accept">Annehmen</button>
+              <button type="button" class="button ghost" id="offer-decline" data-en="Decline">Ablehnen</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="top-right">
+          <div class="hud-buttons">
+            <button type="button" class="icon-button" id="center-button" aria-label="Zu deiner Hauptstadt" data-en-label="To your capital" title="Zu deiner Hauptstadt (C)" data-en-title="To your capital (C)">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6" />
+                <circle cx="8" cy="8" r="1.7" fill="currentColor" />
+                <path d="M8 0.8v3M8 12.2v3M0.8 8h3M12.2 8h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </button>
+            <button type="button" class="icon-button speed-button" id="speed-button" aria-label="Spieltempo: 1-fach" data-en-label="Game speed: 1x" title="Spieltempo (X)" data-en-title="Game speed (X)">1×</button>
+            <button type="button" class="icon-button" id="pause-button" aria-label="Pause" title="Pause (Leertaste)" data-en-title="Pause (Space)">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
+                <rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
+              </svg>
+            </button>
+            <button type="button" class="icon-button" id="settings-button" data-open-settings aria-label="Einstellungen" title="Einstellungen" data-en-label="Settings" data-en-title="Settings">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6.9 1h2.2l.4 1.9c.5.2.9.4 1.3.7l1.8-.6 1.1 1.9-1.4 1.3c.1.5.1 1.1 0 1.6l1.4 1.3-1.1 1.9-1.8-.6c-.4.3-.8.5-1.3.7L9.1 15H6.9l-.4-1.9c-.5-.2-.9-.4-1.3-.7l-1.8.6-1.1-1.9 1.4-1.3a4 4 0 0 1 0-1.6L2.3 6.9l1.1-1.9 1.8.6c.4-.3.8-.5 1.3-.7zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>
+            </button>
+          </div>
+          <section class="panel board" aria-label="Rangliste" data-en-label="Leaderboard">
+            <h2 class="panel-title" data-en="Land held">Landbesitz</h2>
+            <ul class="team-totals" id="team-totals" hidden></ul>
+            <ol id="board"></ol>
+          </section>
+        </div>
+
+        <div class="bottom-center">
+          <ul class="fronts" id="fronts"></ul>
+          <div class="panel tools" id="tools" role="toolbar" aria-label="Bauen und feuern" data-en-label="Build and fire"></div>
+          <div class="panel send">
+            <label for="ratio" class="send-label" data-en="Send">Senden</label>
+            <input type="range" id="ratio" min="5" max="100" step="5" value="40" />
+            <output id="ratio-out" for="ratio" class="send-out"></output>
+          </div>
+        </div>
+
+        <canvas id="minimap" class="panel minimap" aria-label="Übersichtskarte" data-en-label="Minimap"></canvas>
+        <div class="tip" id="tip" hidden></div>
+        <p class="keys" data-en="Q–H, V, B tools · 1–0 troops · C capital · X speed · Space pause">Q–H, V, B Werkzeuge · 1–0 Truppen · C Hauptstadt · X Tempo · Leertaste Pause</p>
+        <div class="toast" id="toast" role="alert" hidden></div>
+      </div>
+
+      <section id="overlay" class="overlay" hidden>
+        <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+          <p class="eyebrow" id="overlay-eyebrow"></p>
+          <h2 id="overlay-title"></h2>
+          <p class="overlay-text" id="overlay-text"></p>
+          <dl class="overlay-stats" id="overlay-stats"></dl>
+          <div class="overlay-extra" id="overlay-extra"></div>
+          <div class="overlay-actions" id="overlay-actions"></div>
+        </div>
+      </section>
+
+      <section id="profile" class="overlay settings" hidden>
+        <div class="overlay-card settings-card profile-card" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+          <h2 id="profile-title" data-en="Achievements">Erfolge</h2>
+          <dl class="overlay-stats" id="profile-stats"></dl>
+          <ul class="achievements" id="profile-list"></ul>
+          <div class="overlay-actions">
+            <button type="button" class="button primary" id="profile-close" data-en="Close">Schließen</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="settings" class="overlay settings" hidden>
+        <div class="overlay-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+          <h2 id="settings-title" data-en="Settings">Einstellungen</h2>
+
+          <div class="field">
+            <label for="ui-scale"><span data-en="UI size">UI-Größe</span> <output id="ui-scale-out" for="ui-scale">100 %</output></label>
+            <input type="range" id="ui-scale" min="60" max="140" step="5" value="100" />
+            <div class="presets">
+              <button type="button" class="button ghost" id="ui-small" data-en="Small">Klein</button>
+              <button type="button" class="button ghost" id="ui-normal">Normal</button>
+              <button type="button" class="button ghost" id="ui-large" data-en="Large">Groß</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="volume"><span data-en="Volume">Lautstärke</span> <output id="volume-out" for="volume">50 %</output></label>
+            <input type="range" id="volume" min="0" max="100" step="5" value="50" />
+          </div>
+
+          <fieldset class="field">
+            <legend data-en="Language">Sprache</legend>
+            <div class="segmented">
+              <input type="radio" name="lang" id="lang-de" value="de" /><label for="lang-de">Deutsch</label>
+              <input type="radio" name="lang" id="lang-en" value="en" /><label for="lang-en">English</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend data-en="Show">Anzeigen</legend>
+            <div class="checks">
+              <label class="check"><input type="checkbox" id="set-board" /> <span data-en="Leaderboard">Rangliste</span></label>
+              <label class="check"><input type="checkbox" id="set-feed" /> <span data-en="Events">Ereignisse</span></label>
+              <label class="check"><input type="checkbox" id="set-minimap" /> <span data-en="Minimap">Übersichtskarte</span></label>
+              <label class="check"><input type="checkbox" id="set-keys" /> <span data-en="Key hints">Tastenkürzel</span></label>
+              <label class="check"><input type="checkbox" id="set-tips" /> <span data-en="Newcomer tips">Tipps für Einsteiger</span></label>
+            </div>
+          </fieldset>
+
+          <div class="overlay-actions">
+            <button type="button" class="button ghost" id="settings-reset" data-en="Reset">Zurücksetzen</button>
+            <button type="button" class="button primary" id="settings-done" data-en="Done">Fertig</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
