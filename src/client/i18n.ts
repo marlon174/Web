@@ -46,6 +46,7 @@ export const locale = lang === 'en' ? 'en-US' : 'de-DE';
 export function translatePage(): void {
   document.documentElement.lang = lang;
   if (lang !== 'en') return;
+  document.title = 'Landgrab – Strategy game in your browser: conquer the map';
   for (const el of document.querySelectorAll<HTMLElement>('[data-en]')) el.textContent = el.dataset.en!;
   for (const el of document.querySelectorAll<HTMLElement>('[data-en-html]')) el.innerHTML = el.dataset.enHtml!;
   for (const el of document.querySelectorAll<HTMLInputElement>('[data-en-placeholder]')) el.placeholder = el.dataset.enPlaceholder!;
