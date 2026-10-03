@@ -10,6 +10,7 @@ import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
 import { t } from './i18n';
+import { share, shareNote } from './share';
 import { takeTip, TIPS, type TipId } from './tips';
 import type { Tutorial } from './tutorial';
 import { unlock } from './achievements';
@@ -43,7 +44,7 @@ export interface SessionHooks {
 
 export interface SessionOptions {
   /** Absent for the menu backdrop, which only shows the map. */
-  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean; tutorial?: Tutorial };
+  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean; tutorial?: Tutorial; title?: string };
   /** Screen space (CSS pixels) to keep clear when fitting the map, e.g. behind the menu. */
   inset?: () => Inset;
 }
@@ -855,6 +856,47 @@ export class Session implements InputTarget {
     return data ? landChart(data) : null;
   }
 
+  /** What kind of match this was, for a shared result: the daily challenge's title, or the mode. */
+  private matchLabel(): string {
+    const s = this.game.settings;
+    const mode = s.royale
+      ? 'Battle Royale'
+      : s.conquest
+        ? t('Totale Eroberung', 'Total conquest')
+        : s.timeLimit > 0
+          ? t('Schnelles Spiel', 'Quick match')
+          : t('Klassisch', 'Classic');
+    return this.options.play?.title ?? mode;
+  }
+
+  /** The share button for a results card: a line about the match, plus the link. */
+  private shareAction(won: boolean): { label: string; run(): void } {
+    const label = this.matchLabel();
+    const time = this.matchTime();
+    const me = this.me!;
+    const place = me.place || this.game.players.filter((p) => p.alive && p.tiles > me.tiles).length + 1;
+    const total = this.game.players.length;
+    const text = won
+      ? this.game.teamGame
+        ? t(`🏆 Mein Team hat bei Landgrab gewonnen: ${label} in ${time}. Schafft ihr das schneller?`, `🏆 My team won at Landgrab: ${label} in ${time}. Can you beat that?`)
+        : t(`🏆 Ich habe bei Landgrab gewonnen: ${label} in ${time}. Schaffst du das schneller?`, `🏆 I won at Landgrab: ${label} in ${time}. Can you do it faster?`)
+      : t(`⚔️ Landgrab: Platz ${place} von ${total} (${label}). Schlag mich!`, `⚔️ Landgrab: place ${place} of ${total} (${label}). Beat me!`);
+    const shareLabel = t('Teilen', 'Share');
+    return {
+      label: shareLabel,
+      run: () => {
+        void share(text).then((result) => {
+          // The results card covers the toast, so the button itself says what happened.
+          const note = shareNote(result);
+          const button = [...document.querySelectorAll<HTMLButtonElement>('#overlay button')].find((b) => b.textContent === shareLabel);
+          if (!note || !button) return;
+          button.textContent = result === 'copied' ? t('Kopiert ✓', 'Copied ✓') : note;
+          window.setTimeout(() => (button.textContent = shareLabel), 2500);
+        });
+      },
+    };
+  }
+
   private showDefeat(by: number): void {
     const play = this.options.play!;
     this.defeatShown = true;
@@ -871,6 +913,7 @@ export class Session implements InputTarget {
       extra: this.chart(),
       actions: [
         { label: t('Nochmal spielen', 'Play again'), primary: true, run: () => play.hooks.playAgain() },
+        this.shareAction(false),
         { label: t('Weiter zuschauen', 'Keep watching'), run: () => play.hud.hideOverlay() },
         { label: t('Wiederholung', 'Replay'), run: () => play.hooks.replay(this.game.log.slice()) },
         { label: t('Menü', 'Menu'), run: () => play.hooks.menu() },
@@ -910,15 +953,15 @@ export class Session implements InputTarget {
       text = timed ? t(`Die Zeit ist um. Dir gehören ${share} des Landes.`, `Time\'s up. You hold ${share} of the land.`) : t(`Nach ${this.matchTime()} gehören dir ${share} des Landes.`, `After ${this.matchTime()} you hold ${share} of the land.`);
     } else {
       eyebrow = me.alive ? t('Niederlage', 'Defeat') : t('Partie vorbei', 'Match over');
-      title = `${winner.name} gewinnt`;
+      title = t(`${winner.name} gewinnt`, `${winner.name} wins`);
       text = timed
         ? t(`Die Zeit ist um. ${winner.name} gehören ${share} des Landes.`, `Time\'s up. ${winner.name} holds ${share} of the land.`)
         : t(`${winner.name} hat nach ${this.matchTime()} ${share} des Landes erobert.`, `${winner.name} conquered ${share} of the land in ${this.matchTime()}.`);
     }
+    const won = winnerId === me.id || (this.game.teamGame && winner.team === me.team);
     if (this.replay) eyebrow = t('Ende der Wiederholung', 'End of the replay');
     else if (!this.resultReported) {
       this.resultReported = true;
-      const won = winnerId === me.id || (this.game.teamGame && winner.team === me.team);
       const note = play.hooks.result?.(won, this.game.tick / CONFIG.ticksPerSecond);
       if (note) text = `${text} ${note}`;
     }
@@ -930,6 +973,7 @@ export class Session implements InputTarget {
       extra: this.chart(),
       actions: [
         { label: t('Nochmal spielen', 'Play again'), primary: true, run: () => play.hooks.playAgain() },
+        ...(this.replay ? [] : [this.shareAction(won)]),
         { label: this.replay ? t('Nochmal ansehen', 'Watch again') : t('Wiederholung', 'Replay'), run: () => play.hooks.replay((this.replay ?? this.game.log).slice()) },
         { label: t('Menü', 'Menu'), run: () => play.hooks.menu() },
       ],

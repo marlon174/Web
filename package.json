@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc",
-    "sim": "tsx scripts/simulate.ts"
+    "sim": "tsx scripts/simulate.ts",
+    "itch": "npm run build && rm -f landgrab-itch.zip && cd dist && zip -qr ../landgrab-itch.zip index.html assets"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

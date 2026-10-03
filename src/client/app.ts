@@ -307,6 +307,7 @@ export class App {
         replay,
         fog: how.fog,
         tutorial,
+        title: daily ? `${t('Tägliche Herausforderung', 'Daily challenge')} ${daily.date}` : undefined,
         hooks: {
           playAgain: () => {
             if (daily) {
