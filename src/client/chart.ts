@@ -92,11 +92,11 @@ export function landChart(data: ChartData): HTMLElement {
 
   const draw = () => {
     const width = canvas.clientWidth || 380;
-    const height = 150;
+    // The height comes from the stylesheet: lower on short screens.
+    const height = canvas.clientHeight || 150;
     const dpr = Math.min(3, window.devicePixelRatio || 1);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
-    canvas.style.height = `${height}px`;
     const ctx = canvas.getContext('2d')!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const css = getComputedStyle(figure);

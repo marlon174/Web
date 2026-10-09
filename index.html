@@ -288,17 +288,19 @@
         </div>
 
         <canvas id="minimap" class="panel minimap" aria-label="Übersichtskarte" data-en-label="Minimap"></canvas>
-        <div class="tip" id="tip" hidden></div>
+        <div class="tile-tip" id="tip" hidden></div>
         <p class="keys" data-en="Q–H, V, B tools · 1–0 troops · C capital · X speed · Space pause">Q–H, V, B Werkzeuge · 1–0 Truppen · C Hauptstadt · X Tempo · Leertaste Pause</p>
         <div class="toast" id="toast" role="alert" hidden></div>
       </div>
 
       <section id="overlay" class="overlay" hidden>
         <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
-          <p class="eyebrow" id="overlay-eyebrow"></p>
-          <h2 id="overlay-title"></h2>
-          <p class="overlay-text" id="overlay-text"></p>
-          <dl class="overlay-stats" id="overlay-stats"></dl>
+          <div class="overlay-main">
+            <p class="eyebrow" id="overlay-eyebrow"></p>
+            <h2 id="overlay-title"></h2>
+            <p class="overlay-text" id="overlay-text"></p>
+            <dl class="overlay-stats" id="overlay-stats"></dl>
+          </div>
           <div class="overlay-extra" id="overlay-extra"></div>
           <div class="overlay-actions" id="overlay-actions"></div>
         </div>

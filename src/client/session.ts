@@ -9,7 +9,7 @@ import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
-import { t } from './i18n';
+import { click, t, touch } from './i18n';
 import { share, shareNote } from './share';
 import { takeTip, TIPS, type TipId } from './tips';
 import type { Tutorial } from './tutorial';
@@ -119,7 +119,7 @@ export class Session implements InputTarget {
       options.play.hud.show(this.me);
       options.play.hud.root.classList.toggle('replay', this.replay !== null);
       // The tutorial card explains the start itself.
-      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : t('Klick auf eine beliebige Stelle an Land, um dort zu starten.', 'Click anywhere on land to start there.'));
+      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : t(`${click} auf eine beliebige Stelle an Land, um dort zu starten.`, `${click} anywhere on land to start there.`));
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
       options.play.hud.centerButton.addEventListener('click', this.onCenterButton);
       options.play.hud.speedButton.addEventListener('click', this.onSpeedButton);
@@ -230,7 +230,7 @@ export class Session implements InputTarget {
     if (kind === 'ally') {
       if (tile < 0) return null;
       const o = game.owner[tile];
-      if (o === NEUTRAL || o === me.id) return t('Klick auf das Land eines anderen Spielers.', 'Click another player\'s land.');
+      if (o === NEUTRAL || o === me.id) return t(`${click} auf das Land eines anderen Spielers.`, `${click} another player's land.`);
       return null;
     }
     if (kind === 'warship') {
@@ -238,7 +238,7 @@ export class Session implements InputTarget {
       const afloat = game.warships.some((s) => s.owner === me.id);
       if (refusal === 'noPort' && !afloat) return t('Bau zuerst einen Hafen. Kriegsschiffe laufen von dort aus.', 'Build a port first. Warships sail from there.');
       if (refusal === 'gold' && !afloat) return t(`Ein Kriegsschiff kostet ${formatTroops(CONFIG.warship.cost)} Gold.`, `A warship costs ${formatTroops(CONFIG.warship.cost)} gold.`);
-      if (tile >= 0 && !game.isWater(tile)) return t('Klick aufs Wasser: dorthin fährt dein Kriegsschiff.', 'Click the water: your warship sails there.');
+      if (tile >= 0 && !game.isWater(tile)) return t(`${click} aufs Wasser: dorthin fährt dein Kriegsschiff.`, `${click} the water: your warship sails there.`);
       return null;
     }
     if (isMissile(kind)) {
@@ -298,15 +298,15 @@ export class Session implements InputTarget {
       defense: t('einen Bunker', 'a bunker'),
       silo: t('ein Raketensilo', 'a missile silo'),
     };
-    const cancel = t('Rechtsklick oder Esc bricht ab.', 'Right-click or Esc cancels.');
+    const cancel = touch ? t('Tippe das Werkzeug noch mal an, um abzubrechen.', 'Tap the tool again to cancel.') : t('Rechtsklick oder Esc bricht ab.', 'Right-click or Esc cancels.');
     hud.setBanner(
       kind === 'warship'
-        ? `${t('Klick aufs Wasser:', 'Click the water:')} ${this.game.canWarship(this.me) === null ? t('Ein neues Kriegsschiff läuft dorthin aus.', 'A new warship sails there.') : t('Dein nächstes Kriegsschiff fährt dorthin.', 'Your nearest warship heads there.')} ${cancel}`
+        ? `${t(`${click} aufs Wasser:`, `${click} the water:`)} ${this.game.canWarship(this.me) === null ? t('Ein neues Kriegsschiff läuft dorthin aus.', 'A new warship sails there.') : t('Dein nächstes Kriegsschiff fährt dorthin.', 'Your nearest warship heads there.')} ${cancel}`
         : kind === 'ally'
-        ? t(`Klick auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`, `Click a player\'s land to offer an alliance (or to end one). ${cancel}`)
+        ? t(`${click} auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`, `${click} a player's land to offer an alliance (or to end one). ${cancel}`)
         : isMissile(kind)
-          ? t(`Klick auf ein Ziel für deine ${name}. ${cancel}`, `Click a target for your ${name}. ${cancel}`)
-          : t(`Klick auf dein Land, um ${building[kind]} zu bauen. ${cancel}`, `Click your land to build ${building[kind]}. ${cancel}`),
+          ? t(`${click} auf ein Ziel für deine ${name}. ${cancel}`, `${click} a target for your ${name}. ${cancel}`)
+          : t(`${click} auf dein Land, um ${building[kind]} zu bauen. ${cancel}`, `${click} your land to build ${building[kind]}. ${cancel}`),
     );
     hud.updateTools(this.game, this.me, this.tool);
   }
@@ -410,7 +410,7 @@ export class Session implements InputTarget {
     }
     if (game.phase !== 'play' || !me.alive) return;
     if (!game.isLand(tile)) {
-      hud.toast(t('Klick auf Land jenseits des Wassers. Boote brauchen einen Hafen.', 'Click land across the water. Boats need a port.'));
+      hud.toast(t(`${click} auf Land jenseits des Wassers. Boote brauchen einen Hafen.`, `${click} land across the water. Boats need a port.`));
       return;
     }
     const target = game.owner[tile];
@@ -479,7 +479,7 @@ export class Session implements InputTarget {
       const p = game.player(o);
       lines.push(o === me.id ? t(`${p.name} (du)`, `${p.name} (you)`) : p.name);
       lines.push(t(`${formatTroops(p.troops)} Truppen · ${formatShare(p.tiles / game.map.landTiles)} Land`, `${formatTroops(p.troops)} troops · ${formatShare(p.tiles / game.map.landTiles)} land`));
-      if (game.teammates(me.id, o)) lines.push(t('Dein Team: Klick schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds', 'Your team: click to send troops, alliance tool (H) gives a third of your gold'));
+      if (game.teammates(me.id, o)) lines.push(t(`Dein Team: ${touch ? 'Antippen' : 'Klick'} schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds`, `Your team: ${click.toLowerCase()} to send troops, alliance tool (H) gives a third of your gold`));
       else if (game.allied(me.id, o)) lines.push(t(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`, `Allied for another ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`));
       lines.push(ground);
     }

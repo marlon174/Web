@@ -24,6 +24,11 @@
   --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
   --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --gutter: 16px;
+  /* Distance from each screen edge: the gutter, or more where a notch or the home bar needs it. */
+  --edge-top: max(var(--gutter), env(safe-area-inset-top));
+  --edge-right: max(var(--gutter), env(safe-area-inset-right));
+  --edge-bottom: max(var(--gutter), env(safe-area-inset-bottom));
+  --edge-left: max(var(--gutter), env(safe-area-inset-left));
   /* UI size from the settings: every HUD group scales from the corner it hangs in. */
   --ui: 1;
   color-scheme: dark;
@@ -36,6 +41,10 @@ body {
 
 html {
   box-sizing: border-box;
+  /* Phones on their side must not enlarge the text on their own. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 [hidden] {
@@ -48,6 +57,8 @@ body {
   color: var(--ink);
   font: 14px/1.45 var(--font-body);
   overflow: hidden;
+  /* No rubber-band bounce of the whole page on iPhone and iPad. */
+  overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -116,6 +127,7 @@ input {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: 10px;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 
@@ -207,8 +219,8 @@ input[type="range"] {
   position: absolute;
   inset: 0;
   display: flex;
-  padding-block: 24px;
-  padding-inline: var(--gutter);
+  /* No padding at the bottom: the sticky play bar rests on the very edge, so nothing scrolls by beneath it. */
+  padding: max(24px, env(safe-area-inset-top)) var(--edge-right) 0 var(--edge-left);
   overflow-y: auto;
   background: var(--scrim);
 }
@@ -216,6 +228,7 @@ input[type="range"] {
 .menu-card {
   width: min(100%, 400px);
   margin: auto 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
   display: grid;
   gap: 16px;
 }
@@ -259,6 +272,7 @@ input[type="range"] {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: 14px;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 
@@ -295,6 +309,8 @@ input[type="range"] {
 
 #name {
   padding: 10px 12px;
+  /* 16px or more, or iPhones zoom the page in when the field gets focus. */
+  font-size: 16px;
   background: var(--field);
   border: 1px solid var(--panel-edge);
   border-radius: 8px;
@@ -455,7 +471,7 @@ fieldset:disabled .segmented label {
   align-items: center;
   justify-content: space-between;
   margin: 0 -18px -18px;
-  padding: 12px 18px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
   background: var(--panel-solid);
   border-top: 1px solid var(--panel-edge);
   border-radius: 0 0 14px 14px;
@@ -570,6 +586,19 @@ fieldset:disabled .field-hint {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* The map zooms itself: pinching or double-tapping a panel must not zoom the page. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Menus and cards scroll, but don't zoom on a double tap. */
+.menu,
+.overlay,
+.overlay-card,
+.achievements {
+  touch-action: pan-y;
 }
 
 .hud .panel,
@@ -580,12 +609,12 @@ fieldset:disabled .field-hint {
 
 .top-left {
   position: absolute;
-  top: var(--gutter);
-  left: var(--gutter);
+  top: var(--edge-top);
+  left: var(--edge-left);
   display: grid;
   gap: 8px;
   justify-items: start;
-  max-width: calc((100% - 2 * var(--gutter)) / var(--ui));
+  max-width: calc((100% - var(--edge-left) - var(--edge-right)) / var(--ui));
   transform: scale(var(--ui));
   transform-origin: top left;
 }
@@ -686,6 +715,18 @@ fieldset:disabled .field-hint {
   white-space: normal;
 }
 
+/* The same news again: ×2, ×3 instead of a list of repeats. */
+.feed .count {
+  flex: none;
+  margin-left: auto;
+  color: var(--tone);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed .count:empty {
+  display: none;
+}
+
 .feed li.tip {
   max-width: 320px;
   box-sizing: border-box;
@@ -719,7 +760,7 @@ fieldset:disabled .field-hint {
 
 .top-center {
   position: absolute;
-  top: var(--gutter);
+  top: var(--edge-top);
   left: 50%;
   transform: translateX(-50%) scale(var(--ui));
   transform-origin: top center;
@@ -763,8 +804,8 @@ fieldset:disabled .field-hint {
 
 .top-right {
   position: absolute;
-  top: var(--gutter);
-  right: var(--gutter);
+  top: var(--edge-top);
+  right: var(--edge-right);
   transform: scale(var(--ui));
   transform-origin: top right;
   display: grid;
@@ -873,7 +914,7 @@ fieldset:disabled .field-hint {
 
 .bottom-center {
   position: absolute;
-  bottom: var(--gutter);
+  bottom: var(--edge-bottom);
   left: 50%;
   transform: translateX(-50%) scale(var(--ui));
   transform-origin: bottom center;
@@ -1020,8 +1061,8 @@ fieldset:disabled .field-hint {
 
 .minimap {
   position: absolute;
-  right: var(--gutter);
-  bottom: calc(var(--gutter) + 28px * var(--ui));
+  right: var(--edge-right);
+  bottom: calc(var(--edge-bottom) + 28px * var(--ui));
   width: 200px;
   transform: scale(var(--ui));
   transform-origin: bottom right;
@@ -1030,7 +1071,7 @@ fieldset:disabled .field-hint {
   touch-action: none;
 }
 
-.tip {
+.tile-tip {
   position: fixed;
   z-index: 5;
   display: grid;
@@ -1056,8 +1097,8 @@ fieldset:disabled .field-hint {
 
 .keys {
   position: absolute;
-  right: var(--gutter);
-  bottom: var(--gutter);
+  right: var(--edge-right);
+  bottom: var(--edge-bottom);
   margin: 0;
   font-size: 12px;
   color: var(--ink-soft);
@@ -1068,7 +1109,7 @@ fieldset:disabled .field-hint {
 .toast {
   position: absolute;
   left: 50%;
-  bottom: calc(200px * var(--ui));
+  bottom: calc(var(--edge-bottom) + (var(--bottom-h, 180px) + 12px) * var(--ui));
   transform: translateX(-50%) scale(var(--ui));
   transform-origin: bottom center;
   max-width: calc(100% - 2 * var(--gutter));
@@ -1087,20 +1128,25 @@ fieldset:disabled .field-hint {
   inset: 0;
   display: grid;
   place-items: center;
-  padding-block: 24px;
-  padding-inline: var(--gutter);
+  padding: max(24px, env(safe-area-inset-top)) var(--edge-right) max(24px, env(safe-area-inset-bottom)) var(--edge-left);
   background: var(--scrim);
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
 .overlay-card {
+  --card-pad: 26px;
   display: grid;
+  /* Never wider than the card, however long a word in the title. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   width: min(100%, 480px);
   max-height: calc(100vh / var(--ui) - 48px);
+  /* The visible height: on phones 100vh reaches behind the browser's toolbar. */
+  max-height: calc(100dvh / var(--ui) - 48px);
   overflow-y: auto;
   box-sizing: border-box;
-  padding: 26px;
+  padding: var(--card-pad);
   background: var(--panel-solid);
   border: 1px solid var(--panel-edge);
   border-radius: 16px;
@@ -1124,6 +1170,9 @@ fieldset:disabled .field-hint {
   line-height: 0.95;
   text-transform: uppercase;
   text-wrap: balance;
+  overflow-wrap: break-word;
+  -webkit-hyphens: auto;
+  hyphens: auto;
 }
 
 .overlay-text {
@@ -1160,11 +1209,89 @@ fieldset:disabled .field-hint {
   font-variant-numeric: tabular-nums;
 }
 
+.overlay-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+/* The buttons stay in view when the card is taller than the screen and has to scroll. */
 .overlay-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--card-pad));
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
+  margin: 4px calc(-1 * var(--card-pad)) calc(-1 * var(--card-pad));
+  padding: 12px var(--card-pad) var(--card-pad);
+  background: var(--panel-solid);
+}
+
+/* Wide but short screens (tablets and phones on their side): the chart sits beside the result. */
+@media (min-width: 700px) and (max-height: 860px) {
+  #overlay .overlay-card:has(.land-chart) {
+    width: min(100%, 920px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-rows: 1fr auto;
+    column-gap: 24px;
+  }
+
+  #overlay .overlay-card:has(.land-chart) .overlay-extra {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
+  #overlay .overlay-card:has(.land-chart) .overlay-actions {
+    grid-column: 1;
+    grid-row: 2;
+    margin-right: 0;
+    padding-right: 0;
+  }
+}
+
+/* Short screens: a tighter card, so the result and its buttons fit without scrolling. */
+@media (max-height: 560px) {
+  .overlay-card {
+    --card-pad: 18px;
+    gap: 8px;
+  }
+
+  .overlay-main {
+    gap: 8px;
+  }
+
+  .overlay-card h2 {
+    font-size: 32px;
+  }
+
+  .overlay-stats div {
+    padding: 6px 10px;
+  }
+
+  .overlay-stats dd {
+    font-size: 20px;
+  }
+
+  .overlay-actions {
+    padding-top: 8px;
+  }
+
+  .overlay-actions .button.primary {
+    font-size: 18px;
+    padding: 8px 20px;
+  }
+
+  .land-chart canvas {
+    height: 96px;
+  }
+
+  .chart-readout {
+    display: none;
+  }
 }
 
 @media (max-width: 960px) {
@@ -1186,21 +1313,22 @@ fieldset:disabled .field-hint {
   }
 }
 
-@media (max-width: 900px) {
-  /* The clock and banner would collide with the corner panels: move them above the slider. */
-  .top-center {
-    top: auto;
-    bottom: calc(196px * var(--ui));
-    transform-origin: bottom center;
-  }
-
-  .toast {
-    bottom: calc(260px * var(--ui));
+/* Tablets on their side and small laptops: fewer messages beside the map. */
+@media (max-height: 760px) {
+  .feed li:nth-child(n + 4) {
+    display: none;
   }
 }
 
-@media (max-width: 640px) {
-  /* Phones: the three numbers in one slim row, so the map stays free. */
+@media (max-height: 700px) {
+  .feed li:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+/* Phones, upright or on their side: a slim HUD, so the map stays free. */
+@media (max-width: 640px), (max-height: 500px) {
+  /* The three numbers in one slim row. */
   .stats {
     grid-template-columns: repeat(3, auto);
     min-width: 0;
@@ -1234,6 +1362,124 @@ fieldset:disabled .field-hint {
   .hud .icon-button {
     width: 34px;
     height: 34px;
+  }
+
+  .clock {
+    font-size: 22px;
+  }
+
+  .tools {
+    gap: 3px;
+    padding: 5px;
+  }
+
+  .tool {
+    padding: 6px 1px 4px;
+  }
+
+  .tool.group-start {
+    margin-left: 4px;
+  }
+
+  .tool.group-start::before {
+    left: -4px;
+  }
+
+  .tool-cost {
+    font-size: 10px;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  .tool:last-child .tool-cost {
+    font-size: 8.5px;
+  }
+
+  .tool-name,
+  .tool kbd {
+    display: none;
+  }
+
+  /* Two short messages at most. */
+  .feed {
+    max-width: 200px;
+  }
+
+  .feed li {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .feed li:nth-child(n + 3) {
+    display: none;
+  }
+
+  /* News is cut at three lines; tips are worth reading in full. */
+  .feed li:not(.tip) > span {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .board {
+    width: 138px;
+    padding: 8px 10px;
+  }
+
+  .board li {
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+    font-size: 12px;
+  }
+
+  .board .dot {
+    display: none;
+  }
+
+  .board li:nth-child(n + 4):not(.me) {
+    display: none;
+  }
+
+  .send-out {
+    min-width: 90px;
+    font-size: 18px;
+  }
+
+  /* Smaller attack chips, two or more to a row, and six at most. */
+  .fronts li {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .fronts li:nth-child(n + 7) {
+    display: none;
+  }
+
+  .banner {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  .offer {
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  .offer-actions .button {
+    padding: 6px 12px;
+  }
+
+  .offer-actions .button.primary {
+    font-size: 15px;
+    padding: 6px 14px;
+  }
+}
+
+/* Phones upright: the menu in one column. */
+@media (max-width: 640px) {
+  /* The leaderboard starts below the slim stats row, however wide its numbers get. */
+  .top-right {
+    gap: 18px;
   }
 
   /* Modes as a list: name on the left, a short note beside it. */
@@ -1276,80 +1522,71 @@ fieldset:disabled .field-hint {
     display: none;
   }
 
-  .tools {
-    gap: 3px;
-    padding: 5px;
-  }
-
-  .tool {
-    padding: 6px 1px 4px;
-  }
-
-  .tool.group-start {
-    margin-left: 4px;
-  }
-
-  .tool.group-start::before {
-    left: -4px;
-  }
-
-  .tool-cost {
-    font-size: 10px;
-    white-space: nowrap;
-    letter-spacing: -0.02em;
-  }
-
-  .tool:last-child .tool-cost {
-    font-size: 8.5px;
-  }
-
-  .feed {
-    max-width: 200px;
-  }
-
-  .feed li {
-    font-size: 12px;
-    padding: 6px 10px;
-  }
-
-  .board {
-    width: 138px;
-    padding: 8px 10px;
-  }
-
-  .board li {
-    grid-template-columns: 14px minmax(0, 1fr) auto;
-    font-size: 12px;
-  }
-
-  .board .dot {
-    display: none;
-  }
-
-  .board li:nth-child(n + 4):not(.me) {
-    display: none;
-  }
-
-  .send-out {
-    min-width: 90px;
-    font-size: 18px;
-  }
-
-  .tool-name,
-  .tool kbd {
-    display: none;
-  }
-
   .field-row {
     grid-template-columns: 1fr;
   }
 
   .overlay-card {
-    padding: 20px;
+    --card-pad: 20px;
   }
 
   .overlay-card h2 {
-    font-size: 38px;
+    font-size: 34px;
+  }
+}
+
+/* Small phones (iPhone SE, mini): a little tighter still, so the corners don't meet. */
+@media (max-width: 380px) {
+  .stats {
+    gap: 8px;
+    padding: 6px 9px;
+  }
+
+  .stat-value {
+    font-size: 17px;
+  }
+
+  .hud-buttons {
+    gap: 4px;
+  }
+
+  .hud .icon-button {
+    width: 30px;
+    height: 30px;
+  }
+
+  .feed {
+    max-width: 180px;
+  }
+
+  .board {
+    width: 128px;
+  }
+}
+
+/* Phones on their side: the build bar and the slider share one row, and the clock and banner stay on top. */
+@media (max-width: 960px) and (max-height: 500px) and (min-width: 641px) {
+  .bottom-center {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .fronts {
+    grid-column: 1 / -1;
+  }
+
+  /* As wide as the gap between the messages and the leaderboard. */
+  .top-center {
+    max-width: min(400px, calc((100% - 2 * var(--gutter)) / var(--ui)));
+  }
+
+  .coach {
+    width: 400px;
+  }
+
+  /* Only the latest message: there's little height to spare. */
+  .feed li:nth-child(n + 2) {
+    display: none;
   }
 }
 
@@ -1365,6 +1602,10 @@ fieldset:disabled .field-hint {
   font-size: 0.7em;
   letter-spacing: 0.08em;
   color: var(--signal-hi);
+}
+
+:lang(en) .hud.replay .clock::before {
+  content: "Replay ";
 }
 
 /* Tutorial card under the clock */
@@ -1690,6 +1931,22 @@ fieldset:disabled .field-hint {
   justify-content: space-between;
 }
 
+/* Tablets: the names just fit at a slightly smaller size. */
+@container (max-width: 800px) {
+  .tool-name {
+    font-size: 11px;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Touch screens: no keyboard, so no key letters on the tools and no key hints to switch on. */
+@media (hover: none) {
+  .tool kbd,
+  .check:has(#set-keys) {
+    display: none;
+  }
+}
+
 /* Too narrow for names (small screen or a big UI): icons and prices only. */
 @container (max-width: 600px) {
   .tool-name,
@@ -1698,15 +1955,15 @@ fieldset:disabled .field-hint {
   }
 }
 
-/* Set from the settings when the scaled HUD is too wide for the top row: clock and banner go above the slider. */
+/* Set from the settings when the scaled HUD is too wide for the top row: clock and banner go just above the bottom bar. */
 .ui-cramped .top-center {
   top: auto;
-  bottom: calc(196px * var(--ui));
+  bottom: calc(var(--edge-bottom) + (var(--bottom-h, 180px) + 8px) * var(--ui));
   transform-origin: bottom center;
 }
 
 .ui-cramped .toast {
-  bottom: calc(260px * var(--ui));
+  bottom: calc(var(--edge-bottom) + (var(--bottom-h, 180px) + var(--center-h, 40px) + 16px) * var(--ui));
 }
 
 .hide-board .board,
