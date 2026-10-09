@@ -266,9 +266,10 @@ input[type="range"] {
 }
 
 .menu-form {
+  --form-pad: 18px;
   display: grid;
   gap: 16px;
-  padding: 18px;
+  padding: var(--form-pad);
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: 14px;
@@ -460,21 +461,130 @@ fieldset:disabled .segmented label {
   cursor: not-allowed;
 }
 
-/* Always in reach: the play button sticks to the bottom while the form scrolls. */
+/* The play bar closes the form. */
 .menu-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
-  margin: 0 -18px -18px;
-  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  margin: 0 calc(-1 * var(--form-pad)) calc(-1 * var(--form-pad));
+  padding: 12px var(--form-pad);
   background: var(--panel-solid);
   border-top: 1px solid var(--panel-edge);
   border-radius: 0 0 14px 14px;
+}
+
+/* Phones and very short windows, where the form runs past the bottom of the screen: the play bar
+   rests on the bottom edge while the form scrolls. Tablets and computers get a menu that fits instead. */
+@media (max-width: 640px), (max-height: 600px) {
+  .menu-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Tablets on their side and laptops: a tighter menu, so Spielen is in view without scrolling. */
+@media (min-width: 641px) and (max-height: 820px) {
+  .menu-card {
+    gap: 12px;
+  }
+
+  .menu-head {
+    gap: 8px;
+  }
+
+  .wordmark {
+    font-size: 64px;
+  }
+
+  .wordmark::after {
+    margin-top: 8px;
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .menu-card .daily {
+    padding: 9px 12px;
+  }
+
+  /* The challenge's small print on one line. */
+  .daily-text {
+    min-width: 0;
+  }
+
+  .daily-best {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .menu-form {
+    --form-pad: 14px;
+    gap: 12px;
+  }
+
+  .field > legend {
+    margin-bottom: 6px;
+  }
+
+  /* All colours in one row. */
+  .swatches {
+    gap: 6px;
+  }
+
+  .swatch {
+    width: 22px;
+    height: 22px;
+  }
+
+  .mode {
+    padding: 8px 10px;
+  }
+
+  /* What's set under "Mehr Optionen" on the same line, cut short if need be. */
+  .menu-form .more summary {
+    flex-wrap: nowrap;
+    padding: 8px 12px;
+  }
+
+  .more-title {
+    flex: none;
+  }
+
+  .more-summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .menu-actions {
+    padding-block: 10px;
+  }
+}
+
+/* Even shorter (iPad mini on its side): a smaller title, and the challenge without its small print. */
+@media (min-width: 641px) and (max-height: 660px) {
+  .menu-card {
+    gap: 10px;
+  }
+
+  .wordmark {
+    font-size: 52px;
+  }
+
+  .daily-best {
+    display: none;
+  }
+
+  #name {
+    padding-block: 8px;
+  }
 }
 
 /* Rarely changed options fold away, with a one-line summary of what's set. */
@@ -540,13 +650,6 @@ fieldset:disabled .segmented label {
 
 fieldset:disabled .field-hint {
   display: block;
-}
-
-.chart-no {
-  margin-left: 4px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  font-variant-numeric: tabular-nums;
 }
 
 .howto {
@@ -1518,10 +1621,6 @@ fieldset:disabled .field-hint {
     padding-inline: 12px;
   }
 
-  .menu-actions .chart-no {
-    display: none;
-  }
-
   .field-row {
     grid-template-columns: 1fr;
   }
@@ -1860,14 +1959,15 @@ fieldset:disabled .field-hint {
 
 /* Settings */
 
-.settings-link {
+/* A small icon before the label. */
+.icon-label {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 
-.settings-link svg {
+.icon-label svg {
   width: 16px;
   height: 16px;
 }

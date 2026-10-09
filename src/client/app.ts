@@ -30,7 +30,6 @@ export class App {
   private readonly fogInput = byId<HTMLInputElement>('fog');
   private readonly sizeField = byId<HTMLFieldSetElement>('size-field');
   private readonly swatches = byId('swatches');
-  private readonly chartNo = byId('chart-no');
   private readonly dailyDesc = byId('daily-desc');
   private readonly dailyBest = byId('daily-best');
   private readonly moreSummary = byId('more-summary');
@@ -203,7 +202,6 @@ export class App {
     const game = new Game(createSettings(options, this.mapFor(options)));
     this.session?.dispose();
     this.session = new Session(this.canvas, game, { inset: () => this.menuInset() });
-    this.chartNo.textContent = `${t('Nr.', 'No.')} ${this.seed}`;
   }
 
   private showMenu(): void {
