@@ -9,7 +9,8 @@ import { byId, type Hud } from './hud';
 import { Input, type InputTarget } from './input';
 import { Renderer, type Overlay } from './renderer';
 import { uiScale } from './settings';
-import { t } from './i18n';
+import { click, t, touch } from './i18n';
+import { share, shareNote } from './share';
 import { takeTip, TIPS, type TipId } from './tips';
 import type { Tutorial } from './tutorial';
 import { unlock } from './achievements';
@@ -43,7 +44,7 @@ export interface SessionHooks {
 
 export interface SessionOptions {
   /** Absent for the menu backdrop, which only shows the map. */
-  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean; tutorial?: Tutorial };
+  play?: { hud: Hud; hooks: SessionHooks; replay?: IntentLog; fog?: boolean; tutorial?: Tutorial; title?: string };
   /** Screen space (CSS pixels) to keep clear when fitting the map, e.g. behind the menu. */
   inset?: () => Inset;
 }
@@ -118,7 +119,7 @@ export class Session implements InputTarget {
       options.play.hud.show(this.me);
       options.play.hud.root.classList.toggle('replay', this.replay !== null);
       // The tutorial card explains the start itself.
-      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : t('Klick auf eine beliebige Stelle an Land, um dort zu starten.', 'Click anywhere on land to start there.'));
+      options.play.hud.setBanner(this.replay || options.play.tutorial ? '' : t(`${click} auf eine beliebige Stelle an Land, um dort zu starten.`, `${click} anywhere on land to start there.`));
       options.play.hud.pauseButton.addEventListener('click', this.onPauseButton);
       options.play.hud.centerButton.addEventListener('click', this.onCenterButton);
       options.play.hud.speedButton.addEventListener('click', this.onSpeedButton);
@@ -229,7 +230,7 @@ export class Session implements InputTarget {
     if (kind === 'ally') {
       if (tile < 0) return null;
       const o = game.owner[tile];
-      if (o === NEUTRAL || o === me.id) return t('Klick auf das Land eines anderen Spielers.', 'Click another player\'s land.');
+      if (o === NEUTRAL || o === me.id) return t(`${click} auf das Land eines anderen Spielers.`, `${click} another player's land.`);
       return null;
     }
     if (kind === 'warship') {
@@ -237,7 +238,7 @@ export class Session implements InputTarget {
       const afloat = game.warships.some((s) => s.owner === me.id);
       if (refusal === 'noPort' && !afloat) return t('Bau zuerst einen Hafen. Kriegsschiffe laufen von dort aus.', 'Build a port first. Warships sail from there.');
       if (refusal === 'gold' && !afloat) return t(`Ein Kriegsschiff kostet ${formatTroops(CONFIG.warship.cost)} Gold.`, `A warship costs ${formatTroops(CONFIG.warship.cost)} gold.`);
-      if (tile >= 0 && !game.isWater(tile)) return t('Klick aufs Wasser: dorthin fährt dein Kriegsschiff.', 'Click the water: your warship sails there.');
+      if (tile >= 0 && !game.isWater(tile)) return t(`${click} aufs Wasser: dorthin fährt dein Kriegsschiff.`, `${click} the water: your warship sails there.`);
       return null;
     }
     if (isMissile(kind)) {
@@ -297,15 +298,15 @@ export class Session implements InputTarget {
       defense: t('einen Bunker', 'a bunker'),
       silo: t('ein Raketensilo', 'a missile silo'),
     };
-    const cancel = t('Rechtsklick oder Esc bricht ab.', 'Right-click or Esc cancels.');
+    const cancel = touch ? t('Tippe das Werkzeug noch mal an, um abzubrechen.', 'Tap the tool again to cancel.') : t('Rechtsklick oder Esc bricht ab.', 'Right-click or Esc cancels.');
     hud.setBanner(
       kind === 'warship'
-        ? `${t('Klick aufs Wasser:', 'Click the water:')} ${this.game.canWarship(this.me) === null ? t('Ein neues Kriegsschiff läuft dorthin aus.', 'A new warship sails there.') : t('Dein nächstes Kriegsschiff fährt dorthin.', 'Your nearest warship heads there.')} ${cancel}`
+        ? `${t(`${click} aufs Wasser:`, `${click} the water:`)} ${this.game.canWarship(this.me) === null ? t('Ein neues Kriegsschiff läuft dorthin aus.', 'A new warship sails there.') : t('Dein nächstes Kriegsschiff fährt dorthin.', 'Your nearest warship heads there.')} ${cancel}`
         : kind === 'ally'
-        ? t(`Klick auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`, `Click a player\'s land to offer an alliance (or to end one). ${cancel}`)
+        ? t(`${click} auf das Land eines Spielers für ein Bündnis (oder um eins zu beenden). ${cancel}`, `${click} a player's land to offer an alliance (or to end one). ${cancel}`)
         : isMissile(kind)
-          ? t(`Klick auf ein Ziel für deine ${name}. ${cancel}`, `Click a target for your ${name}. ${cancel}`)
-          : t(`Klick auf dein Land, um ${building[kind]} zu bauen. ${cancel}`, `Click your land to build ${building[kind]}. ${cancel}`),
+          ? t(`${click} auf ein Ziel für deine ${name}. ${cancel}`, `${click} a target for your ${name}. ${cancel}`)
+          : t(`${click} auf dein Land, um ${building[kind]} zu bauen. ${cancel}`, `${click} your land to build ${building[kind]}. ${cancel}`),
     );
     hud.updateTools(this.game, this.me, this.tool);
   }
@@ -409,7 +410,7 @@ export class Session implements InputTarget {
     }
     if (game.phase !== 'play' || !me.alive) return;
     if (!game.isLand(tile)) {
-      hud.toast(t('Klick auf Land jenseits des Wassers. Boote brauchen einen Hafen.', 'Click land across the water. Boats need a port.'));
+      hud.toast(t(`${click} auf Land jenseits des Wassers. Boote brauchen einen Hafen.`, `${click} land across the water. Boats need a port.`));
       return;
     }
     const target = game.owner[tile];
@@ -478,7 +479,7 @@ export class Session implements InputTarget {
       const p = game.player(o);
       lines.push(o === me.id ? t(`${p.name} (du)`, `${p.name} (you)`) : p.name);
       lines.push(t(`${formatTroops(p.troops)} Truppen · ${formatShare(p.tiles / game.map.landTiles)} Land`, `${formatTroops(p.troops)} troops · ${formatShare(p.tiles / game.map.landTiles)} land`));
-      if (game.teammates(me.id, o)) lines.push(t('Dein Team: Klick schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds', 'Your team: click to send troops, alliance tool (H) gives a third of your gold'));
+      if (game.teammates(me.id, o)) lines.push(t(`Dein Team: ${touch ? 'Antippen' : 'Klick'} schickt Truppen, Bündnis-Werkzeug (H) ein Drittel deines Golds`, `Your team: ${click.toLowerCase()} to send troops, alliance tool (H) gives a third of your gold`));
       else if (game.allied(me.id, o)) lines.push(t(`Verbündet, noch ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`, `Allied for another ${formatClock((game.allianceEnds(me.id, o) - game.tick) / CONFIG.ticksPerSecond)}`));
       lines.push(ground);
     }
@@ -855,6 +856,47 @@ export class Session implements InputTarget {
     return data ? landChart(data) : null;
   }
 
+  /** What kind of match this was, for a shared result: the daily challenge's title, or the mode. */
+  private matchLabel(): string {
+    const s = this.game.settings;
+    const mode = s.royale
+      ? 'Battle Royale'
+      : s.conquest
+        ? t('Totale Eroberung', 'Total conquest')
+        : s.timeLimit > 0
+          ? t('Schnelles Spiel', 'Quick match')
+          : t('Klassisch', 'Classic');
+    return this.options.play?.title ?? mode;
+  }
+
+  /** The share button for a results card: a line about the match, plus the link. */
+  private shareAction(won: boolean): { label: string; run(): void } {
+    const label = this.matchLabel();
+    const time = this.matchTime();
+    const me = this.me!;
+    const place = me.place || this.game.players.filter((p) => p.alive && p.tiles > me.tiles).length + 1;
+    const total = this.game.players.length;
+    const text = won
+      ? this.game.teamGame
+        ? t(`🏆 Mein Team hat bei Landgrab gewonnen: ${label} in ${time}. Schafft ihr das schneller?`, `🏆 My team won at Landgrab: ${label} in ${time}. Can you beat that?`)
+        : t(`🏆 Ich habe bei Landgrab gewonnen: ${label} in ${time}. Schaffst du das schneller?`, `🏆 I won at Landgrab: ${label} in ${time}. Can you do it faster?`)
+      : t(`⚔️ Landgrab: Platz ${place} von ${total} (${label}). Schlag mich!`, `⚔️ Landgrab: place ${place} of ${total} (${label}). Beat me!`);
+    const shareLabel = t('Teilen', 'Share');
+    return {
+      label: shareLabel,
+      run: () => {
+        void share(text).then((result) => {
+          // The results card covers the toast, so the button itself says what happened.
+          const note = shareNote(result);
+          const button = [...document.querySelectorAll<HTMLButtonElement>('#overlay button')].find((b) => b.textContent === shareLabel);
+          if (!note || !button) return;
+          button.textContent = result === 'copied' ? t('Kopiert ✓', 'Copied ✓') : note;
+          window.setTimeout(() => (button.textContent = shareLabel), 2500);
+        });
+      },
+    };
+  }
+
   private showDefeat(by: number): void {
     const play = this.options.play!;
     this.defeatShown = true;
@@ -871,6 +913,7 @@ export class Session implements InputTarget {
       extra: this.chart(),
       actions: [
         { label: t('Nochmal spielen', 'Play again'), primary: true, run: () => play.hooks.playAgain() },
+        this.shareAction(false),
         { label: t('Weiter zuschauen', 'Keep watching'), run: () => play.hud.hideOverlay() },
         { label: t('Wiederholung', 'Replay'), run: () => play.hooks.replay(this.game.log.slice()) },
         { label: t('Menü', 'Menu'), run: () => play.hooks.menu() },
@@ -910,15 +953,15 @@ export class Session implements InputTarget {
       text = timed ? t(`Die Zeit ist um. Dir gehören ${share} des Landes.`, `Time\'s up. You hold ${share} of the land.`) : t(`Nach ${this.matchTime()} gehören dir ${share} des Landes.`, `After ${this.matchTime()} you hold ${share} of the land.`);
     } else {
       eyebrow = me.alive ? t('Niederlage', 'Defeat') : t('Partie vorbei', 'Match over');
-      title = `${winner.name} gewinnt`;
+      title = t(`${winner.name} gewinnt`, `${winner.name} wins`);
       text = timed
         ? t(`Die Zeit ist um. ${winner.name} gehören ${share} des Landes.`, `Time\'s up. ${winner.name} holds ${share} of the land.`)
         : t(`${winner.name} hat nach ${this.matchTime()} ${share} des Landes erobert.`, `${winner.name} conquered ${share} of the land in ${this.matchTime()}.`);
     }
+    const won = winnerId === me.id || (this.game.teamGame && winner.team === me.team);
     if (this.replay) eyebrow = t('Ende der Wiederholung', 'End of the replay');
     else if (!this.resultReported) {
       this.resultReported = true;
-      const won = winnerId === me.id || (this.game.teamGame && winner.team === me.team);
       const note = play.hooks.result?.(won, this.game.tick / CONFIG.ticksPerSecond);
       if (note) text = `${text} ${note}`;
     }
@@ -930,6 +973,7 @@ export class Session implements InputTarget {
       extra: this.chart(),
       actions: [
         { label: t('Nochmal spielen', 'Play again'), primary: true, run: () => play.hooks.playAgain() },
+        ...(this.replay ? [] : [this.shareAction(won)]),
         { label: this.replay ? t('Nochmal ansehen', 'Watch again') : t('Wiederholung', 'Replay'), run: () => play.hooks.replay((this.replay ?? this.game.log).slice()) },
         { label: t('Menü', 'Menu'), run: () => play.hooks.menu() },
       ],

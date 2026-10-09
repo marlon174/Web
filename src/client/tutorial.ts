@@ -1,6 +1,8 @@
 import { NEUTRAL, type Game, type Player } from '../core/game';
 import { byId } from './hud';
-import { t } from './i18n';
+import { click, t, touch } from './i18n';
+
+const tap = click.toLowerCase();
 
 interface Step {
   title: string;
@@ -12,27 +14,29 @@ interface Step {
 const STEPS: Step[] = [
   {
     title: t('Startpunkt wählen', 'Pick a start'),
-    text: t('Klick auf eine Stelle an Land, am besten auf grüne Wiese. Dort beginnt dein Reich.', 'Click a spot on land, ideally green meadow. Your empire starts there.'),
+    text: t(`${click} auf eine Stelle an Land, am besten auf grüne Wiese. Dort beginnt dein Reich.`, `${click} a spot on land, ideally green meadow. Your empire starts there.`),
     done: (_, me) => me.spawned,
   },
   {
     title: t('Ausbreiten', 'Expand'),
-    text: t('Klick auf das freie Land neben deinem Gebiet. Deine Truppen erobern es Feld für Feld.', 'Click the empty land next to your territory. Your troops take it tile by tile.'),
+    text: t(`${click} auf das freie Land neben deinem Gebiet. Deine Truppen erobern es Feld für Feld.`, `${click} the empty land next to your territory. Your troops take it tile by tile.`),
     done: (_, me) => me.tiles >= 150,
   },
   {
     title: t('Mehr Truppen schicken', 'Send more troops'),
-    text: t('Der Regler „Senden“ unten bestimmt, wie viele Truppen ein Klick losschickt. Stell ihn höher und klick wieder auf freies Land.', 'The Send slider below sets how many troops a click sends. Turn it up and click empty land again.'),
+    text: t(`Der Regler „Senden“ unten bestimmt, wie viele Truppen ${touch ? 'jedes Antippen' : 'ein Klick'} losschickt. Stell ihn höher und ${tap} wieder auf freies Land.`, `The Send slider below sets how many troops a ${tap} sends. Turn it up and ${tap} empty land again.`),
     done: (_, me) => me.tiles >= 500,
   },
   {
     title: t('Eine Stadt bauen', 'Build a city'),
-    text: t('Drück Q oder tippe unten auf „Stadt“, dann klick auf dein Land. Städte erhöhen, wie viele Truppen du haben kannst.', 'Press Q or tap City below, then click your land. Cities raise how many troops you can hold.'),
+    text: touch
+      ? t('Tippe unten auf „Stadt“, dann auf dein Land. Städte erhöhen, wie viele Truppen du haben kannst.', 'Tap City below, then your land. Cities raise how many troops you can hold.')
+      : t('Drück Q oder klick unten auf „Stadt“, dann auf dein Land. Städte erhöhen, wie viele Truppen du haben kannst.', 'Press Q or click City below, then your land. Cities raise how many troops you can hold.'),
     done: (_, me) => me.owned.city >= 1,
   },
   {
     title: t('Angreifen', 'Attack'),
-    text: t('Breite dich weiter aus, bis du an einen Nachbarn grenzt. Dann klick auf sein Land. Je mehr Truppen du schickst, desto schneller geht es (⚡).', 'Keep expanding until you border a neighbour, then click their land. The more troops you send, the faster it goes (⚡).'),
+    text: t(`Breite dich weiter aus, bis du an einen Nachbarn grenzt. Dann ${tap} auf sein Land. Je mehr Truppen du schickst, desto schneller geht es (⚡).`, `Keep expanding until you border a neighbour, then ${tap} their land. The more troops you send, the faster it goes (⚡).`),
     done: (game, me) => game.attacks.some((a) => a.attacker === me.id && a.target !== NEUTRAL),
   },
 ];

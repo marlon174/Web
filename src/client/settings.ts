@@ -72,12 +72,16 @@ export function uiScale(): number {
 
 /** Below this width (in unscaled CSS pixels) the corner panels leave no room for the banner between them. */
 const CRAMPED_WIDTH = 1000;
+/** On phones the corner panels shrink to a slim row (the same query as in style.css), so less width will do. */
+const COMPACT = '(max-width: 640px), (max-height: 500px)';
+const CRAMPED_WIDTH_COMPACT = 800;
 
 function apply(settings: Settings): void {
   const root = document.documentElement;
   root.style.setProperty('--ui', String(settings.uiScale));
   sound.setVolume(settings.volume);
-  root.classList.toggle('ui-cramped', window.innerWidth / settings.uiScale < CRAMPED_WIDTH);
+  const roomy = matchMedia(COMPACT).matches ? CRAMPED_WIDTH_COMPACT : CRAMPED_WIDTH;
+  root.classList.toggle('ui-cramped', window.innerWidth / settings.uiScale < roomy);
   for (const [, key, hideClass] of TOGGLES) root.classList.toggle(hideClass, !settings[key]);
 }
 

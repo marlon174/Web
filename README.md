@@ -11,6 +11,7 @@ npm install
 npm run dev        # play at http://localhost:5173
 npm test           # simulation tests
 npm run build      # typecheck and build a static site into dist/
+npm run itch       # build and zip it for itch.io (landgrab-itch.zip)
 npm run sim        # play a bots-only match in the terminal: npm run sim -- [seed] [bots] [easy|normal|hard] [small|medium|large]
 ```
 

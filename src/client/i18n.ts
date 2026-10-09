@@ -34,6 +34,12 @@ export function setLang(next: Lang): void {
   location.reload();
 }
 
+/** Phones and tablets: instructions say tap, and there is no right-click or Esc to mention. */
+export const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
+/** The verb that opens an instruction: Klick/Click, or Tippe/Tap on a touch screen. */
+export const click = touch ? t('Tippe', 'Tap') : t('Klick', 'Click');
+
 /** Number formatting for the current language: 1.234 / 1,234 and 7,5 / 7.5. */
 export const decimal = lang === 'en' ? '.' : ',';
 export const locale = lang === 'en' ? 'en-US' : 'de-DE';

@@ -78,6 +78,8 @@ export class Hud {
   readonly centerButton = byId<HTMLButtonElement>('center-button');
   readonly speedButton = byId<HTMLButtonElement>('speed-button');
   private toastTimer = 0;
+  /** Each feed message's pending fade and removal. */
+  private readonly fades = new WeakMap<HTMLElement, number[]>();
   private readonly offerEl = byId('offer');
   private readonly offerText = byId('offer-text');
   /** Player whose alliance offer is on screen, or 0. */
@@ -94,6 +96,16 @@ export class Hud {
       const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-target]');
       if (li) this.onRecall(Number(li.dataset.target));
     });
+    // The bottom bar grows a row with each line of attacks; whatever sits above it (the clock and
+    // banner on narrow screens, the toasts) follows its measured height.
+    const bottom = this.root.querySelector<HTMLElement>('.bottom-center')!;
+    const center = this.root.querySelector<HTMLElement>('.top-center')!;
+    const measure = new ResizeObserver(() => {
+      this.root.style.setProperty('--bottom-h', `${bottom.offsetHeight}px`);
+      this.root.style.setProperty('--center-h', `${center.offsetHeight}px`);
+    });
+    measure.observe(bottom);
+    measure.observe(center);
     const bar = byId('tools');
     TOOLS.forEach((tool, i) => {
       const button = document.createElement('button');
@@ -190,13 +202,13 @@ export class Hud {
         const afloat = game.warships.some((s) => s.owner === me.id);
         const refusal = game.canWarship(me);
         ready &&= refusal === null || afloat;
-        button.querySelector('.tool-cost')!.textContent = refusal === 'limit' ? 'lenken' : formatTroops(CONFIG.warship.cost);
+        button.querySelector('.tool-cost')!.textContent = refusal === 'limit' ? t('lenken', 'steer') : formatTroops(CONFIG.warship.cost);
       } else {
         const missile = isMissile(kind);
         const cost = missile ? game.missileCost(kind) : game.buildCost(me, kind);
         const full = !missile && me.owned[kind] >= game.buildLimit(me, kind);
         ready &&= !full && me.gold >= cost && (!missile || game.readySilos(me) > 0);
-        button.querySelector('.tool-cost')!.textContent = full ? 'voll' : formatTroops(cost);
+        button.querySelector('.tool-cost')!.textContent = full ? t('voll', 'full') : formatTroops(cost);
       }
       button.classList.toggle('locked', !ready);
       button.classList.toggle('active', kind === active);
@@ -281,7 +293,7 @@ export class Hud {
       const li = document.createElement('li');
       li.className = 'incoming';
       const seconds = Math.max(0, Math.ceil((m.arrives - game.tick) / CONFIG.ticksPerSecond));
-      li.textContent = `${MISSILE_NAMES[m.kind]} von ${game.player(m.owner).name} · ${seconds} s`;
+      li.textContent = t(`${MISSILE_NAMES[m.kind]} von ${game.player(m.owner).name} · ${seconds} s`, `${MISSILE_NAMES[m.kind]} from ${game.player(m.owner).name} · ${seconds} s`);
       items.push(li);
     }
     for (const a of game.attacks) {
@@ -336,17 +348,36 @@ export class Hud {
     text = text.charAt(0).toUpperCase() + text.slice(1);
     if (tone === 'good' || tone === 'bad') sound.play(tone);
     if (tone === 'award') sound.play('alliance');
-    const li = document.createElement('li');
-    li.className = tone;
-    const span = document.createElement('span');
-    span.textContent = text;
-    li.append(span);
-    this.feed.prepend(li);
-    while (this.feed.children.length > FEED_LIMIT) this.feed.lastElementChild?.remove();
     // Tips stay up long enough to read.
     const ms = tone === 'tip' || tone === 'award' ? FEED_MS * 2 : FEED_MS;
-    window.setTimeout(() => li.classList.add('fading'), ms);
-    window.setTimeout(() => li.remove(), ms + 700);
+    // The same news again (three bunkers in a row): count it on the message already there.
+    const top = this.feed.firstElementChild as HTMLLIElement | null;
+    if (top && top.dataset.text === text && top.classList.contains(tone)) {
+      const count = Number(top.dataset.count) + 1;
+      top.dataset.count = String(count);
+      top.querySelector('.count')!.textContent = `×${count}`;
+      top.classList.remove('fading');
+      this.fadeLater(top, ms);
+      return;
+    }
+    const li = document.createElement('li');
+    li.className = tone;
+    li.dataset.text = text;
+    li.dataset.count = '1';
+    const span = document.createElement('span');
+    span.textContent = text;
+    const count = document.createElement('b');
+    count.className = 'count';
+    li.append(span, count);
+    this.feed.prepend(li);
+    while (this.feed.children.length > FEED_LIMIT) this.feed.lastElementChild?.remove();
+    this.fadeLater(li, ms);
+  }
+
+  /** Fades a message out after `ms`, replacing any earlier countdown. */
+  private fadeLater(li: HTMLElement, ms: number): void {
+    for (const id of this.fades.get(li) ?? []) window.clearTimeout(id);
+    this.fades.set(li, [window.setTimeout(() => li.classList.add('fading'), ms), window.setTimeout(() => li.remove(), ms + 700)]);
   }
 
   toast(text: string): void {
@@ -383,7 +414,7 @@ export class Hud {
     });
     this.overlayActions.replaceChildren(...buttons);
     this.overlay.hidden = false;
-    buttons.find((_, i) => content.actions[i].primary)?.focus();
+    buttons.find((_, i) => content.actions[i].primary)?.focus({ preventScroll: true });
   }
 
   /** A card under the clock: another player offers you an alliance. */
@@ -395,7 +426,7 @@ export class Hud {
     chip.style.setProperty('--c', toHex(from.color));
     const name = document.createElement('strong');
     name.textContent = from.name;
-    this.offerText.append(chip, name, t(` bietet dir ein Bündnis an (${seconds} s)`, ` offers you an alliance (${seconds} s)`));
+    this.offerText.append(chip, name, t(` bietet dir ein Bündnis an (${seconds}\u00a0s)`, ` offers you an alliance (${seconds}\u00a0s)`));
     this.offerEl.hidden = false;
   }
 
