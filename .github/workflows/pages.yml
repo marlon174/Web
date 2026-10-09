@@ -30,8 +30,10 @@ jobs:
         with:
           path: dist
 
+  # Only main may publish the site; other branches just build and test.
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
